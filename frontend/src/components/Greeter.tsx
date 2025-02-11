@@ -72,7 +72,7 @@ export function Greeter(): ReactElement {
     }
 
     async function getGreeting(greeterContract: Contract): Promise<void> {
-      const _greeting = await greeterContract.greet();
+      const _greeting = await greeterContract.getGreeting();
 
       if (_greeting !== greeting) {
         setGreeting(_greeting);
@@ -102,7 +102,7 @@ export function Greeter(): ReactElement {
 
         await greeterContract.deployed();
 
-        const greeting = await greeterContract.greet();
+        const greeting = await greeterContract.getGreeting();
 
         setGreeterContract(greeterContract);
         setGreeting(greeting);
@@ -144,7 +144,7 @@ export function Greeter(): ReactElement {
 
         await setGreetingTxn.wait();
 
-        const newGreeting = await greeterContract.greet();
+        const newGreeting = await greeterContract.getGreeting();
         window.alert(`Success!\n\nGreeting is now: ${newGreeting}`);
 
         if (newGreeting !== greeting) {
