@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { NavigationBar } from "./NavigationBar";
+import { Header } from "./Header";
 import { ProductCard } from "./ProductCard";
 
 export default function MainPage() {
@@ -34,7 +34,7 @@ export default function MainPage() {
 
   return (
     <main>
-      <NavigationBar />
+      <Header />
       <section className="flex flex-col gap-16 p-16 bg-white max-sm:gap-8 max-sm:p-6">
         {products.map((product, index) => (
           <ProductCard
