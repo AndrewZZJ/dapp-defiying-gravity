@@ -24,36 +24,43 @@ export const ClaimForm: React.FC = () => {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="p-6 w-80 bg-white rounded-lg border border-solid border-neutral-200 max-md:w-full max-md:max-w-xs"
-    >
-      <FormInput
-        label="Incident Name"
-        value={formData.incidentName}
-        onChange={(value) => updateField("incidentName", value)}
-      />
-      <FormInput
-        label="Date of Occurence"
-        value={formData.dateOfOccurrence}
-        onChange={(value) => updateField("dateOfOccurrence", value)}
-      />
-      <FormInput
-        label="Incident Location"
-        value={formData.incidentLocation}
-        onChange={(value) => updateField("incidentLocation", value)}
-      />
-      <FormInput
-        label="Claim Amount"
-        value={formData.claimAmount}
-        onChange={(value) => updateField("claimAmount", value)}
-      />
-      <button
-        type="submit"
-        className="w-full p-3 text-base text-center rounded-lg cursor-pointer bg-stone-900 text-neutral-100 hover:bg-stone-800"
-      >
-        Submit
-      </button>
-    </form>
+    <div className="w-full min-h-screen bg-gray-50 flex justify-center py-4">
+      <section className="flex flex-col gap-0 w-full max-w-md px-4 py-4">
+        <article className="p-4 bg-white rounded-lg border border-solid border-[#e5e7eb]">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <FormInput
+              label="Incident Name"
+              value={formData.incidentName}
+              onChange={(value) => updateField("incidentName", value)}
+              className="mb-2"
+            />
+            <FormInput
+              label="Date of Occurrence"
+              value={formData.dateOfOccurrence}
+              onChange={(value) => updateField("dateOfOccurrence", value)}
+              className="mb-2"
+            />
+            <FormInput
+              label="Incident Location"
+              value={formData.incidentLocation}
+              onChange={(value) => updateField("incidentLocation", value)}
+              className="mb-2"
+            />
+            <FormInput
+              label="Claim Amount"
+              value={formData.claimAmount}
+              onChange={(value) => updateField("claimAmount", value)}
+              className="mb-2"
+            />
+            <button
+              type="submit"
+              className="w-full p-3 text-base text-center rounded-lg cursor-pointer bg-black text-white hover:bg-gray-800"
+            >
+              Submit
+            </button>
+          </form>
+        </article>
+      </section>
+    </div>
   );
 };

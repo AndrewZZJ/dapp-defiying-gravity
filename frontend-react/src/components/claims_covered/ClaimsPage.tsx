@@ -1,6 +1,6 @@
 "use client";
-import { Header } from "./Header";
-import { ClaimsHeader } from "./ClaimsHeader";
+import { NavigationHeader } from "../navigation/AppNavigationHeader";
+import { ClaimsHeader } from "../claims_buying/ClaimsHeader";
 import { ClaimsList } from "./ClaimsList";
 
 export const ClaimsPage = () => {
@@ -11,7 +11,7 @@ export const ClaimsPage = () => {
         rel="stylesheet"
       />
       <main className="w-full min-h-screen bg-white">
-        <Header />
+        <NavigationHeader />
         <section className="flex flex-col items-center p-6 bg-gray-50 min-h-[782px]">
           <ClaimsHeader />
           <ClaimsList />

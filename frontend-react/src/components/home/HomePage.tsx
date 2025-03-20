@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Header } from "./Header";
+import { Header } from "../navigation/Header";
 import { Hero } from "./Hero";
 import { TestimonialsSection } from "./TestimonialsSection";
 

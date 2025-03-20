@@ -1,12 +1,12 @@
 "use client";
 import React from "react";
-import { Header } from "./Header";
+import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { ClaimsContent } from "./ClaimsContent";
 
 const PendingOracle: React.FC = () => {
   return (
     <div className="overflow-hidden bg-zinc-800">
-      <Header />
+      <NavigationHeader />
       <ClaimsContent />
     </div>
   );

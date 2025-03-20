@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { HeaderNav } from "./HeaderNav";
+import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { CreatePoolForm } from "./CreatePoolForm";
 
 const InputDesign: React.FC = () => {
@@ -11,7 +11,7 @@ const InputDesign: React.FC = () => {
         rel="stylesheet"
       />
       <div className="min-h-screen bg-[color:var(--sds-color-background-brand-default)]">
-        <HeaderNav />
+        <NavigationHeader />
         <CreatePoolForm />
       </div>
     </>

@@ -22,7 +22,9 @@ export const Header: React.FC = () => {
           <NavigationPill to="/about" active={location.pathname === "/about"}>About Us</NavigationPill>
           <NavigationPill to="/contact-us" active={location.pathname === "/contact-us"}>Contact Us</NavigationPill>
         </nav>
-        <Button className="w-[178px]">Open App</Button>
+        <Link to="/dashboard" className="w-[178px]">
+          <Button>Open App</Button>
+        </Link>
       </div>
     </header>
   );
