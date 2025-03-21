@@ -100,6 +100,11 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
         return tokenId;
     }
 
+    // External function to mint a new NFT to InsurancePool
+    function mintToPool(address poolAddress, string memory tokenURI) external onlyOwner returns (uint256) {
+        return _mintNFT(poolAddress, tokenURI);
+    }
+
     /// @notice Starts an auction for a newly minted NFT. Only the owner may call.
     function startAuction(string memory tokenURI) external onlyOwner returns (uint256) {
         uint256 tokenId = _mintNFT(address(this), tokenURI);
