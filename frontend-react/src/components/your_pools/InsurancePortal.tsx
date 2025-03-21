@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { NavigationHeader } from "./NavigationHeader";
+import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { PoolsSection } from "./PoolsSection";
 
 export const InsurancePortal: React.FC = () => {

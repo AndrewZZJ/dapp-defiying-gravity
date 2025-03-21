@@ -1,36 +1,25 @@
-"use client";
-import * as React from "react";
+import { Link } from "react-router-dom";
 
-interface Tab {
-  id: string;
-  label: string;
-}
-
-export const ClaimsHeader: React.FC = () => {
-  const [activeTab, setActiveTab] = React.useState("covers");
-
-  const tabs: Tab[] = [
-    { id: "covers", label: "Your Covers" },
-    { id: "buy", label: "Buy Covers" },
-  ];
-
+export const ClaimsHeader = () => {
   return (
-    <section className="flex flex-col items-center">
-      <h1 className="mb-8 text-7xl font-bold text-neutral-950 max-md:text-5xl max-sm:text-4xl">
+    <div className="flex flex-col items-center">
+      <h1 className="mb-8 text-7xl font-bold tracking-tighter text-neutral-950 max-sm:text-5xl">
         Claims
       </h1>
-      <div className="flex gap-4 mb-8 max-md:flex-col">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-1 text-3xl border-b border-solid cursor-pointer border-b-neutral-200 text-neutral-500 max-sm:text-2xl
-              ${activeTab === tab.id ? "border-b-neutral-950" : ""}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-    </section>
+      <nav className="flex gap-4 mb-8 max-sm:flex-col max-sm:items-center">
+      <Link
+          to="/claims-covered"
+          className="px-3 py-1 text-3xl border-b border-solid cursor-pointer border-b-neutral-500 text-neutral-500 max-sm:text-2xl hover:text-neutral-700"
+        >
+          Your Covers
+        </Link>
+        <Link
+          to="/claims-buying"
+          className="px-3 py-1 text-3xl border-b border-solid cursor-pointer border-b-neutral-500 text-neutral-500 max-sm:text-2xl hover:text-neutral-700"
+        >
+          Buy Covers
+        </Link>
+      </nav>
+    </div>
   );
 };

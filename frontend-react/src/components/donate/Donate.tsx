@@ -1,13 +1,13 @@
 "use client";
 
-import { Header } from "./Header";
+import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { DonationForm } from "./DonationForm";
 import { OverviewPanel } from "./OverviewPanel";
 
 function Donate() {
   return (
     <main className="overflow-hidden bg-zinc-800">
-      <Header />
+      <NavigationHeader />
 
       <section className="flex relative flex-col items-start px-20 pt-20 pb-40 w-full min-h-[782px] max-md:px-5 max-md:pb-24 max-md:max-w-full">
         <img

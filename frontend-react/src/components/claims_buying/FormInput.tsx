@@ -5,15 +5,17 @@ interface FormInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  className?: string; // Add className prop
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
   label,
   value,
   onChange,
+  className, // Destructure className prop
 }) => {
   return (
-    <div className="mb-6">
+    <div className={`mb-6 ${className}`}>
       <label className="mb-2 text-base text-stone-900 block">{label}</label>
       <input
         type="text"

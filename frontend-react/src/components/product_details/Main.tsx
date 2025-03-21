@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Header } from "./Header";
+import { Header } from "../navigation/Header";
 import { ProductCard } from "./ProductCard";
 
 export default function MainPage() {
