@@ -89,6 +89,10 @@ contract GraviDAO is Governor,
         return super.proposalNeedsQueuing(proposalId);
     }
 
+    function verifyAndApproveClaim(bytes32 /*policyId*/) external pure returns (bool) {
+        return true; // stub for now
+    }
+
     function _queueOperations(
         uint256 proposalId,
         address[] memory targets,
