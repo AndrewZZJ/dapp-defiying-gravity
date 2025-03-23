@@ -29,8 +29,10 @@ contract GraviInsurance is Ownable {
     mapping(bytes32 => Policy) public policies;
     // Maps users to a list of their policyIds
     mapping(address => bytes32[]) public userPolicyIds;
-    // track contribution per user
+    // track total contribution per user
     mapping(address => uint256) public donorTotals;
+    // track donors
+    address[] public donors; //keep an array to track donors because map in solidity is not iterable
 
     // Stores tokenIds of NFTs minted by this contract
     uint256[] public nftTokenIds;
@@ -120,6 +122,10 @@ contract GraviInsurance is Ownable {
         require(msg.value > 0, "Must send ETH");
         totalPoolFunds += msg.value;
 
+        // If it's a new donor, add them to the array
+        if (donorTotals[msg.sender] == 0) {
+            donors.push(msg.sender);
+        }
         // Track total donations per user
         donorTotals[msg.sender] += msg.value;
 
@@ -150,4 +156,22 @@ contract GraviInsurance is Ownable {
     function getOwnedNFTs() external view returns (uint256[] memory) {
         return nftTokenIds;
     }
+
+    /// @notice Returns the list of all donors and their total donated amounts
+    /// @dev Returns two parallel arrays: addresses and amounts
+    ///      - addresses[i] corresponds to amounts[i]
+    ///      - Sorting is not done here due to gas cost — sort on the frontend
+    function getAllDonors() external view returns (address[] memory, uint256[] memory) {
+        uint256 len = donors.length;
+        address[] memory addresses = new address[](len);
+        uint256[] memory amounts = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++) {
+            addresses[i] = donors[i];
+            amounts[i] = donorTotals[donors[i]];
+        }
+
+        return (addresses, amounts);
+    }
+
 }
