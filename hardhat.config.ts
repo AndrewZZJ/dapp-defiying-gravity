@@ -2,7 +2,15 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.28",
+  solidity: {
+    version: "0.8.28",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200  // Experiment with lower runs values if size reduction is a priority.
+      }
+    }
+  },
   paths: {
     sources: "./contracts",
     tests: "./test",
@@ -12,7 +20,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 31337,
-      blockConformations: 1,
+      // blockConformations: 1,
       allowUnlimitedContractSize: true
     },
     sepolia: {
@@ -21,11 +29,11 @@ const config: HardhatUserConfig = {
       accounts: ['0xe5de0b39489ccf3d1f315599b957b01f2f007c8e7f59081bde13b4c4441a3bca']
     }
   },
-  namedAccounts:{
-    deployer: {
-      default: 0
-    }
-  }
+  // namedAccounts:{
+  //   deployer: {
+  //     default: 0
+  //   }
+  // }
 };
 
 export default config;

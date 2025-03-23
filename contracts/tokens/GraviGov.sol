@@ -2,11 +2,6 @@
 pragma solidity ^0.8.28;
 
 // References: https://docs.openzeppelin.com/contracts/5.x/governance
-
-interface IGraviCha {
-    function mint(address to, uint256 amount) external;
-}
-
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -14,26 +9,39 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+// Interfaces
+import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
+import {IGraviDAO} from "../interfaces/IGraviDAO.sol";
+
 contract GraviGov is ERC20, ERC20Permit, ERC20Votes, ERC20Burnable, Ownable {
     uint256 public constant MONTHLY_MINT = 10000 * 10 ** 18;
     uint256 public lastMintTimestamp;
 
-    // Charity token exchange rate.
+    // Charity token exchange rate. Can be updated by the owner.
     uint256 public charityTokenExchangeRate = 1000; // 1 GGOV = 1000 CHARITY
 
     // The charity token used for minting.
     IGraviCha public charityToken;
 
+    // The dao address is the owner of the GraviGov token.
+    address public dao;
+
     constructor(
+        address _dao,
         address _charityToken
-    ) ERC20("GraviGov", "GGOV") ERC20Permit("GraviGov") Ownable(msg.sender) {
+    ) ERC20("GraviGov", "GGOV") ERC20Permit("GraviGov") Ownable(_dao) {
         lastMintTimestamp = block.timestamp;
         charityToken = IGraviCha(_charityToken);
+        dao = _dao;
     }
 
-    // Now at any time a holder of the GraviGov token can burn it to receive charity tokens.
-    function burnToCharityTokens(uint256 amount) external {
-        _burn(msg.sender, amount);
+    // Now at any time a holder of the GraviGov token can convert tokens
+    // to charity token by putting it back to the dao token pool
+    function convertToCharityTokens(uint256 amount) external {
+        // _burn(msg.sender, amount);
+        // Todo: send all the tokens to the GraviDAO pool
+        // dao.transfer(amount);
+
         charityToken.mint(msg.sender, amount * charityTokenExchangeRate);
     }
 

@@ -1,12 +1,13 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./toekns/GraviCha.sol";
+// interaces
+import {IGraviCha} from "./interfaces/tokens/IGraviCha.sol";
+import {IGraviPoolNFT} from "./interfaces/tokens/IGraviPoolNFT.sol";
 
-
-contract InsurancePool is Ownable {
+contract GraviInsurance is Ownable {
     struct Policy {
         address policyHolder;
         uint256 coverageAmount;
@@ -18,13 +19,13 @@ contract InsurancePool is Ownable {
     string public disasterType;
     uint256 public premiumRate; // e.g., 5% of coverage amount
     uint256 public totalPoolFunds; //Total funds available for payouts
-    GraviCha public graviCha;
+    IGraviCha public graviCha;
 
     
     // The Ownership of the NFT is tracked by the GraviPoolNFT contract itself
     // optional: if we want pool to keep track of the NFTs it owns
     uint256[] public nftTokenIds;
-    GraviPoolNFT public graviPoolNFT;
+    IGraviPoolNFT public graviPoolNFT;
 
 
     mapping(address => Policy) public policies; //A map storing each user's insurance policy
@@ -38,13 +39,12 @@ contract InsurancePool is Ownable {
         uint256 _premiumRate,
         address _graviCha,
         address _graviPoolNFT
-    ) {
+    ) Ownable(msg.sender) {
         disasterType = _disasterType;
         premiumRate = _premiumRate;
-        graviCha = GraviCha(_graviCha);
-        graviPoolNFT = GraviPoolNFT(_graviPoolNFT);
+        graviCha = IGraviCha(_graviCha);
+        graviPoolNFT = IGraviPoolNFT(_graviPoolNFT);
     }
-
 
     function buyInsurance(uint256 coverageAmount) external payable {
         require(policies[msg.sender].coverageAmount == 0, "Already insured");
@@ -74,7 +74,7 @@ contract InsurancePool is Ownable {
     }
 
     function donate() external payable onlyOwner {
-        require(msg.value > 0, "Donate amount must larger than 0ETH"");
+        require(msg.value > 0, "Donate amount must larger than 0ETH");
         totalPoolFunds += msg.value;
 
         // Todo: the owner of the Gravicha need to add InsurancePool as a minter
