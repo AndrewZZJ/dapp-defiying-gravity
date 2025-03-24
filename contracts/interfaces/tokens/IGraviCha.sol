@@ -16,4 +16,13 @@ interface IGraviCha is IERC20, IAccessControl {
 
     /// @notice Mints new tokens for rewarding charitable actions. Only authorized minters can call.
     function mint(address to, uint256 amount) external;
+
+    /// @notice Burns a specific amount of tokens.
+    function burn(uint256 value) external;
+    
+    /// @notice Burns a specific amount of tokens from the target address and decrements allowance.
+    function burnFrom(address account, uint256 value) external;
+
+    /// @notice Burns a specific amount of tokens from the target address and decrements allowance, by owner (DAO).
+    function burnFromByOwner(address account, uint256 value) external;
 }

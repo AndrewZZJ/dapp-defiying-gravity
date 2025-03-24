@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract GraviCha is ERC20, Ownable, ERC20Burnable, AccessControl {
+contract GraviCha is ERC20, Ownable, AccessControl {
     mapping(address => bool) public minters;
 
-    constructor() ERC20("GraviCha", "GCHA") Ownable(msg.sender) {
-        // Owner is automatically added as a minter.
-        minters[msg.sender] = true;
-    }
+    constructor() ERC20("GraviCha", "GCHA") Ownable(msg.sender) {}
 
     modifier onlyMinter() {
         require(minters[msg.sender], "GraviCha: Not authorized to mint");
@@ -31,5 +27,21 @@ contract GraviCha is ERC20, Ownable, ERC20Burnable, AccessControl {
     /// @notice Mint new tokens for rewarding charitable actions.
     function mint(address to, uint256 amount) external onlyMinter {
         _mint(to, amount);
+    }
+
+    /// @notice Burn a specific amount of tokens.
+    function burn(uint256 value) external {
+        _burn(msg.sender, value);
+    }
+
+    /// @notice Burn a specific amount of tokens from the target address and decrement allowance.
+    function burnFrom(address account, uint256 value) external {
+        _spendAllowance(account, _msgSender(), value);
+        _burn(account, value);
+    }
+
+    /// @notice Burn a specific amount of tokens from the target address, by owner (DAO).
+    function burnFromByOwner(address account, uint256 value) external onlyOwner {
+        _burn(account, value);
     }
 }

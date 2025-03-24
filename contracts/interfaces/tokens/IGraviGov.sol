@@ -30,4 +30,7 @@ interface IGraviGov is IERC20, IERC20Permit {
     
     /// @notice Returns the owner address.
     function owner() external view returns (address);
+
+    /// @notice Mints new tokens for rewarding charitable actions. Only authorized minters can call.
+    function mint(address to, uint256 amount) external;
 }

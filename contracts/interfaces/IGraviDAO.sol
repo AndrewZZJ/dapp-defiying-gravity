@@ -4,25 +4,91 @@ pragma solidity ^0.8.28;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 interface IGraviDAO is IGovernor {
-    /// @notice Returns the delay before voting starts.
-    function monthlyMint() external pure returns (uint256);
+    // Time utility functions
+    function lastGoveMintTime() external view returns (uint256);
+    function lastNFTPoolMintTime() external view returns (uint256);
 
-    // /// @notice Returns the voting period.
-    // function votingPeriod() external pure returns (uint256);
+    // Governance and Token Management
+    function monthlyMintGovTokens() external;
+    function purchaseGovTokens(uint256 amount) external payable;
+    function getGovTokenPoolBalance() external view returns (uint256);
 
-    // /// @notice Returns the proposal threshold.
-    // function proposalThreshold() external pure returns (uint256);
+    function setGovTokenEthPrice(uint256 newPrice) external;
+    function setGovTokenGraviChaBurn(uint256 newBurnAmount) external;
+    function setMonthlyGovMintAmount(uint256 newAmount) external;
 
-    // /// @notice Returns the state of a proposal.
-    // /// @param proposalId The proposal identifier.
-    // function state(uint256 proposalId) external view returns (ProposalState);
+    // Insurance and NFT Pool Management
+    function addInsuranceAndNFTPool(
+        string memory poolName, 
+        address insurancePool, 
+        address nftPool
+    ) external;
+    function removeInsuranceAndNFTPool(string memory poolName) external;
+    function getPoolAddresses(string memory poolName) external view returns (address insurancePoolAddress, address nftPoolAddress);
+    function getAllInsurancePoolNames() external view returns (string[] memory);
+    function monthlyMintNFTForPool(string memory poolName, string[] calldata tokenURIs) external;
+    function moveEtherFromInsurance(
+        string memory insuranceName, 
+        address payable recipient, 
+        uint256 amount
+    ) external;
 
-    // /// @notice Indicates whether a proposal needs queuing.
-    // /// @param proposalId The proposal identifier.
-    // function proposalNeedsQueuing(uint256 proposalId) external view returns (bool);
+    // Disaster Event Recording and Management
+    function recordDisasterEvent(
+        string memory insuranceName,
+        string memory eventName,
+        string memory eventDescription,
+        string[] calldata approvedCities,
+        string[] calldata approvedProvinces,
+        string calldata approvedCountry,
+        string calldata autoPayoutGranularity,
+        uint256 disasterDate,
+        uint256 donationAmount,
+        address[] calldata initialModerators
+    ) external;
+    function updateDonationAmount(
+        string memory insuranceName,
+        string memory eventId,
+        uint256 newDonationAmount
+    ) external;
+    function modifyDisasterEvent(
+        string memory insuranceName,
+        string memory eventId,
+        string memory newEventDescription,
+        string[] calldata newApprovedCities,
+        string[] calldata newApprovedProvinces,
+        string calldata newApprovedCountry,
+        string calldata newAutoPayoutGranularity,
+        uint256 newDisasterDate
+    ) external;
+    function removeDisasterEvent(string memory insuranceName, string memory eventId) external;
+    function addClaimModerator(
+        string memory insuranceName,
+        string memory eventId,
+        address moderator
+    ) external;
+    function removeClaimModerator(
+        string memory insuranceName,
+        string memory eventId,
+        address moderator
+    ) external;
 
-    // /// @notice Determines if a policy is eligible for payout
-    // /// @param policyId The hash ID of the insurance policy
-    // /// @return approved True if policy is eligible for payout
-    function verifyAndApproveClaim(bytes32 policyId) external view returns (bool);
+    // Staking and Voting Rewards
+    function stakeGovTokens(uint256 amount) external;
+    function unstakeGovTokens(uint256 amount) external;
+    function claimStakingRewards() external;
+    function setStakingRewardRate(uint256 newRate) external;
+
+    // GraviCha Token Management
+    function addCharityMinterRole(address newMinter) external;
+    function removeCharityMinterRole(address minter) external;
+
+    // Ether Management
+    function getEtherBalance() external view returns (uint256);
+    function transferEther(address payable recipient, uint256 amount) external;
+
+    // DAO Governance Parameter Setters
+    function setVotingDelay(uint256 newDelay) external;
+    function setVotingPeriod(uint256 newPeriod) external;
+    function setProposalThreshold(uint256 newThreshold) external;
 }

@@ -7,8 +7,9 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200  // Experiment with lower runs values if size reduction is a priority.
-      }
+        runs: 100  // Experiment with lower runs values if size reduction is a priority.
+      },
+      viaIR: true
     }
   },
   paths: {

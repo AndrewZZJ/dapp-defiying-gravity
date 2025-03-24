@@ -24,23 +24,27 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, ERC20Burnable, Ownable {
     IGraviCha public charityToken;
 
     // The dao address is the owner of the GraviGov token.
-    address public dao;
+    IGraviDAO public dao;
 
     constructor(
-        address _dao,
         address _charityToken
-    ) ERC20("GraviGov", "GGOV") ERC20Permit("GraviGov") Ownable(_dao) {
+    ) ERC20("GraviGov", "GGOV") ERC20Permit("GraviGov") Ownable(msg.sender) {
         lastMintTimestamp = block.timestamp;
         charityToken = IGraviCha(_charityToken);
-        dao = _dao;
+    }
+
+    function setDAO(address _dao) external onlyOwner {
+        dao = IGraviDAO(_dao);
     }
 
     // Now at any time a holder of the GraviGov token can convert tokens
     // to charity token by putting it back to the dao token pool
     function convertToCharityTokens(uint256 amount) external {
-        // _burn(msg.sender, amount);
-        // Todo: send all the tokens to the GraviDAO pool
-        // dao.transfer(amount);
+        // Check if the caller has enough tokens
+        require(balanceOf(msg.sender) >= amount, "GraviGov: Not enough tokens");
+
+        // Simply transfer the tokens to the DAO
+        transfer(address(dao), amount);
 
         charityToken.mint(msg.sender, amount * charityTokenExchangeRate);
     }
@@ -56,6 +60,10 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, ERC20Burnable, Ownable {
     function mintMonthly() external onlyOwner {
         _mint(owner(), MONTHLY_MINT); // Mint to DAO for further distribution.
         lastMintTimestamp = block.timestamp;
+    }
+
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
     }
 
     function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) {

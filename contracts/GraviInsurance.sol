@@ -107,8 +107,8 @@ contract GraviInsurance is Ownable {
         require(policy.coverageAmount > 0, "Invalid policy");
         require(totalPoolFunds >= policy.coverageAmount, "Insufficient funds");
 
-        // DAO approval (via on-chain rules)
-        require(dao.verifyAndApproveClaim(policyId), "DAO verification failed");
+        // // DAO approval (via on-chain rules)
+        // require(dao.verifyAndApproveClaim(policyId), "DAO verification failed");
 
         // Optional oracle check
 
