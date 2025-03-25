@@ -86,6 +86,7 @@ interface IGraviDAO is IGovernor {
     function transferEther(address payable recipient, uint256 amount) external;
 
     // DAO Governance Parameter Setters
+    function setGovParameters(uint256 _votingDelay, uint256 _votingPeriod, uint256 _proposalThreshold) external;
     function setVotingDelay(uint256 newDelay) external;
     function setVotingPeriod(uint256 newPeriod) external;
     function setProposalThreshold(uint256 newThreshold) external;

@@ -394,6 +394,12 @@ contract GraviDAO is Governor,
     // ---------------------------------------------------
     // 7. Dao override for Governor parameters
     // ---------------------------------------------------
+    function setGovParameters(uint256 _votingDelay, uint256 _votingPeriod, uint256 _proposalThreshold) external onlyGovernance {
+        govVotingDelay = _votingDelay;
+        govVotingPeriod = _votingPeriod;
+        govProposalThreshold = _proposalThreshold;
+    }
+
     function setVotingDelay(uint256 newDelay) external onlyGovernance {
         govVotingDelay = newDelay;
     }

@@ -62,6 +62,17 @@ async function main() {
     const graviDAOAddress = await graviDAO.getAddress();
     console.log("GraviDAO deployed to:", graviDAOAddress);
 
+    // Grant required roles to the graviDAO
+    let PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
+    let EXECUTOR_ROLE = await timelock.EXECUTOR_ROLE();
+
+    await timelock.grantRole(PROPOSER_ROLE, graviDAOAddress);
+    await timelock.grantRole(EXECUTOR_ROLE, graviDAOAddress);
+
+    // // For test
+    // await timelock.grantRole(PROPOSER_ROLE, await deployer.getAddress());
+    // await timelock.grantRole(EXECUTOR_ROLE, await deployer.getAddress());
+
     // Grant minting roles
     await graviCha.addMinter(graviDAOAddress);
     await graviCha.addMinter(graviGovAddress);
