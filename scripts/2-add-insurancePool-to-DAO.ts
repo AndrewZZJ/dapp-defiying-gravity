@@ -66,34 +66,103 @@ async function main() {
     const deployerGraviGovBalance = await graviGov.balanceOf(await deployer.getAddress());
     console.log("Deployer GraviGov balance:", deployerGraviGovBalance.toString());
 
-//    // Encode the function call data for addInsuranceAndNFTPool(poolName, insurancePoolAddress, nftPoolAddress).
-//    const encodedFunctionCall = graviDAO.interface.encodeFunctionData("addInsuranceAndNFTPool", [
-//     poolName,
-//     insurancePoolAddress,
-//     nftPoolAddress
-//   ]);
+    // Get the address of the insurance and the NFT pool.
+    const insurancePoolAddress = deploymentConfig["GraviInsurance"];
+    if (!insurancePoolAddress) {
+        throw new Error("InsurancePool address not found in deployment_config.txt");
+    }
 
-//   // Create the proposal.
-//   console.log("Creating proposal to add insurance pool...");
-//   const proposeTx = await graviDAO.propose(
-//     [graviDAO.address], // target(s) - in this case the DAO itself
-//     [0],                // value(s) in wei
-//     [encodedFunctionCall],
-//     proposalDescription
-//   );
-//   const proposeReceipt = await proposeTx.wait();
-//   // Assume the first event carries the proposalId (this may vary by your contract’s event structure)
-//   const proposalId = proposeReceipt.events[0].args.proposalId;
-//   console.log("Proposal created with ID:", proposalId.toString());
+    const nftPoolAddress = deploymentConfig["GraviPoolNFT"];
+    if (!nftPoolAddress) {
+        throw new Error("NFTPool address not found in deployment_config.txt");
+    }
 
-//   // -------------------------------
-//   // Approve the proposal by casting a vote.
-//   // -------------------------------
-//   console.log("Casting vote in favor of the proposal...");
-//   // Here, 1 represents a "For" vote.
-//   const voteTx = await graviDAO.castVote(proposalId, 1);
-//   await voteTx.wait();
-//   console.log("Vote cast successfully.");
+    // Encode the function call data for addInsuranceAndNFTPool(poolName, insurancePoolAddress, nftPoolAddress).
+    const encodedFunctionCall = graviDAO.interface.encodeFunctionData("addInsuranceAndNFTPool", [
+        "Flood Insurance",
+        insurancePoolAddress,
+        nftPoolAddress
+    ]);
+
+    // Create the proposal.
+    const proposalDescription = "Add Flood Insurance and NFT Pool to DAO.";
+    console.log("Creating proposal to add insurance pool...");
+    const txResponse = await graviDAO.propose(
+        [graviGovAddress], // target(s) - in this case the DAO itself
+        [0],                // value(s) in wei
+        [encodedFunctionCall],
+        proposalDescription
+    );
+
+    // console.log("Transaction sent:", txResponse.hash);
+
+    // // Wait for the transaction to be mined
+    // const receipt = await txResponse.wait();
+    // console.log("Transaction mined:", receipt.transactionHash);
+
+    // // Parse the logs to extract the ProposalCreated event
+    // let proposalId = null;
+    // for (const log of receipt.logs) {
+    // try {
+    //     // Try to parse the log using the contract's interface
+    //     const parsedLog = contract.interface.parseLog(log);
+    //     if (parsedLog.name === "ProposalCreated") {
+    //     proposalId = parsedLog.args.proposalId;
+    //     break;
+    //     }
+    // } catch (e) {
+    //     // If the log isn't from our contract, skip it
+    //     continue;
+    // }
+    // }
+
+    // if (proposalId !== null) {
+    // console.log("Proposal ID (from event):", proposalId.toString());
+    // } else {
+    // console.log("ProposalCreated event not found in receipt.");
+    // }
+
+    // const txResponse = await contract.propose(targets, values, calldatas, description);
+    // console.log("Transaction sent:", txResponse.hash);
+
+    // // Wait for the transaction to be mined
+    // const receipt = await txResponse.wait();
+    // console.log("Transaction mined:", receipt.transactionHash);
+
+
+    // // -------------------------------
+    // // Approve the proposal by casting a vote.
+    // // -------------------------------
+    // console.log("Casting vote in favor of the proposal...");
+    // // Here, 1 represents a "For" vote.
+    // const voteTx = await graviDAO.castVote(proposalId, 1);
+    // await voteTx.wait();
+    // console.log("Vote cast successfully.");
+    
+    // // Send the transaction (this executes the function on-chain)
+    // const txResponse = await contract.propose(targets, values, calldatas, description);
+    // console.log("Transaction sent:", txResponse.hash);
+
+    // // Wait for the transaction to be mined
+    // const receipt = await txResponse.wait();
+    // console.log("Transaction mined:", receipt.transactionHash);
+
+    // // Parse logs to extract the ProposalCreated event
+    // let proposalId = null;
+    // for (const log of receipt.logs) {
+    //   try {
+    //     // Attempt to parse each log using the contract's interface
+    //     const parsedLog = contract.interface.parseLog(log);
+    //     if (parsedLog.name === "ProposalCreated") {
+    //       proposalId = parsedLog.args.proposalId;
+    //       break;
+    //     }
+    //   } catch (e) {
+    //     // This log does not belong to the contract; skip it.
+    //     continue;
+    //   }
+    // }
+
 
 //   // -------------------------------
 //   // Simulate waiting for the voting period to end.
@@ -140,3 +209,9 @@ async function main() {
 //   await executeTx.wait();
 //   console.log("Proposal executed successfully.");
 }
+
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+  
