@@ -48,25 +48,25 @@ async function main() {
     const deploymentConfig = loadDeploymentConfig();
     console.log("Loaded deployment configuration:", deploymentConfig);
 
-    // Get the address of the GraviDao contract. And the instance of the contract.
+    // Get the address of the GraviDao contract.
     const graviDaoAddress = deploymentConfig["GraviDAO"];
     if (!graviDaoAddress) {
         throw new Error("GraviDAO address not found in deployment_config.txt");
     }
 
-    const GraviDAO = await ethers.getContractFactory("GraviDAO");
-    // const graviDAO = GraviDAO.attach(graviDaoAddress);
-    console.log("Using existing GraviDAO at:", graviDaoAddress);
+    // const graviDAO = await ethers.getContractAt("GraviDAO", graviDaoAddress); 
+    // // const graviDAO = GraviDAO.attach(graviDaoAddress);
+    // console.log("Using existing GraviDAO at:", graviDaoAddress);
 
-    // Get the address of the GraviCha contract. And the instance of the contract.
+    // Get the address of the GraviCha contract.
     const graviChaAddress = deploymentConfig["GraviCha"];
     if (!graviChaAddress) {
         throw new Error("GraviCha address not found in deployment_config.txt");
     }
 
-    const GraviCha = await ethers.getContractFactory("GraviCha");
-    // const graviCha = GraviCha.attach(graviChaAddress);
-    console.log("Using existing GraviCha at:", graviChaAddress);
+    // const graviCha = await ethers.getContractAt("GraviCha", graviDaoAddress);
+    // // const graviCha = GraviCha.attach(graviChaAddress);
+    // console.log("Using existing GraviCha at:", graviChaAddress);
         
     // Deploy GraviPoolNFT (requires GraviCha token address)
     const GraviPoolNFT = await ethers.getContractFactory("GraviPoolNFT");

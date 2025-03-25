@@ -12,3 +12,5 @@ npx hardhat run scripts/0-deploy-DAO.ts --network localhost
 npx hardhat run scripts/1-deploy-InsurancePool.ts --network localhost
 
 ### Add proposal to add insurance pool to DAO
+npx hardhat run scripts/2-add-insurancePool-to-DAO.ts --network localhost
+
