@@ -5,7 +5,6 @@ pragma solidity ^0.8.28;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -13,8 +12,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
 import {IGraviDAO} from "../interfaces/IGraviDAO.sol";
 
-contract GraviGov is ERC20, ERC20Permit, ERC20Votes, ERC20Burnable, Ownable {
-    uint256 public constant MONTHLY_MINT = 10000 * 10 ** 18;
+contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable {
+    uint256 public monthlyMintAmount = 10000;
     uint256 public lastMintTimestamp;
 
     // Charity token exchange rate. Can be updated by the owner.
@@ -52,14 +51,14 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, ERC20Burnable, Ownable {
     function setCharityTokenExchangeRate(uint256 _charityTokenExchangeRate) external onlyOwner {
         charityTokenExchangeRate = _charityTokenExchangeRate;
     }
-    
-    function monthlyMintAvailable() public view returns (bool) {
-        return block.timestamp >= lastMintTimestamp + 30 days;
-    }
 
     function mintMonthly() external onlyOwner {
-        _mint(owner(), MONTHLY_MINT); // Mint to DAO for further distribution.
+        _mint(owner(), monthlyMintAmount); // Mint to DAO for further distribution.
         lastMintTimestamp = block.timestamp;
+    }
+
+    function setMonthlyMintAmount(uint256 _monthlyMintAmount) external onlyOwner {
+        monthlyMintAmount = _monthlyMintAmount;
     }
 
     function mint(address to, uint256 amount) external onlyOwner {

@@ -12,9 +12,12 @@ interface IGraviGov is IERC20, IERC20Permit {
     /// @notice Sets the charity token exchange rate.
     /// @param _charityTokenExchangeRate The new exchange rate.
     function setCharityTokenExchangeRate(uint256 _charityTokenExchangeRate) external;
-    
-    /// @notice Returns true if monthly minting is available.
-    function monthlyMintAvailable() external view returns (bool);
+
+    /// @notice Returns the monthly mint amount.
+    function monthlyMintAmount() external view returns (uint256);
+
+    /// @notice Sets the monthly mint amount.
+    function setMonthlyMintAmount(uint256 _monthlyMintAmount) external;
     
     /// @notice Mint monthly tokens for the DAO.
     function mintMonthly() external;
@@ -25,10 +28,10 @@ interface IGraviGov is IERC20, IERC20Permit {
     /// @notice Returns the timestamp when the last mint occurred.
     function lastMintTimestamp() external view returns (uint256);
     
-    /// @notice Returns the DAO address (the owner of GraviGov tokens).
+    /// @notice Returns the DAO address this should be set as the owner of the contract.
     function dao() external view returns (address);
     
-    /// @notice Returns the owner address.
+    /// @notice Returns the owner address. This should be equal to the DAO address.
     function owner() external view returns (address);
 
     /// @notice Mints new tokens for rewarding charitable actions. Only authorized minters can call.

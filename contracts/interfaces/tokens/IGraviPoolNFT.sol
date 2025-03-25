@@ -19,7 +19,7 @@ interface IGraviPoolNFT is IERC721 {
     function mintToPool(address poolAddress, string memory tokenURI) external returns (uint256);
     
     /// @notice Starts an auction for a newly minted NFT.
-    function startAuction(string memory tokenURI) external returns (uint256);
+    function mintAndAuctionNFTs(string[] memory tokenURIs) external;
     
     /// @notice Places a bid for an active auction using ERC20 tokens.
     function bid(uint256 tokenId, uint256 bidAmount) external;

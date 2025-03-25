@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import {IGraviDAO} from "./interfaces/IGraviDAO.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGraviCha} from "./interfaces/tokens/IGraviCha.sol";
 import {IGraviPoolNFT} from "./interfaces/tokens/IGraviPoolNFT.sol";
 
@@ -20,10 +19,10 @@ contract GraviInsurance is Ownable {
     uint256 public premiumRate;
     uint256 public totalPoolFunds;
 
-    // External token + NFT + DAO
+    // External token + NFT
     IGraviCha public graviCha;
     IGraviPoolNFT public graviPoolNFT;
-    IGraviDAO public dao;
+    // IGraviDAO public dao;
 
     // Stores all policy data by policyId
     mapping(bytes32 => Policy) public policies;
@@ -45,17 +44,14 @@ contract GraviInsurance is Ownable {
         string memory _disasterType,
         uint256 _premiumRate,
         address _graviCha,
-        address _graviPoolNFT,
-        address _dao
+        address _graviPoolNFT
     ) Ownable(msg.sender) {
         require(_premiumRate > 0, "Invalid premium rate");
         disasterType = _disasterType;
         premiumRate = _premiumRate;
         graviCha = IGraviCha(_graviCha);
         graviPoolNFT = IGraviPoolNFT(_graviPoolNFT);
-        dao = IGraviDAO(_dao);
     }
-
 
     /// @notice User buys an insurance policy using ETH
     /// @param coverageAmount The desired payout coverage

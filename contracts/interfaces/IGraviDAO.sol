@@ -4,36 +4,34 @@ pragma solidity ^0.8.28;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 interface IGraviDAO is IGovernor {
-    // Time utility functions
-    function lastGoveMintTime() external view returns (uint256);
-    function lastNFTPoolMintTime() external view returns (uint256);
-
-    // Governance and Token Management
+    // 1. GraviGov Token Minting and Purchase Pool
     function monthlyMintGovTokens() external;
+    function setMonthlyGovMintAmount(uint256 newAmount) external;
+    function setCharityTokenExchangeRate(uint256 newRate) external;
+    
     function purchaseGovTokens(uint256 amount) external payable;
     function getGovTokenPoolBalance() external view returns (uint256);
 
     function setGovTokenEthPrice(uint256 newPrice) external;
     function setGovTokenGraviChaBurn(uint256 newBurnAmount) external;
-    function setMonthlyGovMintAmount(uint256 newAmount) external;
 
-    // Insurance and NFT Pool Management
+    // 2. Insurance Pool management, NFT Pool Management and Monthly Minting
     function addInsuranceAndNFTPool(
         string memory poolName, 
         address insurancePool, 
         address nftPool
     ) external;
-    function removeInsuranceAndNFTPool(string memory poolName) external;
-    function getPoolAddresses(string memory poolName) external view returns (address insurancePoolAddress, address nftPoolAddress);
+    function removeInsuranceAndNFTPool(string memory insuranceName) external;
+    function getInsurancePoolAddresses(string memory insuranceName) external view returns (address insurancePoolAddress, address nftPoolAddress);
     function getAllInsurancePoolNames() external view returns (string[] memory);
-    function monthlyMintNFTForPool(string memory poolName, string[] calldata tokenURIs) external;
+    function monthlyMintNFTForPool(string memory insuranceName, string[] calldata tokenURIs) external;
     function moveEtherFromInsurance(
         string memory insuranceName, 
         address payable recipient, 
         uint256 amount
     ) external;
 
-    // Disaster Event Recording and Management
+    // 3. Insurance Disaster Event Recording and Management
     function recordDisasterEvent(
         string memory insuranceName,
         string memory eventName,
