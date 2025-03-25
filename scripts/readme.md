@@ -24,6 +24,9 @@ npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
 - Deploy the initial 3 insurances
 npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
 
+- Auctions initial NFTs - Founder NFTs for each contract
+npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
+
 - Revoke Deployer's Elevated power
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
@@ -32,11 +35,20 @@ npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 npx hardhat run scripts/dao/delegate-votes.ts --network localhost
 
 - Simulate a fast track DAO votes for adding insurance contract. 
-npx hardhat run scripts/dao/add-insurance.ts --network localhost
+npx hardhat run scripts/dao/insurance/add-insurance.ts --network localhost
 
 ### View scripts
+- Print both the governance and utility tokens held by the deployer
+npx hardhat run scripts/view/print-gov-and-utility-tokens.ts --network localhost
+
 - Print the voting power of the deployer 
-npx hardhat run scripts/view/print-voting-power.ts --network localhost
+npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
+
+- Print all the current added instuance and nft pools and addresses
+npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
+
+- Print all the NFTs undeer auction
+npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
 
 ## Bundled commands, fast setup and tests:
 ### Start/Restart the local node
@@ -47,12 +59,18 @@ npx hardhat run scripts/deploy/deploy-main.ts --network localhost
 npx hardhat run scripts/deploy/set-dao-parameters.ts --network localhost
 npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
 npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
+npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
 ### Dao local testing
 npx hardhat run scripts/dao/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao/add-insurance.ts --network localhost
+npx hardhat run scripts/dao/insurance/add-insurance.ts --network localhost
 
 ### View Deployed and Other
-npx hardhat run scripts/view/print-voting-power.ts --network localhost
+npx hardhat run scripts/view/print-gov-and-utility-tokens.ts --network localhost
 
+npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
+
+npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
+
+npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost

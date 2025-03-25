@@ -1,7 +1,7 @@
-// scripts/dao/add-insurance.ts
+// scripts/dao/insurance/add-insurance.ts
 
 import { ethers } from "hardhat";
-import { loadDeploymentConfig, writeDeploymentConfig, writeMetadata } from "../utils/deploymentUtils";
+import { loadDeploymentConfig, writeDeploymentConfig, writeMetadata } from "../../utils/deploymentUtils";
 import {
   createProposal,
   voteOnProposal,
@@ -9,7 +9,7 @@ import {
   simulateTimeSkip,
   executeProposal,
   printProposalInfo, // Newly imported function
-} from "../utils/daoUtils";
+} from "../../utils/daoUtils";
 import fs from "fs";
 import path from "path";
 

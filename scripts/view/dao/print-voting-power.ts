@@ -1,7 +1,7 @@
 // scripts/view/print-voting-power.ts
 
 import { ethers } from "hardhat";
-import { loadDeploymentConfig } from "../utils/deploymentUtils";
+import { loadDeploymentConfig } from "../../utils/deploymentUtils";
 
 async function main() {
   const [deployer] = await ethers.getSigners();

@@ -18,6 +18,9 @@ async function main() {
     throw new Error("Core contracts not deployed. Run deploy-main.ts first.");
   }
 
+  // Load graviDAO contract.
+  const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
+
   // Define the three insurances.
   const insurances = [
     { name: "Fire Insurance", disaster: "fire", premium: 5 },
@@ -58,6 +61,14 @@ async function main() {
     await graviInsurance.transferOwnership(graviDAOAddress);
     await graviPoolNFT.transferOwnership(graviDAOAddress);
     console.log(`${insurance.name} - Ownership transferred to GraviDAO.`);
+
+    // Add the insurance to the DAO.
+    await graviDAO.addInsuranceAndNFTPool(
+      insurance.name,
+      graviInsuranceAddress,
+      graviPoolNFTAddress);
+
+    console.log(`Added insurance: ${insurance.name} to DAO.`);
 
     // Save the deployed addresses.
     deployedInsurances[insurance.name] = {

@@ -47,4 +47,10 @@ interface IGraviPoolNFT is IERC721 {
     
     /// @notice Burns an NFT (e.g., in case of emergency).
     function burn(uint256 tokenId) external;
+
+    /// @notice Get auctioned NFT lists
+    function getAuctionedNFTs() external returns (uint256[] memory);
+
+    /// @notice Get auction details for a specific NFT.
+    function getAuctionDetails(uint256 tokenId) external;
 }

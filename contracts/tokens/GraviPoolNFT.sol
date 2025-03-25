@@ -4,12 +4,13 @@ pragma solidity ^0.8.28;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC721URIStorage, ERC721} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // Interface for the GraviCha token.
 import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
 import {IGraviInsurance} from "../interfaces/IGraviInsurance.sol";
 
-contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
+contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Receiver {
     uint256 private _nextTokenId;
     uint256 public auctionDuration = 7 days; // Duration of each auction
 
@@ -122,6 +123,24 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
         return tokenId;
     }
 
+    /// @notice Get auctioned NFT lists
+    function getAuctionedNFTs() external view returns (uint256[] memory) {
+        uint256[] memory tokenIds = new uint256[](_nextTokenId);
+        uint256 count = 0;
+        for (uint256 i = 0; i < _nextTokenId; i++) {
+            if (auctions[i].startTime > 0) {
+                tokenIds[count] = i;
+                count++;
+            }
+        }
+        return tokenIds;
+    }
+
+    /// @notice Get auction details for a specific NFT.
+    function getAuctionDetails(uint256 tokenId) external view returns (Auction memory) {
+        return auctions[tokenId];
+    }
+
     // External function by DAO to mint and auction a list of new NFTs.
     function mintAndAuctionNFTs(string[] memory tokenURIs) external {
         for (uint256 i = 0; i < tokenURIs.length; i++) {
@@ -226,5 +245,15 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
     /// @notice Allows the owner to burn NFTs in case of emergency.
     function burn(uint256 tokenId) external onlyOwner {
         _burn(tokenId);
+    }
+
+    /// @notice ERC721 hook to check if the token is accepted.
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }
