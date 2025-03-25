@@ -4,7 +4,12 @@ pragma solidity ^0.8.28;
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 interface IGraviDAO is IGovernor {
+    // 0. Inital setup
+    function setFinishedInitialSetup() external view returns (bool);
+
     // 1. GraviGov Token Minting and Purchase Pool
+    function setGovernanceTokenParameters(uint256 newRate, uint256 newPrice, uint256 newBurnAmount, uint256 mintAmount) external;
+
     function monthlyMintGovTokens() external;
     function setMonthlyGovMintAmount(uint256 newAmount) external;
     function setCharityTokenExchangeRate(uint256 newRate) external;
@@ -82,12 +87,12 @@ interface IGraviDAO is IGovernor {
     function removeCharityMinterRole(address minter) external;
 
     // Ether Management
-    function getEtherBalance() external view returns (uint256);
+    // function getEtherBalance() external view returns (uint256);
     function transferEther(address payable recipient, uint256 amount) external;
 
     // DAO Governance Parameter Setters
     function setGovParameters(uint256 _votingDelay, uint256 _votingPeriod, uint256 _proposalThreshold) external;
-    function setVotingDelay(uint256 newDelay) external;
-    function setVotingPeriod(uint256 newPeriod) external;
-    function setProposalThreshold(uint256 newThreshold) external;
+    // function setVotingDelay(uint256 newDelay) external;
+    // function setVotingPeriod(uint256 newPeriod) external;
+    // function setProposalThreshold(uint256 newThreshold) external;
 }
