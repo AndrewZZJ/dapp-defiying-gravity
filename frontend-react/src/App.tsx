@@ -11,6 +11,7 @@ import About from './components/about/About';
 import ContactUs from './components/contact_us/ContactUs';
 import Donate from './components/donate/Donate';
 import Governance from './components/governance/Governance';
+import CurrentProposals from './components/current_proposals/CurrentProposals';
 import ClaimsPage from './components/claims_covered/ClaimsPage';
 import PendingOracle from './components/pending_oracle/PendingOracle';
 import InsurancePortal from './components/your_pools/InsurancePortal';
@@ -34,7 +35,9 @@ export function App(): ReactElement {
           <Route path="/about" element={<About />} />
           <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/donate" element={<Donate />} />
-          <Route path="/governance" element={<Governance />} />
+          {/* <Route path="/governance" element={<Governance />} /> */}
+          <Route path="/governance/submit" element={<Governance />} />
+          <Route path="/governance/current" element={<CurrentProposals />} />
           <Route path="/claims-covered" element={<ClaimsPage />} />
           <Route path="/pending-oracle" element={<PendingOracle />} />
           <Route path="/your-pools" element={<InsurancePortal />} />
