@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
 import { PriceIcon } from "./PriceIcon";
 
 interface ProductCardProps {
@@ -16,6 +17,12 @@ export function ProductCard({
   description,
   altText,
 }: ProductCardProps) {
+  const navigate = useNavigate(); // Initialize the useNavigate hook
+
+  const handleLearnMore = () => {
+    navigate("/buy-insurance"); // Navigate to the Buy Insurance page
+  };
+
   return (
     <article className="flex gap-16 items-start max-md:flex-col max-sm:gap-6">
       <img
@@ -36,7 +43,10 @@ export function ProductCard({
           </div>
         </div>
         <p className="text-base leading-6 text-neutral-500">{description}</p>
-        <button className="p-3 w-full text-base rounded-lg bg-stone-900 text-neutral-100">
+        <button
+          onClick={handleLearnMore} // Attach the navigation handler
+          className="p-3 w-full text-base rounded-lg bg-stone-900 text-neutral-100"
+        >
           Learn more
         </button>
       </div>
