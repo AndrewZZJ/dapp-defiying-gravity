@@ -11,13 +11,13 @@ export const ClaimsHeader = () => {
           to="/claims-covered"
           className="px-3 py-1 text-3xl border-b border-solid cursor-pointer border-b-neutral-500 text-neutral-500 max-sm:text-2xl hover:text-neutral-700"
         >
-          Your Covers
+          View Claims
         </Link>
         <Link
           to="/claims-buying"
           className="px-3 py-1 text-3xl border-b border-solid cursor-pointer border-b-neutral-500 text-neutral-500 max-sm:text-2xl hover:text-neutral-700"
         >
-          Buy Covers
+          Submit Claim
         </Link>
       </nav>
     </div>
