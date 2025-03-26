@@ -12,12 +12,12 @@ export const DonationForm: React.FC = () => {
 
   // State to store submitted data for the OverviewPanel
   const [submittedData, setSubmittedData] = useState<{
-    walletAddress: string;
-    donatedPool: string | null; // Allow string or null
+    walletAddress: string | null; // Allow null initially
+    donatedPool: string | null;
     amountDonated: string;
     message: string;
   }>({
-    walletAddress: "0x1234...abcd", // Placeholder wallet address
+    walletAddress: null, // Initially null
     donatedPool: null,
     amountDonated: "",
     message: "",
@@ -36,6 +36,13 @@ export const DonationForm: React.FC = () => {
     setAmount("");
     setSelectedPool(null);
     setMessage("");
+  };
+
+  const handleMessageChange = (value: string) => {
+    // Limit the message to 500 characters
+    if (value.length <= 500) {
+      setMessage(value);
+    }
   };
 
   const poolOptions = [
@@ -89,7 +96,14 @@ export const DonationForm: React.FC = () => {
         </div>
 
         <div className="mt-4">
-          <TextareaField label="Message" value={message} onChange={setMessage} />
+          <TextareaField
+            label="Message"
+            value={message}
+            onChange={handleMessageChange}
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            {message.length}/500 characters
+          </p>
         </div>
 
         <div className="flex gap-4 items-center mt-4 leading-none whitespace-nowrap min-h-10 text-neutral-100">
@@ -104,25 +118,27 @@ export const DonationForm: React.FC = () => {
 
       {/* Overview Panel Section */}
       <section className="flex-1 self-start px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
-        <h2 className="whitespace-nowrap bg-white">Overview</h2>
+        <h2 className="font-bold text-lg">Overview</h2> {/* Bold and slightly larger font */}
 
-        <div className="mt-14 max-md:mt-10">
-          <p>Wallet Address:</p>
-          <p className="text-sm text-gray-700">{submittedData.walletAddress}</p>
+        <div className="mt-4"> {/* Reduced margin */}
+          <p className="font-medium">Wallet Address:</p>
+          <p className="text-sm text-gray-700">
+            {submittedData.walletAddress || "Not submitted yet"}
+          </p>
         </div>
 
         <div className="mt-4">
-          <p>Donated Pool:</p>
+          <p className="font-medium">Donated Pool:</p>
           <p className="text-sm text-gray-700">{submittedData.donatedPool || "None"}</p>
         </div>
 
         <div className="mt-4">
-          <p>Amount Donated:</p>
+          <p className="font-medium">Amount Donated:</p>
           <p className="text-sm text-gray-700">{submittedData.amountDonated || "0 ETH"}</p>
         </div>
 
         <div className="mt-4">
-          <p>Message:</p>
+          <p className="font-medium">Message:</p>
           <p className="text-sm text-gray-700">{submittedData.message || "No message provided."}</p>
         </div>
       </section>
