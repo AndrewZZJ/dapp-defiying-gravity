@@ -2,7 +2,6 @@
 
 import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { DonationForm } from "./DonationForm";
-import { OverviewPanel } from "./OverviewPanel";
 
 function Donate() {
   return (
@@ -22,7 +21,6 @@ function Donate() {
 
         <div className="flex relative flex-wrap gap-10 mt-8 mb-0 w-full text-base max-w-[944px] max-md:mb-2.5 max-md:max-w-full">
           <DonationForm />
-          <OverviewPanel />
         </div>
       </section>
     </main>
