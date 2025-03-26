@@ -6,20 +6,14 @@ import Main from './components/product_details/Main';
 import GraviTrustLanding from './components/dashboard/GraviTrustLanding';
 import Claims from './components/claims_buying/Claims';
 import BuyInsurance from './components/buying_insurance/BuyInsurance';
-// import InputDesign from './components/create_pool/InputDesign';
 import About from './components/about/About';
 import ContactUs from './components/contact_us/ContactUs';
 import Donate from './components/donate/Donate';
 import Governance from './components/governance/Governance';
-import CurrentProposals from './components/current_proposals/CurrentProposals';
 import ClaimsPage from './components/claims_covered/ClaimsPage';
 import PendingOracle from './components/pending_oracle/PendingOracle';
-<<<<<<< Updated upstream
-// import InsurancePortal from './components/your_pools/InsurancePortal';
-=======
-import InsurancePortal from './components/your_pools/InsurancePortal';
-import NFTMarketplace from './components/nft_marketplace/NFTMarketplace'; // adjust path as needed
->>>>>>> Stashed changes
+import CurrentProposals from './components/current_proposals/CurrentProposals'
+import NFTMarketplace from './components/nft_marketplace/NFTMarketplace';
 
 const StyledAppDiv = styled.div`
   display: grid;
@@ -36,16 +30,14 @@ export function App(): ReactElement {
           <Route path="/dashboard" element={<GraviTrustLanding />} />
           <Route path="/claims-buying" element={<Claims />} />
           <Route path="/buy-insurance" element={<BuyInsurance />} />
-          {/* <Route path="/create-pool" element={<InputDesign />} /> */}
           <Route path="/about" element={<About />} />
           <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/donate" element={<Donate />} />
-          <Route path="/marketplace" element={<NFTMarketplace />} />
+          <Route path="/marketplace" element={<NFTMarketplace />} />  
           <Route path="/governance/submit" element={<Governance />} />
           <Route path="/governance/current" element={<CurrentProposals />} />
           <Route path="/claims-covered" element={<ClaimsPage />} />
           <Route path="/pending-oracle" element={<PendingOracle />} />
-          {/* <Route path="/your-pools" element={<InsurancePortal />} /> */}
         </Routes>
       </StyledAppDiv>
     </Router>
