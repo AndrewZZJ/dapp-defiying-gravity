@@ -41,13 +41,13 @@ contract GraviDAO is Governor,
     uint256 public govTokenEthPrice = 100 wei;      // Price (in wei) per Gov token
     uint256 public govTokenGraviChaBurn = 1;    // Amount of GraviCha tokens to burn per Gov token
 
-    // ---------------------------------------------------
-    // Staking for GraviGov tokens 
-    // ---------------------------------------------------
-    mapping(address => uint256) public stakedGov;
-    mapping(address => uint256) public stakingRewardBalance;
-    mapping(address => uint256) public lastRewardUpdate;
-    uint256 public stakingRewardRate; // Reward rate (GraviChar per second per staked Gov token)
+    // // ---------------------------------------------------
+    // // Staking for GraviGov tokens 
+    // // ---------------------------------------------------
+    // mapping(address => uint256) public stakedGov;
+    // mapping(address => uint256) public stakingRewardBalance;
+    // mapping(address => uint256) public lastRewardUpdate;
+    // uint256 public stakingRewardRate; // Reward rate (GraviChar per second per staked Gov token)
 
     // ---------------------------------------------------
     // State variables for Insurance and NFT pool
@@ -95,10 +95,10 @@ contract GraviDAO is Governor,
     event NFTPoolAdded(address poolAddress);
     event NFTPoolRemoved(address poolAddress);
     event GovTokensPurchased(address indexed buyer, uint256 amount);
-    event GovTokensDonated(address indexed donor, uint256 amount);
-    event Staked(address indexed staker, uint256 amount);
-    event Unstaked(address indexed staker, uint256 amount);
-    event StakingRewardClaimed(address indexed staker, uint256 reward);
+    // event GovTokensDonated(address indexed donor, uint256 amount);
+    // event Staked(address indexed staker, uint256 amount);
+    // event Unstaked(address indexed staker, uint256 amount);
+    // event StakingRewardClaimed(address indexed staker, uint256 reward);
 
     // ---------------------------------------------------
     // Constructor
@@ -158,7 +158,6 @@ contract GraviDAO is Governor,
     //     govTokenGraviChaBurn = newBurnAmount;
     // }
 
-
     function purchaseGovTokens(uint256 amount) external payable {
         require(graviGov.balanceOf(address(this)) >= amount, "Not enough governance tokens in pool");
         require(msg.value == amount * govTokenEthPrice, "Incorrect Ether amount sent");
@@ -170,6 +169,16 @@ contract GraviDAO is Governor,
         require(graviGov.transfer(msg.sender, amount), "Gov token transfer failed");
         
         emit GovTokensPurchased(msg.sender, amount);
+    }
+
+    // // Get the token purchase price per governance token, in ETH and GraviCha
+    // function getGovTokenPurchasePrice() external view returns (uint256 ethPrice, uint256 graviChaBurn) {
+    //     return (govTokenEthPrice, govTokenGraviChaBurn);
+    // }
+
+    // Calculates the token purchase price per given governance tokens, in ETH and GraviCha
+    function calculatesGovTokenPurchasePrice(uint256 amount) external view returns (uint256 ethPrice, uint256 graviChaBurn) {
+        return (amount * govTokenEthPrice, amount * govTokenGraviChaBurn);
     }
 
     function getGovTokenPoolBalance() external view returns (uint256) {
@@ -347,48 +356,48 @@ contract GraviDAO is Governor,
         insurance.removeClaimModerator(eventId, moderator);
     }
 
-    // ---------------------------------------------------
-    // 4. Staking for GraviGov Tokens and Voting Rewards
-    // ---------------------------------------------------
-    // Update a staker's reward balance based on the time elapsed
-    function updateReward(address account) internal {
-        uint256 timeDiff = block.timestamp - lastRewardUpdate[account];
-        if (stakedGov[account] > 0) {
-            stakingRewardBalance[account] += stakedGov[account] * timeDiff * stakingRewardRate;
-        }
-        lastRewardUpdate[account] = block.timestamp;
-    }
+    // // ---------------------------------------------------
+    // // 4. Staking for GraviGov Tokens and Voting Rewards
+    // // ---------------------------------------------------
+    // // Update a staker's reward balance based on the time elapsed
+    // function updateReward(address account) internal {
+    //     uint256 timeDiff = block.timestamp - lastRewardUpdate[account];
+    //     if (stakedGov[account] > 0) {
+    //         stakingRewardBalance[account] += stakedGov[account] * timeDiff * stakingRewardRate;
+    //     }
+    //     lastRewardUpdate[account] = block.timestamp;
+    // }
 
-    function stakeGovTokens(uint256 amount) external {
-        require(amount > 0, "Amount must be greater than zero");
-        updateReward(msg.sender);
-        require(graviGov.transferFrom(msg.sender, address(this), amount), "Transfer failed");
-        stakedGov[msg.sender] += amount;
-        emit Staked(msg.sender, amount);
-    }
+    // function stakeGovTokens(uint256 amount) external {
+    //     require(amount > 0, "Amount must be greater than zero");
+    //     updateReward(msg.sender);
+    //     require(graviGov.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+    //     stakedGov[msg.sender] += amount;
+    //     emit Staked(msg.sender, amount);
+    // }
 
-    function unstakeGovTokens(uint256 amount) external {
-        require(amount > 0 && amount <= stakedGov[msg.sender], "Invalid unstake amount");
-        updateReward(msg.sender);
-        stakedGov[msg.sender] -= amount;
-        require(graviGov.transfer(msg.sender, amount), "Transfer failed");
-        emit Unstaked(msg.sender, amount);
-    }
+    // function unstakeGovTokens(uint256 amount) external {
+    //     require(amount > 0 && amount <= stakedGov[msg.sender], "Invalid unstake amount");
+    //     updateReward(msg.sender);
+    //     stakedGov[msg.sender] -= amount;
+    //     require(graviGov.transfer(msg.sender, amount), "Transfer failed");
+    //     emit Unstaked(msg.sender, amount);
+    // }
 
-    function claimStakingRewards() external {
-        updateReward(msg.sender);
-        uint256 reward = stakingRewardBalance[msg.sender];
-        require(reward > 0, "No rewards available");
-        stakingRewardBalance[msg.sender] = 0;
-        graviCha.mint(msg.sender, reward);
-        emit StakingRewardClaimed(msg.sender, reward);
-    }
+    // function claimStakingRewards() external {
+    //     updateReward(msg.sender);
+    //     uint256 reward = stakingRewardBalance[msg.sender];
+    //     require(reward > 0, "No rewards available");
+    //     stakingRewardBalance[msg.sender] = 0;
+    //     graviCha.mint(msg.sender, reward);
+    //     emit StakingRewardClaimed(msg.sender, reward);
+    // }
 
-    function setStakingRewardRate(uint256 newRate) external onlyGovernance {
-        stakingRewardRate = newRate;
-    }
+    // function setStakingRewardRate(uint256 newRate) external onlyGovernance {
+    //     stakingRewardRate = newRate;
+    // }
 
-    // function _castVote(
+    // // function _castVote(
     //     uint256 proposalId,
     //     address account,
     //     uint8 support,

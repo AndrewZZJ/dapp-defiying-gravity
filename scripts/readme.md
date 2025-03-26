@@ -32,10 +32,16 @@ npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
 ### DAO Scripts, governance, proposal creation, etc - For testing locally only, need to be adapted to actual network deployment. 
 - Delegate voting power of all governace token to self:
-npx hardhat run scripts/dao/delegate-votes.ts --network localhost
+npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
 
 - Simulate a fast track DAO votes for adding insurance contract. 
-npx hardhat run scripts/dao/insurance/add-insurance.ts --network localhost
+npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
+
+- Simulate a monthly token mint for governance
+npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost
+
+- Simulate a monthly NFT mint for governance
+npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
 
 ### View scripts
 - Print both the governance and utility tokens held by the deployer
@@ -62,15 +68,14 @@ npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
 npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
-### Dao local testing
-npx hardhat run scripts/dao/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao/insurance/add-insurance.ts --network localhost
+### Dao - proposal - local testing
+npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
+npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
+npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost
+npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
 
 ### View Deployed and Other
 npx hardhat run scripts/view/print-gov-and-utility-tokens.ts --network localhost
-
 npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
-
 npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
-
 npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost

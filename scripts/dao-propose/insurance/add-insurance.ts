@@ -1,4 +1,4 @@
-// scripts/dao/insurance/add-insurance.ts
+// scripts/dao-propose/insurance/add-insurance.ts
 
 import { ethers } from "hardhat";
 import { loadDeploymentConfig, writeDeploymentConfig, writeMetadata } from "../../utils/deploymentUtils";

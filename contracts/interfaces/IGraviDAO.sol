@@ -20,6 +20,9 @@ interface IGraviDAO is IGovernor {
     function setGovTokenEthPrice(uint256 newPrice) external;
     function setGovTokenGraviChaBurn(uint256 newBurnAmount) external;
 
+    // function getGovTokenPurchasePrice() external view returns (uint256 ethPrice, uint256 graviChaBurn);
+    function calculatesGovTokenPurchasePrice(uint256 amount) external view returns (uint256 ethPrice, uint256 graviChaBurn);
+
     // 2. Insurance Pool management, NFT Pool Management and Monthly Minting
     function addInsuranceAndNFTPool(
         string memory poolName, 
@@ -76,11 +79,11 @@ interface IGraviDAO is IGovernor {
         address moderator
     ) external;
 
-    // Staking and Voting Rewards
-    function stakeGovTokens(uint256 amount) external;
-    function unstakeGovTokens(uint256 amount) external;
-    function claimStakingRewards() external;
-    function setStakingRewardRate(uint256 newRate) external;
+    // // Staking and Voting Rewards
+    // function stakeGovTokens(uint256 amount) external;
+    // function unstakeGovTokens(uint256 amount) external;
+    // function claimStakingRewards() external;
+    // function setStakingRewardRate(uint256 newRate) external;
 
     // GraviCha Token Management
     function addCharityMinterRole(address newMinter) external;
