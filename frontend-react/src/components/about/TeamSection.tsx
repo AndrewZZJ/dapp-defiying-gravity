@@ -16,12 +16,12 @@ export const TeamSection: React.FC = () => {
           description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
         />
         <TeamMemberCard
-          imageSrc="https://cdn.builder.io/api/v1/image/assets/TEMP/c2de9743ceed05ab81c6d7230560ddb716573ea3?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+          imageSrc="/img/Daniel.jpg"
           name="Pin Hong Long"
           description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
         />
         <TeamMemberCard
-          imageSrc="https://cdn.builder.io/api/v1/image/assets/TEMP/c8cabaabe5470d14e7a41779d8fbaea8d1be35f8?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+          imageSrc="/img/Parsa.jpg"
           name="Parsa Moheban"
           description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
         />
@@ -30,7 +30,7 @@ export const TeamSection: React.FC = () => {
         <div className="flex gap-5 max-md:flex-col">
           <div className="w-6/12 max-md:ml-0 max-md:w-full">
             <TeamMemberCard
-              imageSrc="https://cdn.builder.io/api/v1/image/assets/TEMP/f5b7430b4a2a33abbf33295d4cc12296b029d85d?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+              imageSrc="/img/Maharshi.jpg"
               name="Maharshi Panchal"
               description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
             />
