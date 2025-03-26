@@ -48,6 +48,7 @@ const PoolItem: React.FC<PoolItemProps> = ({ title, purchased, isOpen, onToggle,
 export const PoolsSection: React.FC = () => {
   const [selected, setSelected] = useState<string | null>(null);
   const [purchased, setPurchased] = useState<string[]>([]);
+  const [showPopup, setShowPopup] = useState(false); // State to control the popup
 
   const handleToggle = (item: string) => {
     setSelected(selected === item ? null : item);
@@ -56,7 +57,12 @@ export const PoolsSection: React.FC = () => {
   const handlePurchase = (item: string) => {
     if (!purchased.includes(item)) {
       setPurchased([...purchased, item]);
+      setShowPopup(true); // Show the popup
     }
+  };
+
+  const closePopup = () => {
+    setShowPopup(false); // Hide the popup
   };
 
   const poolItems = [
@@ -84,6 +90,32 @@ export const PoolsSection: React.FC = () => {
           />
         ))}
       </section>
+
+      {/* Popup */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+
+          {/* Popup Box */}
+          <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={closePopup}
+              className="absolute top-4 right-4 w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center hover:bg-red-600 hover:text-white"
+            >
+              <span className="font-bold text-lg">X</span>
+            </button>
+            <div className="flex flex-col items-center justify-center h-full">
+              <p className="text-3xl font-bold text-center mb-4">Congratulations!</p>
+              <p className="text-lg text-center">You have successfully purchased insurance.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
