@@ -11,7 +11,7 @@ export const TeamSection: React.FC = () => {
       </h2>
       <div className="flex flex-wrap gap-12 items-stretch self-stretch mt-12 w-full min-h-[357px] max-md:mt-10 max-md:max-w-full">
         <TeamMemberCard
-          imageSrc="https://cdn.builder.io/api/v1/image/assets/TEMP/f5b7430b4a2a33abbf33295d4cc12296b029d85d?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+          imageSrc="/img/Andrew.jpg"
           name="Andrew Jiang"
           description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
         />
