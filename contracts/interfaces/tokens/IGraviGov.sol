@@ -37,4 +37,8 @@ interface IGraviGov is IERC20, IERC20Permit, IVotes {
 
     /// @notice Mints new tokens for rewarding charitable actions. Only authorized minters can call.
     function mint(address to, uint256 amount) external;
+
+    /// Prints the decimals of the token.
+    /// @return The number of decimals used to get its user representation.
+    function decimals() external pure returns (uint8);
 }

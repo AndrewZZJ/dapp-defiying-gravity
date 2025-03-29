@@ -72,4 +72,8 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable {
     function nonces(address owner) public view virtual override(ERC20Permit, Nonces) returns (uint256) {
         return super.nonces(owner);
     }
+
+    function decimals() public pure override returns (uint8) {
+        return 18;
+    }
 }

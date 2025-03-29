@@ -138,7 +138,7 @@ contract GraviDAO is Governor,
         graviGov.setMonthlyMintAmount(mintAmount);
     }
 
-    function monthlyMintGovTokens() external onlyGovernance {
+    function monthlyMintGovTokens() external onlyGovernanceOrInitialDeployer {
         graviGov.mintMonthly();
     }
 
@@ -159,14 +159,26 @@ contract GraviDAO is Governor,
     // }
 
     function purchaseGovTokens(uint256 amount) external payable {
+        uint256 requiredEth = amount * govTokenEthPrice;
+        require(msg.value >= requiredEth, "Insufficient Ether sent");
         require(graviGov.balanceOf(address(this)) >= amount, "Not enough governance tokens in pool");
-        require(msg.value == amount * govTokenEthPrice, "Incorrect Ether amount sent");
+
+        // Check that the caller has enough charity tokens for burning.
+        uint256 requiredCharityTokens = amount * govTokenGraviChaBurn;
+        require(graviCha.balanceOf(msg.sender) >= requiredCharityTokens, "Insufficient charity tokens");
 
         // Burn the required GraviCha tokens from the sender.
-        graviCha.burnFrom(msg.sender, amount * govTokenGraviChaBurn);
+        graviCha.burnFrom(msg.sender, requiredCharityTokens);
 
         // Transfer GraviGov tokens from the DAO pool (this contract) to the buyer.
         require(graviGov.transfer(msg.sender, amount), "Gov token transfer failed");
+        
+        // Refund any excess Ether.
+        uint256 excess = msg.value - requiredEth;
+        if (excess > 0) {
+            (bool refundSuccess, ) = msg.sender.call{value: excess}("");
+            require(refundSuccess, "Refund failed");
+        }
         
         emit GovTokensPurchased(msg.sender, amount);
     }

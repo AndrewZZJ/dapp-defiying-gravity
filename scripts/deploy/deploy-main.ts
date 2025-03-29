@@ -33,6 +33,15 @@ async function main() {
   const govBalance = await graviGov.balanceOf(deployerAddress);
   console.log("Deployer GraviGov balance:", govBalance.toString());
 
+  // Mint some charity tokens. (For testing purposes) for deployer.
+  const charityMintAmount = 1000000; // Adjust mint amount as needed.
+  await graviCha.addMinter(deployerAddress);
+  const charityMintTx = await graviCha.mint(deployerAddress, charityMintAmount);
+  await charityMintTx.wait();
+  const chaBalance = await graviCha.balanceOf(deployerAddress);
+  await graviCha.removeMinter(deployerAddress);
+  console.log("Deployer GraviCha balance:", chaBalance.toString());
+
   // Deploy TimelockController.
   const minDelay = 0;
   const proposers: string[] = [];
@@ -50,6 +59,11 @@ async function main() {
   const graviDAOAddress = await graviDAO.getAddress();
   console.log("GraviDAO deployed at:", graviDAOAddress);
 
+  // Set the DAO in GraviGov to the GraviDAO address.
+  const setDaoTx = await graviGov.setDAO(graviDAOAddress);
+  await setDaoTx.wait();
+  console.log("GraviGov DAO set to:", graviDAOAddress);
+
   // Grant required roles in Timelock to GraviDAO.
   const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
   const EXECUTOR_ROLE = await timelock.EXECUTOR_ROLE();
@@ -61,6 +75,9 @@ async function main() {
   await graviCha.addMinter(graviGovAddress);
   await graviCha.transferOwnership(graviDAOAddress);
   await graviGov.transferOwnership(graviDAOAddress);
+
+  // Start an initial mint to governance pool.
+  await graviDAO.monthlyMintGovTokens()
 
   // Print deployer's voting power.
   const currentBlock = await ethers.provider.getBlockNumber();
