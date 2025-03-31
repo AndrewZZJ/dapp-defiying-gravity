@@ -60,8 +60,13 @@ interface IGraviInsurance {
     // AJ: not 100% sure if we need an additional method for starting a claim.
     // input: incident description, disaster type, and evidence.
     // output: boolean
-    // this method is aimed at starting a claim, and returns if a claim is submitted successfully.
+    // this method is expected to: start a claim (or preprocess the data for Moderator?), calls addClaimModerator, and returns if a claim is submitted successfully.
     function startAClaim(string memory incidentDescription, string memory disasterType, string memory evidence) external returns (bool);
+    
+    // AJ: a method getting highest donors
+    // input: N/A
+    // output: a list of highest donors. (might need to change format here)
+    function getHighestDonors() external view returns (address[] memory, uint256[] memory);
     
 } 
         

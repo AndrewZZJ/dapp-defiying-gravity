@@ -75,6 +75,7 @@ export const DonationForm: React.FC = () => {
 
   const selectedColor = poolOptions.find((pool) => pool.title === selectedPool)?.color || "bg-white";
 
+  // AJ: a method here getting the highest donors
   const highestDonorsData = [
     { name: "0xA4...B21", amount: "5.0 ETH" },
     { name: "🌟 generous.eth", amount: "3.2 ETH" },
