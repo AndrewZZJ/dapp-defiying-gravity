@@ -26,6 +26,13 @@ export default function NFTMarketplace() {
     }
   };
 
+  // Helper function to calculate a placeholder end date (30 days from now)
+  const calculatePlaceholderEndDate = () => {
+    const currentDate = new Date();
+    currentDate.setDate(currentDate.getDate() + 30); // Add 30 days
+    return currentDate.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+  };
+
   const nfts = [
     {
       image: "https://cdn.builder.io/api/v1/image/assets/TEMP/804793bedaabda1cf9c4091b86cae6469cbe02c2",
@@ -33,6 +40,7 @@ export default function NFTMarketplace() {
       category: "Mythical",
       description: "Harness the eternal fire of the sun",
       altText: "Solar Flame",
+      endDate: null, // Replace with backend-provided end date if available
     },
     {
       image: "https://cdn.builder.io/api/v1/image/assets/TEMP/da420caf50e77f5a82cd88b049ac8d85fefa8be4",
@@ -40,6 +48,7 @@ export default function NFTMarketplace() {
       category: "Legendary",
       description: "Protects the blockchain realm from tremors",
       altText: "Earth Warden",
+      endDate: null, // Replace with backend-provided end date if available
     },
     {
       image: "https://cdn.builder.io/api/v1/image/assets/TEMP/99c25429344972846f2eaa13689909934b39fdbc",
@@ -47,6 +56,7 @@ export default function NFTMarketplace() {
       category: "Epic",
       description: "A rare NFT of the elemental water guardian",
       altText: "Water Spirit",
+      endDate: null, // Replace with backend-provided end date if available
     },
   ];
 
@@ -64,6 +74,7 @@ export default function NFTMarketplace() {
                 category={nft.category}
                 description={nft.description}
                 altText={nft.altText}
+                endDate={nft.endDate || calculatePlaceholderEndDate()} // Use backend-provided end date or placeholder
               />
             ))}
           </>

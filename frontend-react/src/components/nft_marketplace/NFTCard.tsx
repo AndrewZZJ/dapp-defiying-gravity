@@ -8,6 +8,7 @@ interface NFTCardProps {
   category: string;
   description: string;
   altText: string;
+  endDate: string; // Add endDate prop
 }
 
 export function NFTCard({
@@ -16,6 +17,7 @@ export function NFTCard({
   category,
   description,
   altText,
+  endDate, // Include endDate in props
 }: NFTCardProps) {
   const [showBidForm, setShowBidForm] = useState(false);
   const [bid, setBid] = useState("");
@@ -57,45 +59,49 @@ export function NFTCard({
         </div>
         <p className="text-base leading-6 text-neutral-500">{description}</p>
 
+        {/* Display the auction end date */}
+        <div className="text-sm text-neutral-600">
+          <strong>Auction Ends:</strong> {endDate}
+        </div>
+
         {!submittedBid && (
-            <>
-                {submittedBid || bid ? (
-                <div className="text-sm text-neutral-600">
-                    Current highest bid: {submittedBid || bid} ETH
-                </div>
-                ) : (
-                <div className="text-sm text-neutral-400 italic">No bids yet</div>
-                )}
-
-                <button
-                className="p-3 w-full text-base rounded-lg bg-black text-white"
-                onClick={() => setShowBidForm(!showBidForm)}
-                >
-                {showBidForm ? "Cancel" : "Bid"}
-                </button>
-
-                {showBidForm && (
-                <div className="flex flex-col gap-2 mt-2">
-                    <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Price to bid (ETH)"
-                    value={bid}
-                    onChange={(e) => setBid(e.target.value)}
-                    className="p-2 border border-zinc-300 rounded"
-                    />
-                    <button
-                    className="p-2 rounded bg-green-600 text-white hover:bg-green-700"
-                    onClick={handleSubmit}
-                    >
-                    Submit
-                    </button>
-                </div>
-                )}
-            </>
+          <>
+            {submittedBid || bid ? (
+              <div className="text-sm text-neutral-600">
+                Current highest bid: {submittedBid || bid} ETH
+              </div>
+            ) : (
+              <div className="text-sm text-neutral-400 italic">No bids yet</div>
             )}
 
+            <button
+              className="p-3 w-full text-base rounded-lg bg-black text-white"
+              onClick={() => setShowBidForm(!showBidForm)}
+            >
+              {showBidForm ? "Cancel" : "Bid"}
+            </button>
+
+            {showBidForm && (
+              <div className="flex flex-col gap-2 mt-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Price to bid (ETH)"
+                  value={bid}
+                  onChange={(e) => setBid(e.target.value)}
+                  className="p-2 border border-zinc-300 rounded"
+                />
+                <button
+                  className="p-2 rounded bg-green-600 text-white hover:bg-green-700"
+                  onClick={handleSubmit}
+                >
+                  Submit
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </article>
   );
