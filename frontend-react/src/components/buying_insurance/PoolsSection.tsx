@@ -4,13 +4,33 @@ import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 
 export const PoolsSection: React.FC = () => {
-  const { walletAddress } = useWallet(); // Access wallet state from context
+  const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state and setter from context
   const [coverPeriod, setCoverPeriod] = useState(30); // Default cover period in days
   const [portfolioValue, setPortfolioValue] = useState(1); // Default portfolio value in ETH
   const [selectedDisaster, setSelectedDisaster] = useState("Wildfire"); // Default disaster type
   const [annualFee, setAnnualFee] = useState("0.54%"); // Placeholder for annual fee
   const [coverCost, setCoverCost] = useState("0.0004 ETH"); // Placeholder for cover cost
+  const [homeAddress, setHomeAddress] = useState(""); // State for the user's home address
   const [isLoading, setIsLoading] = useState(false);
+
+  // Function to connect wallet
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(
+          window.ethereum as ethers.providers.ExternalProvider
+        );
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address); // Update global wallet state
+      } catch (error) {
+        console.error("Wallet connection failed:", error);
+      }
+    } else {
+      alert("Please install MetaMask to connect your wallet.");
+    }
+  };
 
   // Fetch data from the backend or smart contract
   useEffect(() => {
@@ -64,6 +84,11 @@ export const PoolsSection: React.FC = () => {
       return;
     }
 
+    if (!homeAddress.trim()) {
+      alert("Please enter your desired address.");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
@@ -103,131 +128,147 @@ export const PoolsSection: React.FC = () => {
     return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   };
 
-  if (!walletAddress) {
-    return (
-      <main className="flex items-center justify-center h-screen bg-gray-100">
-        <p className="text-lg font-medium text-gray-700">
-          Please connect your wallet to access this page.
-        </p>
-      </main>
-    );
-  }
-
   return (
     <main className="relative px-8 py-12 bg-white min-h-screen">
       <h1 className="mb-12 text-4xl font-bold text-center text-gray-900">
         Buy Insurance
       </h1>
 
-      <div className="flex flex-col md:flex-row gap-12 max-w-6xl mx-auto">
-        {/* Details Pane */}
-        <section className="flex-1 bg-white p-6 rounded-lg shadow-md border border-gray-300">
-          <h2 className="text-3xl font-bold mb-6 text-gray-900">Details</h2>
+      {walletAddress ? (
+        <div className="flex flex-col md:flex-row gap-12 max-w-6xl mx-auto">
+          {/* Details Pane */}
+          <section className="flex-1 bg-white p-6 rounded-lg shadow-md border border-gray-300">
+            <h2 className="text-3xl font-bold mb-6 text-gray-900">Details</h2>
 
-          {/* Connected Wallet Address */}
-          <div className="mb-6">
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Connected Wallet Address
-            </label>
-            <input
-              type="text"
-              value={walletAddress}
-              readOnly
-              className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
-            />
-          </div>
+            {/* Connected Wallet Address */}
+            <div className="mb-6">
+              <label className="block text-lg font-semibold text-gray-700 mb-2">
+                Connected Wallet Address
+              </label>
+              <input
+                type="text"
+                value={walletAddress}
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
+              />
+            </div>
 
-          {/* Portfolio Value */}
-          <div className="mb-6 p-4 rounded-lg border border-gray-300">
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Portfolio Value (ETH)
-            </label>
-            <input
-              type="number"
-              value={portfolioValue}
-              onChange={(e) => setPortfolioValue(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-              min="0.1"
-              step="0.1"
-            />
-          </div>
+            {/* Home Address Input */}
+            <div className="mb-6 p-4 rounded-lg border border-gray-300">
+              <label className="block text-lg font-semibold text-gray-700 mb-2">
+                Desired Address to Insure
+              </label>
+              <input
+                type="text"
+                value={homeAddress}
+                onChange={(e) => setHomeAddress(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                placeholder="Enter your desired address to insure (123 Main St, City, Province/State, Country)."
+              />
+            </div>
 
-          {/* Cover Period */}
-          <div className="mb-6 p-4 rounded-lg border border-gray-300">
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Cover Period (Days)
-            </label>
-            <input
-              type="range"
-              min="28"
-              max="365"
-              value={coverPeriod}
-              onChange={(e) => setCoverPeriod(Number(e.target.value))}
-              className="w-full accent-orange-500" // Sunset orange slider
-            />
-            <p className="text-sm text-gray-600 mt-2">
-              {coverPeriod} days (28 days - 365 days)
-            </p>
-          </div>
+            {/* Portfolio Value */}
+            <div className="mb-6 p-4 rounded-lg border border-gray-300">
+              <label className="block text-lg font-semibold text-gray-700 mb-2">
+                Portfolio Value (ETH)
+              </label>
+              <input
+                type="number"
+                value={portfolioValue}
+                onChange={(e) => setPortfolioValue(Number(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                min="0.1"
+                step="0.1"
+              />
+            </div>
 
-          {/* Disaster Type Dropdown */}
-          <div className="mb-6 p-4 rounded-lg border border-gray-300">
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Disaster Type
-            </label>
-            <select
-              value={selectedDisaster}
-              onChange={(e) => setSelectedDisaster(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white"
+            {/* Cover Period */}
+            <div className="mb-6 p-4 rounded-lg border border-gray-300">
+              <label className="block text-lg font-semibold text-gray-700 mb-2">
+                Cover Period (Days)
+              </label>
+              <input
+                type="range"
+                min="28"
+                max="365"
+                value={coverPeriod}
+                onChange={(e) => setCoverPeriod(Number(e.target.value))}
+                className="w-full accent-orange-500" // Sunset orange slider
+              />
+              <p className="text-sm text-gray-600 mt-2">
+                {coverPeriod} days (28 days - 365 days)
+              </p>
+            </div>
+
+            {/* Disaster Type Dropdown */}
+            <div className="mb-6 p-4 rounded-lg border border-gray-300">
+              <label className="block text-lg font-semibold text-gray-700 mb-2">
+                Disaster Type
+              </label>
+              <select
+                value={selectedDisaster}
+                onChange={(e) => setSelectedDisaster(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white"
+              >
+                <option value="Wildfire">Wildfire</option>
+                <option value="Flood">Flood</option>
+                <option value="Earthquake">Earthquake</option>
+              </select>
+            </div>
+
+            {/* Purchase Button */}
+            <button
+              onClick={handlePurchase}
+              className={`w-full py-3 text-white font-medium rounded-md ${
+                isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+              }`}
+              disabled={isLoading}
             >
-              <option value="Wildfire">Wildfire</option>
-              <option value="Flood">Flood</option>
-              <option value="Earthquake">Earthquake</option>
-            </select>
-          </div>
+              {isLoading ? "Processing..." : "Purchase Insurance"}
+            </button>
+          </section>
 
-          {/* Purchase Button */}
+          {/* Overview Pane */}
+          <section className="w-1/3 bg-white p-6 rounded-lg shadow-md border border-gray-300 self-start">
+            <h2 className="text-3xl font-bold mb-6 text-gray-900">Overview</h2>
+
+            <div className="mb-4">
+              <p className="text-lg font-semibold text-gray-700">Listing</p>
+              <p className="text-base text-gray-900">{selectedDisaster} Cover</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-lg font-semibold text-gray-700">Portfolio Value</p>
+              <p className="text-base text-gray-900">{portfolioValue} ETH</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-lg font-semibold text-gray-700">Cover Period</p>
+              <p className="text-base text-gray-900">{calculateCoverageDates()}</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-lg font-semibold text-gray-700">Annual Fee</p>
+              <p className="text-base text-gray-900">{annualFee}</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-lg font-semibold text-gray-700">Cover Cost</p>
+              <p className="text-base text-gray-900">{coverCost}</p>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="text-center">
+          <p className="text-lg font-medium">Please connect your wallet to proceed.</p>
           <button
-            onClick={handlePurchase}
-            className={`w-full py-3 text-white font-medium rounded-md ${
-              isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
-            }`}
-            disabled={isLoading}
+            onClick={connectWallet}
+            className="mt-4 px-4 py-2 bg-black text-white rounded-lg"
           >
-            {isLoading ? "Processing..." : "Purchase Insurance"}
+            Connect Wallet
           </button>
-        </section>
-
-        {/* Overview Pane */}
-        <section className="w-1/3 bg-white p-6 rounded-lg shadow-md border border-gray-300 self-start">
-          <h2 className="text-3xl font-bold mb-6 text-gray-900">Overview</h2>
-
-          <div className="mb-4">
-            <p className="text-lg font-semibold text-gray-700">Listing</p>
-            <p className="text-base text-gray-900">{selectedDisaster} Cover</p>
-          </div>
-
-          <div className="mb-4">
-            <p className="text-lg font-semibold text-gray-700">Portfolio Value</p>
-            <p className="text-base text-gray-900">{portfolioValue} ETH</p>
-          </div>
-
-          <div className="mb-4">
-            <p className="text-lg font-semibold text-gray-700">Cover Period</p>
-            <p className="text-base text-gray-900">{calculateCoverageDates()}</p>
-          </div>
-
-          <div className="mb-4">
-            <p className="text-lg font-semibold text-gray-700">Annual Fee</p>
-            <p className="text-base text-gray-900">{annualFee}</p>
-          </div>
-
-          <div className="mb-4">
-            <p className="text-lg font-semibold text-gray-700">Cover Cost</p>
-            <p className="text-base text-gray-900">{coverCost}</p>
-          </div>
-        </section>
-      </div>
+        </div>
+      )}
     </main>
   );
 };
