@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { NavigationHeader } from "../navigation/AppNavigationHeader"; // or wherever your real NavigationHeader lives
+import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { NFTCard } from "./NFTCard";
 import { DonorLeaderboard } from "./DonorLeaderboard";
 

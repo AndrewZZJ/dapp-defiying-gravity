@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { ethers } from "ethers";
 
 const LoginIcon = () => (
   <svg
@@ -19,7 +20,33 @@ const LoginIcon = () => (
   </svg>
 );
 
-export const LoginCard: React.FC = () => {
+// Define the prop type for LoginCard
+interface LoginCardProps {
+  onWalletConnected: () => void; // Callback function to notify parent
+}
+
+export const LoginCard: React.FC<LoginCardProps> = ({ onWalletConnected }) => {
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address);
+
+        // Notify parent component that the wallet is connected
+        onWalletConnected();
+      } catch (error) {
+        console.error("Wallet connection failed:", error);
+      }
+    } else {
+      alert("Please install MetaMask to connect your wallet.");
+    }
+  };
+
   return (
     <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
       <LoginIcon />
@@ -33,8 +60,11 @@ export const LoginCard: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-4 items-center w-full">
-          <button className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900">
-            Connect your wallet
+          <button
+            onClick={connectWallet}
+            className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
+          >
+            {walletAddress ? `Connected: ${walletAddress.slice(0, 6)}...` : "Connect your wallet"}
           </button>
         </div>
       </div>
