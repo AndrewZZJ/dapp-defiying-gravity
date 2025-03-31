@@ -1,10 +1,31 @@
-"use client";
-import * as React from "react";
+import React from "react";
+import { ethers } from "ethers";
 import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import { NFTCard } from "./NFTCard";
 import { DonorLeaderboard } from "./DonorLeaderboard";
+import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 
 export default function NFTMarketplace() {
+  const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state from context
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(
+          window.ethereum as ethers.providers.ExternalProvider
+        );
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address); // Update global wallet state
+      } catch (error) {
+        console.error("Wallet connection failed:", error);
+      }
+    } else {
+      alert("Please install MetaMask to connect your wallet.");
+    }
+  };
+
   const nfts = [
     {
       image: "https://cdn.builder.io/api/v1/image/assets/TEMP/804793bedaabda1cf9c4091b86cae6469cbe02c2",
@@ -33,18 +54,32 @@ export default function NFTMarketplace() {
     <main>
       <NavigationHeader />
       <section className="flex flex-col gap-16 p-16 bg-white max-sm:gap-8 max-sm:p-6">
-        {nfts.map((nft, index) => (
-          <NFTCard
-            key={index}
-            image={nft.image}
-            title={nft.title}
-            category={nft.category}
-            description={nft.description}
-            altText={nft.altText}
-          />
-        ))}
+        {walletAddress ? (
+          <>
+            {nfts.map((nft, index) => (
+              <NFTCard
+                key={index}
+                image={nft.image}
+                title={nft.title}
+                category={nft.category}
+                description={nft.description}
+                altText={nft.altText}
+              />
+            ))}
+          </>
+        ) : (
+          <div className="text-center">
+            <p className="text-lg font-medium">Please connect your wallet to view the marketplace.</p>
+            <button
+              onClick={connectWallet}
+              className="mt-4 px-4 py-2 bg-black text-white rounded-lg"
+            >
+              Connect Wallet
+            </button>
+          </div>
+        )}
       </section>
-      <DonorLeaderboard />
+      {walletAddress && <DonorLeaderboard />}
     </main>
   );
 }

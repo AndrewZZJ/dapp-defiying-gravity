@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { ethers } from "ethers";
+import { useWallet } from "../../context/WalletContext"; // Import WalletContext
+import { Dashboard } from "./Dashboard"; // Import the Dashboard component
 
 const LoginIcon = () => (
   <svg
@@ -20,13 +22,12 @@ const LoginIcon = () => (
   </svg>
 );
 
-// Define the prop type for LoginCard
 interface LoginCardProps {
   onWalletConnected: () => void; // Callback function to notify parent
 }
 
 export const LoginCard: React.FC<LoginCardProps> = ({ onWalletConnected }) => {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state from context
 
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
@@ -35,7 +36,7 @@ export const LoginCard: React.FC<LoginCardProps> = ({ onWalletConnected }) => {
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
-        setWalletAddress(address);
+        setWalletAddress(address); // Update global wallet state
 
         // Notify parent component that the wallet is connected
         onWalletConnected();
@@ -47,6 +48,12 @@ export const LoginCard: React.FC<LoginCardProps> = ({ onWalletConnected }) => {
     }
   };
 
+  // If the wallet is already connected, show the dashboard overview
+  if (walletAddress) {
+    return <Dashboard />;
+  }
+
+  // Otherwise, show the login card with the connect wallet button
   return (
     <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
       <LoginIcon />
@@ -64,7 +71,7 @@ export const LoginCard: React.FC<LoginCardProps> = ({ onWalletConnected }) => {
             onClick={connectWallet}
             className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
           >
-            {walletAddress ? `Connected: ${walletAddress.slice(0, 6)}...` : "Connect your wallet"}
+            Connect your wallet
           </button>
         </div>
       </div>

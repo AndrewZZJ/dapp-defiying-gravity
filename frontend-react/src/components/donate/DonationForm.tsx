@@ -1,41 +1,62 @@
 "use client";
 
 import { useState } from "react";
+import { ethers } from "ethers";
+import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 import { InputField } from "./InputField";
 import { TextareaField } from "./TextareaField";
 
 export const DonationForm: React.FC = () => {
+  const { walletAddress } = useWallet(); // Access wallet state from context
   const [amount, setAmount] = useState("");
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // State to store submitted data for the OverviewPanel
-  const [submittedData, setSubmittedData] = useState<{
-    walletAddress: string | null; // Allow null initially
-    donatedPool: string | null;
-    amountDonated: string;
-    message: string;
-  }>({
-    walletAddress: null, // Initially null
-    donatedPool: null,
-    amountDonated: "",
-    message: "",
-  });
+  const contractAddress = "0xYourContractAddress"; // Replace with your contract address
+  const contractABI = [
+    "function donate(string poolName, string message) public payable",
+  ];
 
-  const handleSubmit = () => {
-    // Update the submitted data
-    setSubmittedData({
-      walletAddress: "0x1234...abcd", // Placeholder wallet address
-      donatedPool: selectedPool,
-      amountDonated: amount,
-      message: message,
-    });
+  const handleSubmit = async () => {
+    if (!walletAddress) {
+      alert("Please connect your wallet to donate.");
+      return;
+    }
 
-    // Reset the form (optional)
-    setAmount("");
-    setSelectedPool(null);
-    setMessage("");
+    if (!selectedPool || !amount) {
+      alert("Please select a pool and enter an amount to donate.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const provider = new ethers.providers.Web3Provider(
+        window.ethereum as ethers.providers.ExternalProvider
+      );
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      // Call the donate function on the smart contract
+      const tx = await contract.donate(selectedPool, message, {
+        value: ethers.utils.parseEther(amount), // Convert ETH to Wei
+      });
+      await tx.wait();
+
+      alert("Donation successful!");
+
+      // Reset the form
+      setAmount("");
+      setSelectedPool(null);
+      setMessage("");
+    } catch (error) {
+      console.error("Failed to process donation:", error);
+      alert("Donation failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMessageChange = (value: string) => {
@@ -109,37 +130,38 @@ export const DonationForm: React.FC = () => {
         <div className="flex gap-4 items-center mt-4 leading-none whitespace-nowrap min-h-10 text-neutral-100">
           <button
             onClick={handleSubmit}
-            className="overflow-hidden flex-1 shrink gap-2 self-stretch p-3 my-auto w-full rounded-md border border-solid basis-0 bg-black text-white hover:bg-gray-800 hover:text-gray-200 min-w-60"
+            className={`overflow-hidden flex-1 shrink gap-2 self-stretch p-3 my-auto w-full rounded-md border border-solid basis-0 ${
+              loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 hover:text-gray-200"
+            }`}
+            disabled={loading}
           >
-            Donate
+            {loading ? "Processing..." : "Donate"}
           </button>
         </div>
       </section>
 
       {/* Overview Panel Section */}
       <section className="flex-1 self-start px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
-        <h2 className="font-bold text-lg">Overview</h2> {/* Bold and slightly larger font */}
+        <h2 className="font-bold text-lg">Overview</h2>
 
-        <div className="mt-4"> {/* Reduced margin */}
+        <div className="mt-4">
           <p className="font-medium">Wallet Address:</p>
-          <p className="text-sm text-gray-700">
-            {submittedData.walletAddress || "Not submitted yet"}
-          </p>
+          <p className="text-sm text-gray-700">{walletAddress || "Not connected"}</p>
         </div>
 
         <div className="mt-4">
-          <p className="font-medium">Donated Pool:</p>
-          <p className="text-sm text-gray-700">{submittedData.donatedPool || "None"}</p>
+          <p className="font-medium">Selected Pool:</p>
+          <p className="text-sm text-gray-700">{selectedPool || "None"}</p>
         </div>
 
         <div className="mt-4">
-          <p className="font-medium">Amount Donated:</p>
-          <p className="text-sm text-gray-700">{submittedData.amountDonated || "0 ETH"}</p>
+          <p className="font-medium">Amount:</p>
+          <p className="text-sm text-gray-700">{amount || "0 ETH"}</p>
         </div>
 
         <div className="mt-4">
           <p className="font-medium">Message:</p>
-          <p className="text-sm text-gray-700">{submittedData.message || "No message provided."}</p>
+          <p className="text-sm text-gray-700">{message || "No message provided."}</p>
         </div>
       </section>
     </div>

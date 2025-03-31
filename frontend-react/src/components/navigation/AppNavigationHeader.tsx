@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { WalletConnectButton } from "../dashboard/WalletConnectButton";
+import { useWallet } from "../../context/WalletContext";
+import { ethers } from "ethers";
 import { NavigationPill } from "./NavigationPill";
 
 export const NavigationHeader: React.FC = () => {
   const location = useLocation();
   const [governanceOpen, setGovernanceOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state from context
 
   // Close the dropdown if clicking outside
   useEffect(() => {
@@ -20,6 +23,24 @@ export const NavigationHeader: React.FC = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(
+          window.ethereum as ethers.providers.ExternalProvider
+        );
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address); // Update global wallet state
+      } catch (error) {
+        console.error("Wallet connection failed:", error);
+      }
+    } else {
+      alert("Please install MetaMask to connect your wallet.");
+    }
+  };
 
   return (
     <header className="flex items-center justify-between p-8 w-full bg-white border-b border-zinc-300">
@@ -74,10 +95,22 @@ export const NavigationHeader: React.FC = () => {
           </div>
         </nav>
 
-        <Link to="/dashboard" className="w-[178px]">
-          <WalletConnectButton />
-        </Link>
+        {/* Wallet Connection */}
+        <div className="ml-4">
+          {walletAddress ? (
+            <p className="text-sm text-gray-600">
+              Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+            </p>
+          ) : (
+            <button
+              onClick={connectWallet}
+              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+            >
+              Connect Wallet
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );
-}
+};

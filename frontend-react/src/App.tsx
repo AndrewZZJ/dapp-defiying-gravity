@@ -1,6 +1,7 @@
 import { ReactElement } from 'react';
 import styled from 'styled-components';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { WalletProvider } from "./context/WalletContext";
 import HomePage from './components/home/HomePage';
 import Main from './components/product_details/Main';
 import GraviTrustLanding from './components/dashboard/GraviTrustLanding';
@@ -22,24 +23,26 @@ const StyledAppDiv = styled.div`
 
 export function App(): ReactElement {
   return (
-    <Router>
-      <StyledAppDiv>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/product-details" element={<Main />} />
-          <Route path="/dashboard" element={<GraviTrustLanding />} />
-          <Route path="/claims-buying" element={<Claims />} />
-          <Route path="/buy-insurance" element={<BuyInsurance />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact-us" element={<ContactUs />} />
-          <Route path="/donate" element={<Donate />} />
-          <Route path="/marketplace" element={<NFTMarketplace />} />  
-          <Route path="/governance/submit" element={<Governance />} />
-          <Route path="/governance/current" element={<CurrentProposals />} />
-          <Route path="/claims-covered" element={<ClaimsPage />} />
-          <Route path="/pending-oracle" element={<PendingOracle />} />
-        </Routes>
-      </StyledAppDiv>
-    </Router>
+    <WalletProvider>
+        <Router>
+        <StyledAppDiv>
+            <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/product-details" element={<Main />} />
+            <Route path="/dashboard" element={<GraviTrustLanding />} />
+            <Route path="/claims-buying" element={<Claims />} />
+            <Route path="/buy-insurance" element={<BuyInsurance />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact-us" element={<ContactUs />} />
+            <Route path="/donate" element={<Donate />} />
+            <Route path="/marketplace" element={<NFTMarketplace />} />  
+            <Route path="/governance/submit" element={<Governance />} />
+            <Route path="/governance/current" element={<CurrentProposals />} />
+            <Route path="/claims-covered" element={<ClaimsPage />} />
+            <Route path="/pending-oracle" element={<PendingOracle />} />
+            </Routes>
+        </StyledAppDiv>
+        </Router>
+    </WalletProvider>
   );
 }

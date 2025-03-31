@@ -1,5 +1,7 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 import { ClaimItem } from "./ClaimItem";
 
 type ClaimStatus = "Approved" | "Declined" | "In Progress";
@@ -11,55 +13,141 @@ interface Claim {
   status: ClaimStatus;
 }
 
-const claims: Claim[] = [
-  {
-    id: "1",
-    title: "Cover ID: 34-A",
-    information: "Damage due to wildfire. Initial payout pending.",
-    status: "In Progress",
-  },
-  {
-    id: "2",
-    title: "Cover ID: 87-K",
-    information: "Claim declined due to lack of coverage documentation.",
-    status: "Declined",
-  },
-  {
-    id: "3",
-    title: "Cover ID: 11-P",
-    information: "Approved for 2.5 ETH payout. Awaiting final transfer.",
-    status: "Approved",
-  },
-  {
-    id: "4",
-    title: "Cover ID: 92-Z",
-    information: "Under review by claims team.",
-    status: "In Progress",
-  },
-  {
-    id: "5",
-    title: "Cover ID: 73-T",
-    information: "Approved. Finalized on-chain.",
-    status: "Approved",
-  },
-];
-
 export const ClaimsList: React.FC = () => {
+  const { walletAddress } = useWallet(); // Access wallet state from context
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const contractAddress = "0xYourContractAddress"; // Replace with your contract address
+  const contractABI = [
+    "function getClaims() public view returns (tuple(string id, string title, string information, string status)[])",
+  ];
+
+  const fetchClaims = async () => {
+    if (!walletAddress) {
+      alert("Please connect your wallet to view claims.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const provider = new ethers.providers.Web3Provider(
+        window.ethereum as ethers.providers.ExternalProvider
+      );
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      // Fetch claims from the smart contract
+      const claimsData = await contract.getClaims();
+      const formattedClaims: Claim[] = claimsData.map((claim: any) => ({
+        id: claim.id,
+        title: claim.title,
+        information: claim.information,
+        status: claim.status as ClaimStatus,
+      }));
+
+      setClaims(formattedClaims);
+    } catch (error) {
+      console.error("Failed to fetch claims:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (walletAddress) {
+      fetchClaims();
+    }
+  }, [walletAddress]);
+
   return (
     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
       <section className="flex flex-col gap-4 p-16 mx-auto my-0 max-w-screen-sm max-md:px-4 max-md:py-8 max-sm:px-2 max-sm:py-4">
-        {claims.map((claim) => (
-          <ClaimItem
-            key={claim.id}
-            title={claim.title}
-            status={claim.status}
-            information={claim.information}
-          />
-        ))}
+        {loading ? (
+          <p className="text-center text-lg font-medium">Loading claims...</p>
+        ) : claims.length > 0 ? (
+          claims.map((claim) => (
+            <ClaimItem
+              key={claim.id}
+              title={claim.title}
+              status={claim.status}
+              information={claim.information}
+            />
+          ))
+        ) : (
+          <p className="text-center text-lg font-medium">
+            No claims found. Submit a claim to get started.
+          </p>
+        )}
       </section>
     </main>
   );
 };
+
+// "use client";
+// import React from "react";
+// import { ClaimItem } from "./ClaimItem";
+
+// type ClaimStatus = "Approved" | "Declined" | "In Progress";
+
+// interface Claim {
+//   id: string;
+//   title: string;
+//   information?: string;
+//   status: ClaimStatus;
+// }
+
+// const claims: Claim[] = [
+//   {
+//     id: "1",
+//     title: "Cover ID: 34-A",
+//     information: "Damage due to wildfire. Initial payout pending.",
+//     status: "In Progress",
+//   },
+//   {
+//     id: "2",
+//     title: "Cover ID: 87-K",
+//     information: "Claim declined due to lack of coverage documentation.",
+//     status: "Declined",
+//   },
+//   {
+//     id: "3",
+//     title: "Cover ID: 11-P",
+//     information: "Approved for 2.5 ETH payout. Awaiting final transfer.",
+//     status: "Approved",
+//   },
+//   {
+//     id: "4",
+//     title: "Cover ID: 92-Z",
+//     information: "Under review by claims team.",
+//     status: "In Progress",
+//   },
+//   {
+//     id: "5",
+//     title: "Cover ID: 73-T",
+//     information: "Approved. Finalized on-chain.",
+//     status: "Approved",
+//   },
+// ];
+
+// export const ClaimsList: React.FC = () => {
+//   return (
+//     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
+//       <section className="flex flex-col gap-4 p-16 mx-auto my-0 max-w-screen-sm max-md:px-4 max-md:py-8 max-sm:px-2 max-sm:py-4">
+//         {claims.map((claim) => (
+//           <ClaimItem
+//             key={claim.id}
+//             title={claim.title}
+//             status={claim.status}
+//             information={claim.information}
+//           />
+//         ))}
+//       </section>
+//     </main>
+//   );
+// };
+
+
 
 // "use client";
 // import { useState } from "react";
