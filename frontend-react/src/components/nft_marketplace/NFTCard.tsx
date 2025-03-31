@@ -8,7 +8,9 @@ interface NFTCardProps {
   category: string;
   description: string;
   altText: string;
-  endDate: string; // Add endDate prop
+  endDate: string; // Auction end date
+  isWinner: boolean; // Whether the user is the winner
+  hasBid: boolean; // Whether the user placed a bid
 }
 
 export function NFTCard({
@@ -17,7 +19,9 @@ export function NFTCard({
   category,
   description,
   altText,
-  endDate, // Include endDate in props
+  endDate,
+  isWinner,
+  hasBid,
 }: NFTCardProps) {
   const [showBidForm, setShowBidForm] = useState(false);
   const [bid, setBid] = useState("");
@@ -29,6 +33,9 @@ export function NFTCard({
       setShowBidForm(false);
     }
   };
+
+  // Check if the auction has ended
+  const hasAuctionEnded = new Date(endDate) < new Date();
 
   return (
     <article className="flex gap-16 items-start max-md:flex-col max-sm:gap-6 relative">
@@ -64,7 +71,7 @@ export function NFTCard({
           <strong>Auction Ends:</strong> {endDate}
         </div>
 
-        {!submittedBid && (
+        {!hasAuctionEnded ? (
           <>
             {submittedBid || bid ? (
               <div className="text-sm text-neutral-600">
@@ -101,6 +108,28 @@ export function NFTCard({
               </div>
             )}
           </>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {/* Buttons for after the auction ends */}
+            <button
+              className={`p-3 w-full text-base rounded-lg ${
+                hasBid ? "bg-red-600 text-white hover:bg-red-700" : "bg-gray-400 text-gray-700 cursor-not-allowed"
+              }`}
+              onClick={() => hasBid && alert("Retrieve Bid Money functionality goes here")}
+              disabled={!hasBid}
+            >
+              Retrieve Bid Money
+            </button>
+            <button
+              className={`p-3 w-full text-base rounded-lg ${
+                isWinner ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-400 text-gray-700 cursor-not-allowed"
+              }`}
+              onClick={() => isWinner && alert("Claim NFT functionality goes here")}
+              disabled={!isWinner}
+            >
+              Claim NFT
+            </button>
+          </div>
         )}
       </div>
     </article>
