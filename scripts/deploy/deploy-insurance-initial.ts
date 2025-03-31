@@ -80,16 +80,29 @@ async function main() {
   // Write insurances metadata to scripts/metadata/insurances.json.
   writeMetadata("insurances.json", deployedInsurances);
 
-  // Optionally update the global deployment config with insurance addresses.
+  // Optionally update the global deployment config with insurance and NFT addresses separately.
   writeDeploymentConfig({
-    ...deploymentConfig,
-    ...Object.fromEntries(
-      Object.entries(deployedInsurances).map(([name, addrs]) => [
-        name.replace(/\s+/g, ""), // e.g. "FireInsurance"
-        addrs.insuranceAddress,
-      ])
-    ),
-  });
+      ...deploymentConfig,
+      ...Object.fromEntries(
+        Object.entries(deployedInsurances).flatMap(([name, addrs]) => [
+          [`${name.replace(/\s+/g, "")}`, addrs.insuranceAddress],
+          [`${name.replace(/\s+/g, "")}NFT`, addrs.nftAddress],
+        ])
+      ),
+    });
+
+  // // Optionally update the global deployment config with insurance addresses.
+  // writeDeploymentConfig({
+  //   ...deploymentConfig,
+  //   ...Object.fromEntries(
+  //     Object.entries(deployedInsurances).map(([name, addrs]) => [
+  //       name.replace(/\s+/g, ""), // e.g. "FireInsurance"
+  //       addrs.insuranceAddress,
+  //     ])
+  //   ),
+  // });
+  // Update the global deployment config with both NFT and insurance addresses.
+
 }
 
 main().catch((error) => {

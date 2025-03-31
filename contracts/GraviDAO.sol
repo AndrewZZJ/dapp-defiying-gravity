@@ -12,6 +12,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+// import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 // Interfaces
 import {IGraviInsurance} from "./interfaces/IGraviInsurance.sol";
@@ -83,6 +84,7 @@ contract GraviDAO is Governor,
     // ---------------------------------------------------
     // State variables for voting and governance
     // ---------------------------------------------------
+    // Note: This is in blocks, not seconds
     uint256 public govVotingDelay = 7200; // 1 day
     uint256 public govVotingPeriod = 50400; // 1 week
     uint256 public govProposalThreshold = 0;
@@ -127,6 +129,15 @@ contract GraviDAO is Governor,
     function setFinishedInitialSetup() external onlyGovernanceOrInitialDeployer {
         setupComplete = true;
     }
+
+    // // To Enable TimeStamp based clock instead of block based (default)
+    // function clock() public view override(Governor, GovernorVotes) returns (uint48) {
+    //     return SafeCast.toUint48(block.timestamp);
+    // }
+
+    // function CLOCK_MODE() public pure override(Governor, GovernorVotes) returns (string memory) {
+    //     return "mode=timestamp";
+    // }
 
     // ---------------------------------------------------
     // 1. GraviGov Token Minting and Purchase Pool
@@ -458,6 +469,7 @@ contract GraviDAO is Governor,
     // ---------------------------------------------------
     // 7. Dao override for Governor parameters
     // ---------------------------------------------------
+    // Note this sets it in terms of blocks not seconds
     function setGovParameters(uint256 _votingDelay, uint256 _votingPeriod, uint256 _proposalThreshold) external onlyGovernanceOrInitialDeployer {
         govVotingDelay = _votingDelay;
         govVotingPeriod = _votingPeriod;

@@ -44,7 +44,7 @@ async function main() {
   await printProposalInfo(graviDAO, proposalId);
 
   // Simulate the timelock delay until voting starts.
-  await simulateTimeSkip(7200);
+  await simulateTimeSkip(7200 * 12);
   console.log("Proposal status, after waiting until voting time:");
   await printProposalInfo(graviDAO, proposalId);
 
@@ -53,7 +53,7 @@ async function main() {
   console.log("Voted in favor of the proposal.");
 
   // Simulate the end of the voting period.
-  await simulateTimeSkip(50400);
+  await simulateTimeSkip(50400 * 12);
   console.log("Proposal status, after end of voting period:");
   await printProposalInfo(graviDAO, proposalId);
 
@@ -62,7 +62,7 @@ async function main() {
   console.log("Proposal queued with description hash:", descriptionHash);
 
   // Simulate a short delay until execution.
-  await simulateTimeSkip(1);
+  await simulateTimeSkip(1 * 12);
   console.log("Proposal status, after queuing:");
   await printProposalInfo(graviDAO, proposalId);
 
