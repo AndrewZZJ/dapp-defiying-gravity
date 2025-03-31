@@ -3,7 +3,7 @@ import React, { useState } from "react";
 
 interface ProposalItemProps {
   title: string;
-  status: "Approved" | "Declined" | "In Progress";
+  status: "Approved" | "Declined" | "In Progress" | "Approved and Executed";
 }
 
 export const ProposalItem: React.FC<ProposalItemProps> = ({ title, status }) => {
@@ -13,6 +13,7 @@ export const ProposalItem: React.FC<ProposalItemProps> = ({ title, status }) => 
     Approved: "text-green-600",
     Declined: "text-red-500",
     "In Progress": "text-yellow-500",
+    "Approved and Executed": "bg-blue-800"
   };
 
   return (

@@ -15,6 +15,7 @@ import ClaimsPage from './components/claims_covered/ClaimsPage';
 import PendingOracle from './components/pending_oracle/PendingOracle';
 import CurrentProposals from './components/current_proposals/CurrentProposals'
 import NFTMarketplace from './components/nft_marketplace/NFTMarketplace';
+import Exchange from './components/exchange/Exchange';
 
 const StyledAppDiv = styled.div`
   display: grid;
@@ -40,6 +41,7 @@ export function App(): ReactElement {
             <Route path="/governance/current" element={<CurrentProposals />} />
             <Route path="/claims-covered" element={<ClaimsPage />} />
             <Route path="/pending-oracle" element={<PendingOracle />} />
+            <Route path="/exchange" element={<Exchange />} />
             </Routes>
         </StyledAppDiv>
         </Router>
