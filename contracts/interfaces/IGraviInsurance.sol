@@ -51,5 +51,17 @@ interface IGraviInsurance {
 
     // Transfer ether to a recipient.
     function transferEther(address payable recipient, uint256 amount) external payable;
+
+    // AJ: need a method getting all claims for page:Claims -> View Claims
+    // input: N/A
+    // output: a list of claims. (might need to change format here)
+    function getAllClaims() external view returns (uint[] memory, string[] memory, string[] memory, string[] memory); 
+
+    // AJ: not 100% sure if we need an additional method for starting a claim.
+    // input: incident description, disaster type, and evidence.
+    // output: boolean
+    // this method is aimed at starting a claim, and returns if a claim is submitted successfully.
+    function startAClaim(string memory incidentDescription, string memory disasterType, string memory evidence) external returns (bool);
+    
 } 
         
