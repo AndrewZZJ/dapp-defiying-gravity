@@ -75,8 +75,19 @@ export const DonationForm: React.FC = () => {
 
   const selectedColor = poolOptions.find((pool) => pool.title === selectedPool)?.color || "bg-white";
 
+  const highestDonorsData = [
+    { name: "0xA4...B21", amount: "5.0 ETH" },
+    { name: "🌟 generous.eth", amount: "3.2 ETH" },
+    { name: "donorhero.eth", amount: "2.8 ETH" },
+    { name: "0xC3...D45", amount: "2.5 ETH" },
+    { name: "kindheart.eth", amount: "2.0 ETH" },
+    { name: "0xE5...F67", amount: "1.8 ETH" },
+    { name: "charitychamp.eth", amount: "1.5 ETH" },
+    { name: "0xG7...H89", amount: "1.2 ETH" },
+  ];
+
   return (
-    <div className="flex flex-col md:flex-row gap-6">
+    <div className="flex flex-col md:flex-row gap-8">
       {/* Donation Form Section */}
       <section className="flex-1 px-6 pt-6 pb-11 bg-white rounded-lg border border-solid border-zinc-300 max-md:px-5">
         <InputField
@@ -171,6 +182,24 @@ export const DonationForm: React.FC = () => {
             {charityTokens !== null ? charityTokens : "Pending..."}
           </p>
         </div>
+      </section>
+
+      {/* Leaderboard Section */}
+      <section className="flex-1 px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
+        <h2 className="font-bold text-lg text-center">Highest Historical Donors</h2>
+        <ul className="mt-4 space-y-4">
+          {highestDonorsData.map((entry, index) => (
+            <li
+              key={index}
+              className="flex justify-between border-b pb-2 text-sm sm:text-base"
+            >
+              <span>{entry.name}</span>
+              <span className="text-emerald-700 font-semibold">
+                {entry.amount}
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
