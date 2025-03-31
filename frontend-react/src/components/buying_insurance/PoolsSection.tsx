@@ -1,141 +1,233 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 
-interface PoolItemProps {
-  title: string;
-  purchased: boolean;
-  isOpen: boolean;
-  onToggle: () => void;
-  onPurchase: () => void;
-  color: string;
-}
-
-const PoolItem: React.FC<PoolItemProps> = ({ title, purchased, isOpen, onToggle, onPurchase, color }) => {
-  return (
-    <div
-      className={`border border-zinc-300 rounded-lg shadow-sm ${
-        purchased ? `${color} text-white` : "bg-white"
-      }`}
-    >
-      <button
-        onClick={onToggle}
-        className={`flex items-center justify-between w-full p-4 text-left ${
-          purchased ? "text-white" : "text-black"
-        }`}
-      >
-        <div className="text-lg font-medium">
-          {title} {purchased && <span>(Purchased)</span>}
-        </div>
-      </button>
-
-      {isOpen && (
-        <div className={`px-4 pb-4 text-sm ${purchased ? "text-white" : "text-zinc-700"}`}>
-          <p>Purchase insurance against {title.toLowerCase()}s.</p>
-          <button
-            onClick={onPurchase}
-            className="mt-2 px-4 py-2 text-white bg-green-700 rounded-lg hover:bg-green-800"
-          >
-            Buy
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export const PoolsSection: React.FC = () => {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [purchased, setPurchased] = useState<string[]>([]);
-  const [showPopup, setShowPopup] = useState(false);
-
   const { walletAddress } = useWallet(); // Access wallet state from context
+  const [coverPeriod, setCoverPeriod] = useState(30); // Default cover period in days
+  const [portfolioValue, setPortfolioValue] = useState(1); // Default portfolio value in ETH
+  const [selectedDisaster, setSelectedDisaster] = useState("Wildfire"); // Default disaster type
+  const [annualFee, setAnnualFee] = useState("0.54%"); // Placeholder for annual fee
+  const [coverCost, setCoverCost] = useState("0.0004 ETH"); // Placeholder for cover cost
+  const [isLoading, setIsLoading] = useState(false);
 
-  const contractAddress = "0xYourContractAddress"; // Replace with your contract address
-  const contractABI = [
-    "function buyInsurance(string poolName) public payable",
-    "function getInsurancePools() public view returns (tuple(string name, string color)[])",
-  ];
+  // Fetch data from the backend or smart contract
+  useEffect(() => {
+    const fetchOverviewData = async () => {
+      try {
+        if (!walletAddress) return;
 
-  const handleToggle = (item: string) => {
-    setSelected(selected === item ? null : item);
+        // Example: Fetch annual fee from the backend or smart contract
+        const fetchedAnnualFee = await fetchAnnualFee();
+        setAnnualFee(fetchedAnnualFee || "0.54%"); // Default to placeholder if no data
+
+        // Example: Fetch cover cost from the backend or smart contract
+        const fetchedCoverCost = await fetchCoverCost();
+        setCoverCost(fetchedCoverCost || "0.0004 ETH"); // Default to placeholder if no data
+      } catch (error) {
+        console.error("Failed to fetch overview data:", error);
+        // Use placeholders if fetching fails
+        setAnnualFee("0.54%");
+        setCoverCost("0.0004 ETH");
+      }
+    };
+
+    fetchOverviewData();
+  }, [walletAddress]);
+
+  // Example function to fetch annual fee (replace with actual backend/smart contract call)
+  const fetchAnnualFee = async (): Promise<string | null> => {
+    try {
+      // Simulate a backend call
+      return null; // Replace with actual logic
+    } catch (error) {
+      console.error("Error fetching annual fee:", error);
+      return null;
+    }
   };
 
-  const handlePurchase = async (item: string) => {
+  // Example function to fetch cover cost (replace with actual backend/smart contract call)
+  const fetchCoverCost = async (): Promise<string | null> => {
+    try {
+      // Simulate a backend call
+      return null; // Replace with actual logic
+    } catch (error) {
+      console.error("Error fetching cover cost:", error);
+      return null;
+    }
+  };
+
+  const handlePurchase = async () => {
     if (!walletAddress) {
       alert("Please connect your wallet first.");
       return;
     }
 
     try {
+      setIsLoading(true);
+
       const provider = new ethers.providers.Web3Provider(
         window.ethereum as ethers.providers.ExternalProvider
       );
       const signer = provider.getSigner();
+      const contractAddress = "0xYourContractAddress"; // Replace with your contract address
+      const contractABI = [
+        "function buyInsurance(uint256 coverPeriod) public payable",
+      ];
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
       // Call the buyInsurance function on the smart contract
-      const tx = await contract.buyInsurance(item, { value: ethers.utils.parseEther("0.1") }); // Replace "0.1" with the actual price
+      const tx = await contract.buyInsurance(coverPeriod, {
+        value: ethers.utils.parseEther(portfolioValue.toString()), // Convert ETH to Wei
+      });
       await tx.wait();
 
-      setPurchased([...purchased, item]);
-      setShowPopup(true); // Show the popup
+      alert("Insurance purchased successfully!");
     } catch (error) {
       console.error("Failed to purchase insurance:", error);
+      alert("Purchase failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const closePopup = () => {
-    setShowPopup(false);
+  const calculateCoverageDates = () => {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + coverPeriod);
+
+    const formatDate = (date: Date) =>
+      `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   };
 
-  const poolItems = [
-    { title: "Wildfire", color: "bg-orange-500" },
-    { title: "Flood", color: "bg-blue-300" },
-    { title: "Earthquake", color: "bg-tan-500" },
-  ];
+  if (!walletAddress) {
+    return (
+      <main className="flex items-center justify-center h-screen bg-gray-100">
+        <p className="text-lg font-medium text-gray-700">
+          Please connect your wallet to access this page.
+        </p>
+      </main>
+    );
+  }
 
   return (
-    <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] h-[782px]">
-      <h1 className="mb-16 text-7xl font-bold text-center text-neutral-950 max-md:mb-10 max-md:text-5xl max-sm:mb-8 max-sm:text-4xl">
+    <main className="relative px-8 py-12 bg-white min-h-screen">
+      <h1 className="mb-12 text-4xl font-bold text-center text-gray-900">
         Buy Insurance
       </h1>
 
-      <section className="flex flex-col gap-6 p-16 mx-auto my-0 max-w-screen-sm max-md:px-4 max-md:py-8 max-sm:px-2 max-sm:py-4">
-        {poolItems.map((item) => (
-          <PoolItem
-            key={item.title}
-            title={item.title}
-            purchased={purchased.includes(item.title)}
-            isOpen={selected === item.title}
-            onToggle={() => handleToggle(item.title)}
-            onPurchase={() => handlePurchase(item.title)}
-            color={item.color}
-          />
-        ))}
-      </section>
+      <div className="flex flex-col md:flex-row gap-12 max-w-6xl mx-auto">
+        {/* Details Pane */}
+        <section className="flex-1 bg-white p-6 rounded-lg shadow-md border border-gray-300">
+          <h2 className="text-3xl font-bold mb-6 text-gray-900">Details</h2>
 
-      {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div
-            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-            style={{ width: "600px", height: "300px" }}
-          >
-            <button
-              onClick={closePopup}
-              className="absolute top-4 right-4 w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center hover:bg-red-600 hover:text-white"
-            >
-              <span className="font-bold text-lg">X</span>
-            </button>
-            <div className="flex flex-col items-center justify-center h-full">
-              <p className="text-3xl font-bold text-center mb-4">Congratulations!</p>
-              <p className="text-lg text-center">You have successfully purchased insurance.</p>
-            </div>
+          {/* Connected Wallet Address */}
+          <div className="mb-6">
+            <label className="block text-lg font-semibold text-gray-700 mb-2">
+              Connected Wallet Address
+            </label>
+            <input
+              type="text"
+              value={walletAddress}
+              readOnly
+              className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
+            />
           </div>
-        </div>
-      )}
+
+          {/* Portfolio Value */}
+          <div className="mb-6 p-4 rounded-lg border border-gray-300">
+            <label className="block text-lg font-semibold text-gray-700 mb-2">
+              Portfolio Value (ETH)
+            </label>
+            <input
+              type="number"
+              value={portfolioValue}
+              onChange={(e) => setPortfolioValue(Number(e.target.value))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md"
+              min="0.1"
+              step="0.1"
+            />
+          </div>
+
+          {/* Cover Period */}
+          <div className="mb-6 p-4 rounded-lg border border-gray-300">
+            <label className="block text-lg font-semibold text-gray-700 mb-2">
+              Cover Period (Days)
+            </label>
+            <input
+              type="range"
+              min="28"
+              max="365"
+              value={coverPeriod}
+              onChange={(e) => setCoverPeriod(Number(e.target.value))}
+              className="w-full accent-orange-500" // Sunset orange slider
+            />
+            <p className="text-sm text-gray-600 mt-2">
+              {coverPeriod} days (28 days - 365 days)
+            </p>
+          </div>
+
+          {/* Disaster Type Dropdown */}
+          <div className="mb-6 p-4 rounded-lg border border-gray-300">
+            <label className="block text-lg font-semibold text-gray-700 mb-2">
+              Disaster Type
+            </label>
+            <select
+              value={selectedDisaster}
+              onChange={(e) => setSelectedDisaster(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white"
+            >
+              <option value="Wildfire">Wildfire</option>
+              <option value="Flood">Flood</option>
+              <option value="Earthquake">Earthquake</option>
+            </select>
+          </div>
+
+          {/* Purchase Button */}
+          <button
+            onClick={handlePurchase}
+            className={`w-full py-3 text-white font-medium rounded-md ${
+              isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+            }`}
+            disabled={isLoading}
+          >
+            {isLoading ? "Processing..." : "Purchase Insurance"}
+          </button>
+        </section>
+
+        {/* Overview Pane */}
+        <section className="w-1/3 bg-white p-6 rounded-lg shadow-md border border-gray-300 self-start">
+          <h2 className="text-3xl font-bold mb-6 text-gray-900">Overview</h2>
+
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-gray-700">Listing</p>
+            <p className="text-base text-gray-900">{selectedDisaster} Cover</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-gray-700">Portfolio Value</p>
+            <p className="text-base text-gray-900">{portfolioValue} ETH</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-gray-700">Cover Period</p>
+            <p className="text-base text-gray-900">{calculateCoverageDates()}</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-gray-700">Annual Fee</p>
+            <p className="text-base text-gray-900">{annualFee}</p>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-gray-700">Cover Cost</p>
+            <p className="text-base text-gray-900">{coverCost}</p>
+          </div>
+        </section>
+      </div>
     </main>
   );
 };
