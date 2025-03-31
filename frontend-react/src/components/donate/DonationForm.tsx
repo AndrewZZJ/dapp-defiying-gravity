@@ -13,6 +13,7 @@ export const DonationForm: React.FC = () => {
   const [message, setMessage] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [charityTokens, setCharityTokens] = useState<number | null>(null); // New state for charity tokens
 
   const contractAddress = "0xYourContractAddress"; // Replace with your contract address
   const contractABI = [
@@ -47,10 +48,10 @@ export const DonationForm: React.FC = () => {
 
       alert("Donation successful!");
 
-      // Reset the form
-      setAmount("");
-      setSelectedPool(null);
-      setMessage("");
+      // Fetch charity tokens from the backend
+      const response = await fetch(`/api/charity-tokens?wallet=${walletAddress}`);
+      const data = await response.json();
+      setCharityTokens(data.tokens); // Update charity tokens state
     } catch (error) {
       console.error("Failed to process donation:", error);
       alert("Donation failed. Please try again.");
@@ -162,6 +163,13 @@ export const DonationForm: React.FC = () => {
         <div className="mt-4">
           <p className="font-medium">Message:</p>
           <p className="text-sm text-gray-700">{message || "No message provided."}</p>
+        </div>
+
+        <div className="mt-4">
+          <p className="font-medium">Rewarded Charity Tokens:</p>
+          <p className="text-sm text-gray-700">
+            {charityTokens !== null ? charityTokens : "Pending..."}
+          </p>
         </div>
       </section>
     </div>
