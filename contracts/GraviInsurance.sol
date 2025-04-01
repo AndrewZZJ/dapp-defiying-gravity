@@ -398,72 +398,68 @@ contract GraviInsurance is Ownable, IGraviInsurance {
     // ========================================
     // Additional Claim View Functions
     // ========================================
-    /// @notice Returns claim summaries in a table view format.
-    /// Each row includes: ID ("#<claimId>"), PROJECT (event name), CLAIM AMOUNT ("<amount> ETH"),
-    /// ASSESSMENT PERIOD ("<start> - <end>"), STATUS.
+    /// @notice Returns claim data
     function getAllClaimSummaries() external view returns (
-        string[] memory idList,
-        string[] memory projectList,
-        string[] memory amountList,
-        string[] memory periodList,
-        string[] memory statusList
+        uint256[] memory claimIds,
+        string[] memory eventNames,
+        uint256[] memory claimAmounts,
+        uint256[] memory assessmentStarts,
+        uint256[] memory assessmentEnds,
+        uint8[] memory statuses
     ) {
         uint256 count = claimRecords.length;
-        idList = new string[](count);
-        projectList = new string[](count);
-        amountList = new string[](count);
-        periodList = new string[](count);
-        statusList = new string[](count);
+        claimIds = new uint256[](count);
+        eventNames = new string[](count);
+        claimAmounts = new uint256[](count);
+        assessmentStarts = new uint256[](count);
+        assessmentEnds = new uint256[](count);
+        statuses = new uint8[](count);
 
         for (uint256 i = 0; i < count; i++) {
             ClaimRecord memory claim = claimRecords[i];
-            idList[i] = string(abi.encodePacked("#", claim.claimId.toString()));
-            projectList[i] = disasterEvents[claim.eventId].name;
-            amountList[i] = string(abi.encodePacked(claim.claimAmount.toString(), " ETH"));
-            periodList[i] = string(abi.encodePacked(
-                claim.assessmentStart.toString(), " - ", 
-                claim.assessmentEnd.toString()
-            ));
-            statusList[i] = getStatusString(claim.status);
+            claimIds[i] = claim.claimId;
+            eventNames[i] = disasterEvents[claim.eventId].name;
+            claimAmounts[i] = claim.claimAmount;
+            assessmentStarts[i] = claim.assessmentStart;
+            assessmentEnds[i] = claim.assessmentEnd;
+            statuses[i] = uint8(claim.status);
         }
-        return (idList, projectList, amountList, periodList, statusList);
     }
 
     /// @notice Returns detailed information for a specific claim.
     /// For example, returns:
-    /// - Formatted Claim ID (e.g., "#22")
+    /// - Claim ID (e.g., "22")
     /// - Project/event name
     /// - Purchase date (from the associated policy)
     /// - Expiry (assumed as 30 days after purchase)
     /// - Total cover amount and requested amount (with "ETH")
-    /// - Voting tally and incident details
+    /// - Claim status
+    /// - incident details
+    // Returns detailed claim data as raw values.
     function getClaimDetail(uint256 _claimId) external view returns (
-        string memory claimIdStr,
+        uint256 claimId,
         string memory eventName,
-        string memory purchaseDate,
-        string memory expiry,
-        string memory totalCoverAmount,
-        string memory requestedAmount,
-        string memory votingTally,
-        string memory incidentDetails
+        uint256 purchaseDate,
+        uint256 expiry,
+        uint256 totalCoverAmount,
+        uint256 requestedAmount,
+        uint8 status,
+        string memory incidentDescription,
+        string memory evidence
     ) {
         require(_claimId > 0 && _claimId < nextClaimId, "Invalid claim id");
         ClaimRecord memory claim = claimRecords[_claimId - 1];
         Policy memory policy = policies[claim.policyId];
-
-        claimIdStr = string(abi.encodePacked("#", claim.claimId.toString()));
-        eventName = disasterEvents[claim.eventId].name;
-        purchaseDate = policy.startTime.toString();
-        expiry = (policy.startTime + 30 days).toString();
-        totalCoverAmount = string(abi.encodePacked(policy.coverageAmount.toString(), " ETH"));
-        requestedAmount = string(abi.encodePacked(claim.claimAmount.toString(), " ETH"));
-        votingTally = getStatusString(claim.status);
-        incidentDetails = string(
-            abi.encodePacked(
-                "Amount claimed: ", claim.claimAmount.toString(), " ETH. ",
-                "Details about incident: ", claim.incidentDescription, ". ",
-                "Evidence: ", claim.evidence
-            )
+        return (
+            claim.claimId,
+            disasterEvents[claim.eventId].name,
+            policy.startTime,
+            policy.startTime + 30 days, // Example expiry period.
+            policy.coverageAmount,
+            claim.claimAmount,
+            uint8(claim.status),
+            claim.incidentDescription,
+            claim.evidence
         );
     }
 
