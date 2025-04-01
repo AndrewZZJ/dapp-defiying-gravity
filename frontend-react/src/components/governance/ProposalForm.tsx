@@ -11,6 +11,7 @@ export const ProposalForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // AJ: combine the button action with submitting a proposal form.
     // Handle form submission
     console.log(formData);
   };

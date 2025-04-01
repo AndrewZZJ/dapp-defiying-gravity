@@ -49,6 +49,7 @@ export const ProposalsSection: React.FC = () => {
       const signer = provider.getSigner();
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
+      // AJ: a method getting all proposals
       // Fetch proposals from the smart contract
       const proposalsData = await contract.getProposals();
       const formattedProposals: Proposal[] = proposalsData.map((proposal: any) => ({

@@ -18,12 +18,14 @@ export const DonorLeaderboard: React.FC = () => {
     };
   }, []);
 
+  // AJ: a backend method getting highest bid from each pool 
   const highestBidsData = [
     { name: "0xA4...B21", amount: "1.2 ETH", nft: "Solar Flame" },
     { name: "🌊 water.eth", amount: "0.9 ETH", nft: "Water Spirit" },
     { name: "earthguardian.eth", amount: "0.75 ETH", nft: "Earth Warden" },
   ];
 
+  // AJ: a backend method getting most recent bid from each pool (not sure the purpose of it)
   const recentBidsData = [
     { name: "0xB3...C12", amount: "0.5 ETH", nft: "Earth Warden" },
     { name: "firestarter.eth", amount: "0.3 ETH", nft: "Solar Flame" },

@@ -26,12 +26,14 @@ export default function NFTMarketplace() {
     }
   };
 
+  // AJ: need to be deleted when we have the following backend method retrieving the status of bidding.
   const calculatePlaceholderEndDate = () => {
     const currentDate = new Date();
     currentDate.setDate(currentDate.getDate() + 30);
     return currentDate.toISOString().split("T")[0]; // Format as YYYY-MM-DD
   };
 
+  // AJ: a backend method retrieving the NFT status for each pool.
   const nfts = [
     {
       image: "https://cdn.builder.io/api/v1/image/assets/TEMP/804793bedaabda1cf9c4091b86cae6469cbe02c2",

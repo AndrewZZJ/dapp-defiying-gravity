@@ -29,6 +29,7 @@ export function NFTCard({
 
   const handleSubmit = () => {
     if (bid.trim() !== "") {
+      // AJ: a backend method for joining the bidding. 
       setSubmittedBid(bid);
       setShowBidForm(false);
     }

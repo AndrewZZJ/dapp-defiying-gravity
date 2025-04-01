@@ -15,6 +15,8 @@ contract GraviDisasterOracle {
         bool isValid
     );
 
+    // AJ: might need another oracle for validating a proposal.
+
     function validateClaim(
         string memory incidentDescription,
         string memory disasterType,
