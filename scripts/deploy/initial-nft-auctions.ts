@@ -7,9 +7,9 @@ import { loadDeploymentConfig } from "../utils/deploymentUtils";
 // Keys: Insurance names.
 // Values: Array of token URIs to be minted (for example purposes, replace with actual URIs).
 const initialNFTs: Record<string, string[]> = {
-  "Fire Insurance": ["ipfs://fire1"],
-  "Flood Insurance": ["ipfs://flood1"],
-  "Earthquake Insurance": ["ipfs://quake1"],
+  "Fire Insurance": ["https://drive.google.com/uc?id=1f_xy2l8bD-NXwH7t7WE2qI4mw2O0PHPR&export=view"],
+  "Flood Insurance": ["https://drive.google.com/uc?id=1cvsJU54aXFQBFgoJMUe8ociNTjeofOCP&export=view"],
+  "Earthquake Insurance": ["https://drive.google.com/uc?id=1ZNQ_YYtjwMwsmtJJEY-SSqgPvTIXhux2&export=view"],
 };
 
 async function main() {

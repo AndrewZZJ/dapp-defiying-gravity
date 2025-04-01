@@ -49,6 +49,13 @@ interface IGraviInsurance {
         address moderator
     ) external;
 
+    // buyInsurance allows a user to purchase an insurance policy by sending ETH.
+    // It returns a bytes32 policyId.
+    function buyInsurance(uint256 coverageAmount) external payable returns (bytes32);
+
+    // donate allows a user to donate ETH and receive tokens/NFT.
+    function donate(string calldata nftMetadataURI) external payable;
+
     // Transfer ether to a recipient.
     function transferEther(address payable recipient, uint256 amount) external payable;
 

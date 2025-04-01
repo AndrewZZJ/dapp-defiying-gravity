@@ -81,7 +81,7 @@ async function main() {
   await printProposalInfo(graviDAO, proposalId);
 
   // Simulate the timelock delay. - To when you can vote.
-  await simulateTimeSkip(7200);
+  await simulateTimeSkip(7200 * 12);
 
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after waiting until voting time:");
@@ -91,7 +91,7 @@ async function main() {
   await voteOnProposal(graviDAO, proposalId, 1);
 
   // Simulate the end of the voting period.
-  await simulateTimeSkip(50400); // Advance until after the voting period ends.
+  await simulateTimeSkip(50400 * 12); // Advance until after the voting period ends.
 
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after end of voting period:");
@@ -104,10 +104,10 @@ async function main() {
     [0],
     [encodedFunctionCall],
     proposalDescription
-  );
+  ); 
 
-  // Simulate the timelock delay. 1 second and block.
-  await simulateTimeSkip(1);
+  // Simulate the timelock delay. 12 second and 1 block.
+  await simulateTimeSkip(1 * 12);
   
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after queuing:");
