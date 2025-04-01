@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGraviCha} from "./interfaces/tokens/IGraviCha.sol";
 import {IGraviPoolNFT} from "./interfaces/tokens/IGraviPoolNFT.sol";
 import {IGraviInsurance} from "./interfaces/IGraviInsurance.sol";
-import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
+//import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract GraviInsurance is Ownable, IGraviInsurance {
@@ -71,7 +71,7 @@ contract GraviInsurance is Ownable, IGraviInsurance {
 
     IGraviCha public graviCha;
     IGraviPoolNFT public graviPoolNFT;
-    IGraviDisasterOracle public disasterOracle;
+    //IGraviDisasterOracle public disasterOracle;
 
     // Storage for policies, keyed by policyId
     mapping(bytes32 => Policy) public policies;
@@ -115,15 +115,15 @@ contract GraviInsurance is Ownable, IGraviInsurance {
         string memory _disasterType,
         uint256 _premiumRate,
         address _graviCha,
-        address _graviPoolNFT,
-        address _oracleAddress
+        address _graviPoolNFT
+        //address _oracleAddress
     ) Ownable(msg.sender) {
         require(_premiumRate > 0, "Invalid premium rate");
         disasterType = _disasterType;
         premiumRate = _premiumRate;
         graviCha = IGraviCha(_graviCha);
         graviPoolNFT = IGraviPoolNFT(_graviPoolNFT);
-        disasterOracle = IGraviDisasterOracle(_oracleAddress);
+        //disasterOracle = IGraviDisasterOracle(_oracleAddress);
     }
 
     // ========================================
@@ -364,9 +364,9 @@ contract GraviInsurance is Ownable, IGraviInsurance {
         require(policy.policyHolder == msg.sender, "Not your policy");
         require(claim.status == ClaimStatus.Pending, "Claim already processed");
 
-        // Call the oracle to validate the claim.
-        bool valid = disasterOracle.validateClaim(claim.incidentDescription, disasterType, claim.evidence);
-        require(valid, "Oracle validation failed");
+        // Todo: Call the oracle to validate the claim.
+        // bool valid = disasterOracle.validateClaim(claim.incidentDescription, disasterType, claim.evidence);
+        // require(valid, "Oracle validation failed");
         
         // Todo: DAO approval
 
