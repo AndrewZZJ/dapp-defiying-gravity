@@ -11,8 +11,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 // Interfaces
 import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
 import {IGraviDAO} from "../interfaces/IGraviDAO.sol";
+import {IGraviGov} from "../interfaces/tokens/IGraviGov.sol";
 
-contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable {
+contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable, IGraviGov {
     uint256 public monthlyMintAmount = 10000;
     uint256 public lastMintTimestamp;
 
@@ -73,7 +74,7 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable {
         return super.nonces(owner);
     }
 
-    function decimals() public pure override returns (uint8) {
+    function decimals() public pure override(ERC20, IGraviGov) returns (uint8) {
         return 18;
     }
 }

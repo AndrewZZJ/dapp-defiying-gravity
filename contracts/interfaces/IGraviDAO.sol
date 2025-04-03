@@ -5,7 +5,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 interface IGraviDAO is IGovernor {
     // 0. Inital setup
-    function setFinishedInitialSetup() external view returns (bool);
+    function setFinishedInitialSetup() external;
 
     // 1. GraviGov Token Minting and Purchase Pool
     function setGovernanceTokenParameters(uint256 newRate, uint256 newPrice, uint256 newBurnAmount, uint256 mintAmount) external;
@@ -17,8 +17,8 @@ interface IGraviDAO is IGovernor {
     function purchaseGovTokens(uint256 amount) external payable;
     function getGovTokenPoolBalance() external view returns (uint256);
 
-    function setGovTokenEthPrice(uint256 newPrice) external;
-    function setGovTokenGraviChaBurn(uint256 newBurnAmount) external;
+    // function setGovTokenEthPrice(uint256 newPrice) external;
+    // function setGovTokenGraviChaBurn(uint256 newBurnAmount) external;
 
     // function getGovTokenPurchasePrice() external view returns (uint256 ethPrice, uint256 graviChaBurn);
     function calculatesGovTokenPurchasePrice(uint256 amount) external view returns (uint256 ethPrice, uint256 graviChaBurn);

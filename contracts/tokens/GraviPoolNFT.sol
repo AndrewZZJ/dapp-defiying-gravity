@@ -9,8 +9,15 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 // Interface for the GraviCha token.
 import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
 import {IGraviInsurance} from "../interfaces/IGraviInsurance.sol";
+import {IGraviPoolNFT} from "../interfaces/tokens/IGraviPoolNFT.sol";
 
-contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Receiver {
+contract GraviPoolNFT is
+    ERC721URIStorage,
+    Ownable,
+    ReentrancyGuard,
+    IERC721Receiver,
+    IGraviPoolNFT
+{
     uint256 private _nextTokenId;
     uint256 public auctionDuration = 7 days; // Duration of each auction
 
@@ -21,7 +28,7 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     IGraviCha public graviCha;
 
     // This should be the insurance pool contract address
-    IGraviInsurance public insurancePool; 
+    IGraviInsurance public insurancePool;
 
     // Tracking donations associated with each NFT.
     mapping(uint256 => uint256) public tokenDonations;
@@ -49,7 +56,10 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     // Modifier for functions that require the auction to be active (i.e. before duration ends).
     modifier auctionActive(uint256 tokenId) {
         Auction storage auction = auctions[tokenId];
-        require(block.timestamp < auction.startTime + auctionDuration, "GraviPoolNFT: Auction has ended");
+        require(
+            block.timestamp < auction.startTime + auctionDuration,
+            "GraviPoolNFT: Auction has ended"
+        );
         require(!auction.ended, "GraviPoolNFT: Auction already ended");
         _;
     }
@@ -57,7 +67,10 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     // Modifier for functions that require the auction to have ended (i.e. after duration).
     modifier auctionEnded(uint256 tokenId) {
         Auction storage auction = auctions[tokenId];
-        require(block.timestamp >= auction.startTime + auctionDuration, "GraviPoolNFT: Auction still active");
+        require(
+            block.timestamp >= auction.startTime + auctionDuration,
+            "GraviPoolNFT: Auction still active"
+        );
         require(!auction.ended, "GraviPoolNFT: Auction already ended");
         _;
     }
@@ -66,14 +79,17 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     modifier onlyTokenOwnerOrApproved(uint256 tokenId) {
         bool isOwner = ownerOf(tokenId) == msg.sender;
         bool isApproved = getApproved(tokenId) == msg.sender;
-        require(isOwner || isApproved, "GraviPoolNFT: Not token owner or approved");
+        require(
+            isOwner || isApproved,
+            "GraviPoolNFT: Not token owner or approved"
+        );
         _;
     }
 
     // Constructor with token addresses.
     constructor(
         address _graviCha
-    ) ERC721("GraviPoolNFT", "GRANFT") Ownable(msg.sender){
+    ) ERC721("GraviPoolNFT", "GRANFT") Ownable(msg.sender) {
         graviCha = IGraviCha(_graviCha);
     }
 
@@ -89,14 +105,19 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
         uint256 tokenId
     ) external payable onlyTokenOwnerOrApproved(tokenId) nonReentrant {
         require(msg.value >= transferFee, "GraviPoolNFT: Insufficient fee");
-        (bool sent, ) = payable(address(insurancePool)).call{value: msg.value}("");
+        (bool sent, ) = payable(address(insurancePool)).call{value: msg.value}(
+            ""
+        );
 
         require(sent, "GraviPoolNFT: Fee transfer failed");
         safeTransferFrom(from, to, tokenId);
     }
 
     // Internal function used to mint a new NFT with a tokenURI.
-    function _mintNFT(address to, string memory tokenURI) internal onlyOwner returns (uint256) {
+    function _mintNFT(
+        address to,
+        string memory tokenURI
+    ) internal onlyOwner returns (uint256) {
         uint256 tokenId = _nextTokenId;
         _nextTokenId++;
         _safeMint(to, tokenId);
@@ -105,12 +126,17 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     }
 
     // External Function to mint a new NFT to InsurancePool
-    function mintToPool(address poolAddress, string memory tokenURI) external onlyOwner returns (uint256) {
+    function mintToPool(
+        address poolAddress,
+        string memory tokenURI
+    ) external onlyOwner returns (uint256) {
         return _mintNFT(poolAddress, tokenURI);
     }
 
     /// @notice Starts an auction for a newly minted NFT. Only the owner may call.
-    function startAuction(string memory tokenURI) internal onlyOwner returns (uint256) {
+    function startAuction(
+        string memory tokenURI
+    ) internal onlyOwner returns (uint256) {
         uint256 tokenId = _mintNFT(address(this), tokenURI);
         auctions[tokenId] = Auction({
             tokenId: tokenId,
@@ -137,10 +163,19 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     }
 
     /// @notice Get auction details for a specific NFT.
-    function getAuctionDetails(uint256 tokenId) external view returns (Auction memory) {
-        return auctions[tokenId];
+    function getAuctionDetails(
+        uint256 tokenId
+    ) external view returns (
+        uint256 auctionedTokenId,
+        address highestBidder,
+        uint256 highestBid,
+        bool ended,
+        uint256 startTime
+    ) {
+        Auction memory auction = auctions[tokenId];
+        return (auction.tokenId, auction.highestBidder, auction.highestBid, auction.ended, auction.startTime);
     }
-
+    
     // External function by DAO to mint and auction a list of new NFTs.
     function mintAndAuctionNFTs(string[] memory tokenURIs) external {
         for (uint256 i = 0; i < tokenURIs.length; i++) {
@@ -151,7 +186,10 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     /// @notice Place a bid for an NFT auction using ERC20 tokens.
     /// The bidder must have approved this contract to spend at least `bidAmount` tokens.
     /// Tokens are held in escrow. If outbid, tokens can be withdrawn via `withdraw()`.
-    function bid(uint256 tokenId, uint256 bidAmount) external auctionActive(tokenId) nonReentrant {
+    function bid(
+        uint256 tokenId,
+        uint256 bidAmount
+    ) external auctionActive(tokenId) nonReentrant {
         Auction storage auction = auctions[tokenId];
         require(bidAmount > auction.highestBid, "GraviPoolNFT: Bid too low");
 
@@ -181,9 +219,14 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
 
     /// @notice Highest bidder claims the NFT after the auction ends.
     /// The winning bid tokens are burned (as the charity donation).
-    function claimNFT(uint256 tokenId) external auctionEnded(tokenId) nonReentrant {
+    function claimNFT(
+        uint256 tokenId
+    ) external auctionEnded(tokenId) nonReentrant {
         Auction storage auction = auctions[tokenId];
-        require(msg.sender == auction.highestBidder, "GraviPoolNFT: Not highest bidder");
+        require(
+            msg.sender == auction.highestBidder,
+            "GraviPoolNFT: Not highest bidder"
+        );
 
         auction.ended = true;
 
@@ -201,7 +244,9 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
 
     /// @notice Ends the auction forcibly and assigns the NFT to the highest bidder.
     /// The winning bid tokens are burned.
-    function forceEndAuction(uint256 tokenId) external onlyOwner auctionEnded(tokenId) nonReentrant {
+    function forceEndAuction(
+        uint256 tokenId
+    ) external onlyOwner auctionEnded(tokenId) nonReentrant {
         Auction storage auction = auctions[tokenId];
         auction.ended = true;
         if (auction.highestBidder != address(0)) {
@@ -214,7 +259,11 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
             // Record the donation amount.
             tokenDonations[tokenId] = auction.highestBid;
 
-            emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
+            emit AuctionEnded(
+                tokenId,
+                auction.highestBidder,
+                auction.highestBid
+            );
         } else {
             // If no bids were placed, burn the NFT.
             _burn(tokenId);
@@ -256,4 +305,6 @@ contract GraviPoolNFT is ERC721URIStorage, Ownable, ReentrancyGuard, IERC721Rece
     ) external pure override returns (bytes4) {
         return this.onERC721Received.selector;
     }
+
+    // function setToken(address _token) external override {}
 }

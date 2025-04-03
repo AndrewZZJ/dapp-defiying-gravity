@@ -41,7 +41,7 @@ async function main() {
 
   // Deploy a new GraviInsurance contract for the new insurance.
   const GraviInsurance = await ethers.getContractFactory("GraviInsurance");
-  const graviInsurance = await GraviInsurance.deploy(disasterType, premiumRate, graviChaAddress, nftPoolAddress);
+  const graviInsurance = await GraviInsurance.deploy(disasterType, premiumRate, graviChaAddress);
   await graviInsurance.waitForDeployment();
   const insurancePoolAddress = await graviInsurance.getAddress();
   console.log(`${newInsuranceName} - GraviInsurance deployed at:`, insurancePoolAddress);

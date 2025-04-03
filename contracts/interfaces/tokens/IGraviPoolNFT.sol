@@ -40,7 +40,7 @@ interface IGraviPoolNFT is IERC721 {
     function setAuctionDuration(uint256 _auctionDuration) external;
     
     /// @notice Updates the ERC20 token used for bidding and donations.
-    function setToken(ERC20Burnable _token) external;
+    function setToken(address _token) external;
     
     /// @notice Burns excess ERC20 tokens held by the contract.
     function burnExcessTokens(uint256 amount) external;
@@ -52,5 +52,11 @@ interface IGraviPoolNFT is IERC721 {
     function getAuctionedNFTs() external returns (uint256[] memory);
 
     /// @notice Get auction details for a specific NFT.
-    function getAuctionDetails(uint256 tokenId) external;
+    function getAuctionDetails(uint256 tokenId) external returns (
+        uint256 auctionedTokenId,
+        address highestBidder,
+        uint256 highestBid,
+        bool ended,
+        uint256 startTime
+    );
 }

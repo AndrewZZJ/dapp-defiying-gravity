@@ -20,6 +20,7 @@ export async function createProposal(
 ): Promise<any> {
   const tx = await dao.propose(targets, values, calldatas, description);
   const receipt = await tx.wait();
+  
   // Search for the ProposalCreated event and return its proposalId.
   const events = await dao.queryFilter(dao.filters.ProposalCreated());
   const proposal = events.find((e: any) => e.args.description === description);

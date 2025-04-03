@@ -53,8 +53,8 @@ interface IGraviInsurance {
     // It returns a bytes32 policyId.
     function buyInsurance(uint256 coverageAmount) external payable returns (bytes32);
 
-    // donate allows a user to donate ETH and receive tokens/NFT.
-    function donate(string calldata nftMetadataURI) external payable;
+    // donate allows a user to donate ETH and receive tokens.
+    function donate() external payable;
 
     // Transfer ether to a recipient.
     function transferEther(address payable recipient, uint256 amount) external payable;
@@ -78,32 +78,32 @@ interface IGraviInsurance {
     // AJ: a backend method getting highest bid from each pool 
     // input: N/A
     // output: the highest bid of the pool
-    function getHighestBid() external view returns (address, uint256, string);
+    function getHighestBid() external view returns (address, uint256, string memory);
 
     // AJ: a backend method getting most recent bid from each pool (not sure the purpose of it)
     // input: N/A
     // output: the most recent bid of the pool
-    function getMostRecentBid() external view returns (address, uint256, string);
+    function getMostRecentBid() external view returns (address, uint256, string memory);
     
 
-    // AJ: a backend method retrieving the NFT status for each pool.
-    // input: the pool address
-    // output: the NFT status
-    function getNFTStatus(address poolAddress) external view returns (string, string, string, string, string, uint256);
+    // // AJ: a backend method retrieving the NFT status for each pool.
+    // // input: the pool address
+    // // output: the NFT status
+    // function getNFTStatus(address poolAddress) external view returns (string, string, string, string, string, uint256);
 
-    // AJ: a backend method for joining the bidding. 
-    // input:  wallet address, pool address, bidding amount
-    // output: T/F for successfully joined the bidding
-    function bid(address walletAddress, address poolAddress, uint256 biddingAmount) external returns (bool);
+    // // AJ: a backend method for joining the bidding. 
+    // // input:  wallet address, pool address, bidding amount
+    // // output: T/F for successfully joined the bidding
+    // function bid(address walletAddress, address poolAddress, uint256 biddingAmount) external returns (bool);
 
     // AJ: a method getting current proposals
     // input: N/A
     // output: a list of current proposals. (might need to change format here)
-    function getProposals() external view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[]);
+    function getProposals() external view returns (uint id, string memory title, string memory status, uint startDate, uint endDate);
 
     // AJ: a method submitting a proposal
     // input: title, subject, message (all in string)
     // output: T/F for successfully submitted the proposal
-    function submitAProposal(string, string, string) external returns (bool);
+    function submitAProposal(string memory, string memory, string memory) external returns (bool);
 } 
         

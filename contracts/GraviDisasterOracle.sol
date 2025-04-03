@@ -6,7 +6,7 @@ import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
 // This is a trivial oracle for demo purposes.
 // It checks if all 3 pieces of claim information are provided.
 // If any are missing, it returns false (claim rejected); otherwise, it returns true (claim approved).
-contract GraviDisasterOracle {
+contract GraviDisasterOracle is IGraviDisasterOracle {
     // Event emitted after a claim validation is performed.
     event ClaimValidated(
         string incidentDescription,

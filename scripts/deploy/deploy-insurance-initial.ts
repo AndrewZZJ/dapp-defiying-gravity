@@ -48,7 +48,7 @@ async function main() {
       insurance.disaster,
       insurance.premium,
       graviChaAddress,
-      graviPoolNFTAddress
+      // graviPoolNFTAddress
       //graviOracleAddress
     );
     await graviInsurance.waitForDeployment();

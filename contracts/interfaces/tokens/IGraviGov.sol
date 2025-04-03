@@ -2,10 +2,10 @@
 pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+// import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
-interface IGraviGov is IERC20, IERC20Permit, IVotes {
+interface IGraviGov is IERC20, IVotes {
     /// @notice Converts GraviGov tokens to charity tokens.
     /// @param amount The amount of GraviGov tokens to convert.
     function convertToCharityTokens(uint256 amount) external;
@@ -29,11 +29,11 @@ interface IGraviGov is IERC20, IERC20Permit, IVotes {
     /// @notice Returns the timestamp when the last mint occurred.
     function lastMintTimestamp() external view returns (uint256);
     
-    /// @notice Returns the DAO address this should be set as the owner of the contract.
-    function dao() external view returns (address);
+    // /// @notice Returns the DAO address this should be set as the owner of the contract.
+    // function dao() external view returns (address);
     
-    /// @notice Returns the owner address. This should be equal to the DAO address.
-    function owner() external view returns (address);
+    // /// @notice Returns the owner address. This should be equal to the DAO address.
+    // function owner() external view returns (address);
 
     /// @notice Mints new tokens for rewarding charitable actions. Only authorized minters can call.
     function mint(address to, uint256 amount) external;

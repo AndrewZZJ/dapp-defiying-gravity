@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
 
-contract GraviCha is ERC20, Ownable, AccessControl {
+contract GraviCha is IGraviCha, ERC20, Ownable, AccessControl {
     mapping(address => bool) public minters;
 
     constructor() ERC20("GraviCha", "GCHA") Ownable(msg.sender) {}

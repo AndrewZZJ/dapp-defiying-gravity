@@ -11,10 +11,12 @@ import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extens
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 // import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 // Interfaces
+import {IGraviDAO} from "./interfaces/IGraviDAO.sol";
 import {IGraviInsurance} from "./interfaces/IGraviInsurance.sol";
 import {IGraviGov} from "./interfaces/tokens/IGraviGov.sol";
 import {IGraviCha} from "./interfaces/tokens/IGraviCha.sol";
@@ -24,7 +26,9 @@ import {IGraviPoolNFT} from "./interfaces/tokens/IGraviPoolNFT.sol";
 // import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // The GraviDAO contract is the governance contract for the GraviCha ecosystem.
-contract GraviDAO is Governor,
+contract GraviDAO is
+    IGraviDAO,
+    Governor,
     GovernorCountingSimple,
     GovernorVotes,
     GovernorVotesQuorumFraction,
@@ -39,11 +43,11 @@ contract GraviDAO is Governor,
     // ---------------------------------------------------
     // State variables for GraviGov token management
     // ---------------------------------------------------
-    uint256 public govTokenEthPrice = 100 wei;      // Price (in wei) per Gov token
-    uint256 public govTokenGraviChaBurn = 1;    // Amount of GraviCha tokens to burn per Gov token
+    uint256 public govTokenEthPrice = 100 wei; // Price (in wei) per Gov token
+    uint256 public govTokenGraviChaBurn = 1; // Amount of GraviCha tokens to burn per Gov token
 
     // // ---------------------------------------------------
-    // // Staking for GraviGov tokens 
+    // // Staking for GraviGov tokens
     // // ---------------------------------------------------
     // mapping(address => uint256) public stakedGov;
     // mapping(address => uint256) public stakingRewardBalance;
@@ -97,6 +101,7 @@ contract GraviDAO is Governor,
     event NFTPoolAdded(address poolAddress);
     event NFTPoolRemoved(address poolAddress);
     event GovTokensPurchased(address indexed buyer, uint256 amount);
+
     // event GovTokensDonated(address indexed donor, uint256 amount);
     // event Staked(address indexed staker, uint256 amount);
     // event Unstaked(address indexed staker, uint256 amount);
@@ -106,13 +111,21 @@ contract GraviDAO is Governor,
     // Constructor
     // ---------------------------------------------------
     constructor(
-        address _graviCha, 
+        address _graviCha,
         address _graviGov,
         IVotes _token,
         TimelockController _timelock
-    ) Governor("GraviDAO") GovernorVotes(_token) GovernorVotesQuorumFraction(4) GovernorTimelockControl(_timelock) {
+    )
+        Governor("GraviDAO")
+        GovernorVotes(_token)
+        GovernorVotesQuorumFraction(4)
+        GovernorTimelockControl(_timelock)
+    {
         // Ensure the governance token (used by GovernorVotes) is the GraviGov token.
-        require(address(_token) == _graviGov, "GraviGov token must be used for governance");
+        require(
+            address(_token) == _graviGov,
+            "GraviGov token must be used for governance"
+        );
 
         // Set the GraviCha and GraviGov contracts
         graviCha = IGraviCha(_graviCha);
@@ -126,7 +139,10 @@ contract GraviDAO is Governor,
     // ---------------------------------------------------
     // Initial setup functions
     // ---------------------------------------------------
-    function setFinishedInitialSetup() external onlyGovernanceOrInitialDeployer {
+    function setFinishedInitialSetup()
+        external
+        onlyGovernanceOrInitialDeployer
+    {
         setupComplete = true;
     }
 
@@ -139,10 +155,47 @@ contract GraviDAO is Governor,
     //     return "mode=timestamp";
     // }
 
+    // Override clock() to resolve conflict.
+    function clock()
+        public
+        view
+        override(Governor, GovernorVotes, IERC6372)
+        returns (uint48)
+    {
+        return super.clock();
+    }
+
+    // Override CLOCK_MODE() to resolve conflict.
+    function CLOCK_MODE()
+        public
+        view
+        override(Governor, GovernorVotes, IERC6372)
+        returns (string memory)
+    {
+        return super.CLOCK_MODE();
+    }
+
+    // Override quorum() to resolve conflict.
+    function quorum(
+        uint256 blockNumber
+    )
+        public
+        view
+        override(Governor, GovernorVotesQuorumFraction, IGovernor)
+        returns (uint256)
+    {
+        return super.quorum(blockNumber);
+    }
+
     // ---------------------------------------------------
     // 1. GraviGov Token Minting and Purchase Pool
     // ---------------------------------------------------
-    function setGovernanceTokenParameters(uint256 newRate, uint256 newPrice, uint256 newBurnAmount, uint256 mintAmount) external onlyGovernanceOrInitialDeployer {
+    function setGovernanceTokenParameters(
+        uint256 newRate,
+        uint256 newPrice,
+        uint256 newBurnAmount,
+        uint256 mintAmount
+    ) external onlyGovernanceOrInitialDeployer {
         govTokenEthPrice = newPrice;
         govTokenGraviChaBurn = newBurnAmount;
         graviGov.setCharityTokenExchangeRate(newRate);
@@ -153,13 +206,18 @@ contract GraviDAO is Governor,
         graviGov.mintMonthly();
     }
 
-    function setMonthlyGovMintAmount(uint256 newAmount) external onlyGovernance {
+    function setMonthlyGovMintAmount(
+        uint256 newAmount
+    ) external onlyGovernance {
         graviGov.setMonthlyMintAmount(newAmount);
     }
 
-    function setCharityTokenExchangeRate(uint256 newRate) external onlyGovernance {
+    function setCharityTokenExchangeRate(
+        uint256 newRate
+    ) external onlyGovernance {
         graviGov.setCharityTokenExchangeRate(newRate);
     }
+
     // // Setters for GraviGov token purchase parameters and monthly minting
     // function setGovTokenEthPrice(uint256 newPrice) external onlyGovernance {
     //     govTokenEthPrice = newPrice;
@@ -172,25 +230,34 @@ contract GraviDAO is Governor,
     function purchaseGovTokens(uint256 amount) external payable {
         uint256 requiredEth = amount * govTokenEthPrice;
         require(msg.value >= requiredEth, "Insufficient Ether sent");
-        require(graviGov.balanceOf(address(this)) >= amount, "Not enough governance tokens in pool");
+        require(
+            graviGov.balanceOf(address(this)) >= amount,
+            "Not enough governance tokens in pool"
+        );
 
         // Check that the caller has enough charity tokens for burning.
         uint256 requiredCharityTokens = amount * govTokenGraviChaBurn;
-        require(graviCha.balanceOf(msg.sender) >= requiredCharityTokens, "Insufficient charity tokens");
+        require(
+            graviCha.balanceOf(msg.sender) >= requiredCharityTokens,
+            "Insufficient charity tokens"
+        );
 
         // Burn the required GraviCha tokens from the sender.
         graviCha.burnFrom(msg.sender, requiredCharityTokens);
 
         // Transfer GraviGov tokens from the DAO pool (this contract) to the buyer.
-        require(graviGov.transfer(msg.sender, amount), "Gov token transfer failed");
-        
+        require(
+            graviGov.transfer(msg.sender, amount),
+            "Gov token transfer failed"
+        );
+
         // Refund any excess Ether.
         uint256 excess = msg.value - requiredEth;
         if (excess > 0) {
             (bool refundSuccess, ) = msg.sender.call{value: excess}("");
             require(refundSuccess, "Refund failed");
         }
-        
+
         emit GovTokensPurchased(msg.sender, amount);
     }
 
@@ -200,7 +267,9 @@ contract GraviDAO is Governor,
     // }
 
     // Calculates the token purchase price per given governance tokens, in ETH and GraviCha
-    function calculatesGovTokenPurchasePrice(uint256 amount) external view returns (uint256 ethPrice, uint256 graviChaBurn) {
+    function calculatesGovTokenPurchasePrice(
+        uint256 amount
+    ) external view returns (uint256 ethPrice, uint256 graviChaBurn) {
         return (amount * govTokenEthPrice, amount * govTokenGraviChaBurn);
     }
 
@@ -221,16 +290,25 @@ contract GraviDAO is Governor,
     // 2. Insurance Pool management, NFT Pool Management and Monthly Minting
     // ---------------------------------------------------
     function addInsuranceAndNFTPool(
-        string memory poolName, 
-        address insurancePool, 
+        string memory poolName,
+        address insurancePool,
         address nftPool
     ) external onlyGovernanceOrInitialDeployer {
-        require(address(insurancePools[poolName]) == address(0), "Insurance pool already exists");
+        require(
+            address(insurancePools[poolName]) == address(0),
+            "Insurance pool already exists"
+        );
         require(nftPools[poolName] == address(0), "NFT pool already exists");
 
         // Check DAO ownership of both contracts
-        require(Ownable(insurancePool).owner() == address(this), "DAO must own insurance pool");
-        require(Ownable(nftPool).owner() == address(this), "DAO must own NFT pool");
+        require(
+            Ownable(insurancePool).owner() == address(this),
+            "DAO must own insurance pool"
+        );
+        require(
+            Ownable(nftPool).owner() == address(this),
+            "DAO must own NFT pool"
+        );
 
         insurancePools[poolName] = IGraviInsurance(insurancePool);
         nftPools[poolName] = nftPool;
@@ -244,10 +322,15 @@ contract GraviDAO is Governor,
         emit NFTPoolAdded(nftPool);
     }
 
-    function removeInsuranceAndNFTPool(string memory insuranceName) external onlyGovernance {
+    function removeInsuranceAndNFTPool(
+        string memory insuranceName
+    ) external onlyGovernance {
         address insPool = address(insurancePools[insuranceName]);
         address nftPoolAddr = nftPools[insuranceName];
-        require(insPool != address(0) && nftPoolAddr != address(0), "Pool does not exist");
+        require(
+            insPool != address(0) && nftPoolAddr != address(0),
+            "Pool does not exist"
+        );
 
         // Revoke minter roles from both pools
         graviCha.removeMinter(insPool);
@@ -261,16 +344,29 @@ contract GraviDAO is Governor,
         emit NFTPoolRemoved(nftPoolAddr);
     }
 
-    function getInsurancePoolAddresses(string memory insuranceName) external view returns (address insurancePoolAddress, address nftPoolAddress) {
+    function getInsurancePoolAddresses(
+        string memory insuranceName
+    )
+        external
+        view
+        returns (address insurancePoolAddress, address nftPoolAddress)
+    {
         insurancePoolAddress = address(insurancePools[insuranceName]);
         nftPoolAddress = nftPools[insuranceName];
     }
 
-    function getAllInsurancePoolNames() external view returns (string[] memory) {
+    function getAllInsurancePoolNames()
+        external
+        view
+        returns (string[] memory)
+    {
         return insurancePoolNames;
     }
 
-    function monthlyMintNFTForPool(string memory insuranceName, string[] calldata tokenURIs) external onlyGovernanceOrInitialDeployer {
+    function monthlyMintNFTForPool(
+        string memory insuranceName,
+        string[] calldata tokenURIs
+    ) external onlyGovernanceOrInitialDeployer {
         address nftPoolAddress = nftPools[insuranceName];
         require(nftPoolAddress != address(0), "NFT pool not found");
         IGraviPoolNFT pool = IGraviPoolNFT(nftPoolAddress);
@@ -279,13 +375,13 @@ contract GraviDAO is Governor,
 
     /// @notice Move Ether from an insurance pool to a recipient address. For emergency use.
     function moveEtherFromInsurance(
-        string memory insuranceName, 
-        address payable recipient, 
+        string memory insuranceName,
+        address payable recipient,
         uint256 amount
     ) external onlyGovernance {
         IGraviInsurance insurance = insurancePools[insuranceName];
         require(address(insurance) != address(0), "Insurance pool not found");
-        
+
         // Assuming the insurance contract has a transferEther function callable by its owner (the DAO)
         insurance.transferEther(recipient, amount);
     }
@@ -353,7 +449,10 @@ contract GraviDAO is Governor,
         );
     }
 
-    function removeDisasterEvent(string memory insuranceName, string memory eventId) external onlyGovernance {
+    function removeDisasterEvent(
+        string memory insuranceName,
+        string memory eventId
+    ) external onlyGovernance {
         IGraviInsurance insurance = insurancePools[insuranceName];
         require(address(insurance) != address(0), "Insurance pool not found");
         insurance.removeDisasterEvent(eventId);
@@ -460,7 +559,10 @@ contract GraviDAO is Governor,
     // }
 
     // Arbitrary ether transfer function, can transfer to any address, but used primary to add fund to insurance pools
-    function transferEther(address payable recipient, uint256 amount) external onlyGovernance {
+    function transferEther(
+        address payable recipient,
+        uint256 amount
+    ) external onlyGovernance {
         require(amount <= address(this).balance, "Insufficient balance");
         (bool success, ) = recipient.call{value: amount}("");
         require(success, "Ether transfer failed");
@@ -470,7 +572,11 @@ contract GraviDAO is Governor,
     // 7. Dao override for Governor parameters
     // ---------------------------------------------------
     // Note this sets it in terms of blocks not seconds
-    function setGovParameters(uint256 _votingDelay, uint256 _votingPeriod, uint256 _proposalThreshold) external onlyGovernanceOrInitialDeployer {
+    function setGovParameters(
+        uint256 _votingDelay,
+        uint256 _votingPeriod,
+        uint256 _proposalThreshold
+    ) external onlyGovernanceOrInitialDeployer {
         govVotingDelay = _votingDelay;
         govVotingPeriod = _votingPeriod;
         govProposalThreshold = _proposalThreshold;
@@ -491,28 +597,41 @@ contract GraviDAO is Governor,
     // ---------------------------------------------------
     // Governance parameters required by Governor
     // ---------------------------------------------------
-    function votingDelay() public view override returns (uint256) {
+    function votingDelay() public view override(Governor, IGovernor) returns (uint256) {
         return govVotingDelay;
     }
 
-    function votingPeriod() public view override returns (uint256) {
+    function votingPeriod() public view override(Governor, IGovernor) returns (uint256) {
         return govVotingPeriod;
     }
 
-    function proposalThreshold() public view override returns (uint256) {
+    function proposalThreshold() public view override(Governor, IGovernor) returns (uint256) {
         return govProposalThreshold;
     }
 
     // ---------------------------------------------------
     // Overrides required by Solidity.
     // ---------------------------------------------------
-    function state(uint256 proposalId) public view override(Governor, GovernorTimelockControl) returns (ProposalState) {
+    function state(
+        uint256 proposalId
+    )
+        public
+        view
+        override(Governor, GovernorTimelockControl, IGovernor)
+        returns (ProposalState)
+    {
         return super.state(proposalId);
     }
 
     function proposalNeedsQueuing(
         uint256 proposalId
-    ) public view virtual override(Governor, GovernorTimelockControl) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(Governor, GovernorTimelockControl, IGovernor)
+        returns (bool)
+    {
         return super.proposalNeedsQueuing(proposalId);
     }
 
@@ -523,7 +642,14 @@ contract GraviDAO is Governor,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
-        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+        return
+            super._queueOperations(
+                proposalId,
+                targets,
+                values,
+                calldatas,
+                descriptionHash
+            );
     }
 
     function _executeOperations(
@@ -533,7 +659,13 @@ contract GraviDAO is Governor,
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal override(Governor, GovernorTimelockControl) {
-        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+        super._executeOperations(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
     }
 
     function _cancel(
@@ -545,7 +677,16 @@ contract GraviDAO is Governor,
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
-    function _executor() internal view override(Governor, GovernorTimelockControl) returns (address) {
+    function _executor()
+        internal
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (address)
+    {
         return super._executor();
     }
+
+    // function setGovTokenEthPrice(uint256 newPrice) external override {}
+
+    // function setGovTokenGraviChaBurn(uint256 newBurnAmount) external override {}
 }
