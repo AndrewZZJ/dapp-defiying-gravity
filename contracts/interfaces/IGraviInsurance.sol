@@ -105,5 +105,7 @@ interface IGraviInsurance {
     // input: title, subject, message (all in string)
     // output: T/F for successfully submitted the proposal
     function submitAProposal(string memory, string memory, string memory) external returns (bool);
+
+    // AJ: methods for fetchWalletInfo() retiriving all wallet info - current number of GovTokens, ChaTokens, and owned NFTs.
 } 
         
