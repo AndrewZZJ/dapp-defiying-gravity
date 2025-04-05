@@ -11,6 +11,8 @@ interface NFTCardProps {
   endDate: string; // Auction end date
   isWinner: boolean; // Whether the user is the winner
   hasBid: boolean; // Whether the user placed a bid
+  onClaimNFT?: () => void; // Callback for claiming the NFT
+  onReclaimTokens?: () => void; // Callback for reclaiming tokens
 }
 
 export function NFTCard({
@@ -22,6 +24,8 @@ export function NFTCard({
   endDate,
   isWinner,
   hasBid,
+  onClaimNFT,
+  onReclaimTokens,
 }: NFTCardProps) {
   const [showBidForm, setShowBidForm] = useState(false);
   const [bid, setBid] = useState("");
@@ -29,7 +33,7 @@ export function NFTCard({
 
   const handleSubmit = () => {
     if (bid.trim() !== "") {
-      // AJ: a backend method for joining the bidding. 
+      // AJ: a backend method for joining the bidding.
       setSubmittedBid(bid);
       setShowBidForm(false);
     }
@@ -114,18 +118,22 @@ export function NFTCard({
             {/* Buttons for after the auction ends */}
             <button
               className={`p-3 w-full text-base rounded-lg ${
-                hasBid ? "bg-red-600 text-white hover:bg-red-700" : "bg-gray-400 text-gray-700 cursor-not-allowed"
+                !isWinner && hasBid
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-400 text-gray-700 cursor-not-allowed"
               }`}
-              onClick={() => hasBid && alert("Retrieve Bid Money functionality goes here")}
-              disabled={!hasBid}
+              onClick={() => !isWinner && hasBid && onReclaimTokens && onReclaimTokens()}
+              disabled={isWinner || !hasBid}
             >
               Retrieve Bid Money
             </button>
             <button
               className={`p-3 w-full text-base rounded-lg ${
-                isWinner ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-400 text-gray-700 cursor-not-allowed"
+                isWinner
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-gray-400 text-gray-700 cursor-not-allowed"
               }`}
-              onClick={() => isWinner && alert("Claim NFT functionality goes here")}
+              onClick={() => isWinner && onClaimNFT && onClaimNFT()}
               disabled={!isWinner}
             >
               Claim NFT
