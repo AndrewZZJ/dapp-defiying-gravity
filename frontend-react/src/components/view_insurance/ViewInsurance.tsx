@@ -4,11 +4,19 @@ import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext";
 import { NavigationHeader } from "../navigation/AppNavigationHeader";
 
+interface InsuranceEntry {
+  address: string;
+  insurances: {
+    type: string;
+    hash: string;
+    maxCoverage?: string; // Maximum coverage amount
+    coverageEndDate?: string; // Coverage end date
+  }[];
+}
+
 export const ViewInsurance: React.FC = () => {
   const { walletAddress } = useWallet(); // Access wallet state from context
-  const [insuranceData, setInsuranceData] = useState<
-    { address: string; insurances: { type: string; hash: string }[] }[]
-  >([]);
+  const [insuranceData, setInsuranceData] = useState<InsuranceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Toggle this line to use template data or backend/smart contract data
@@ -27,7 +35,20 @@ export const ViewInsurance: React.FC = () => {
           ? getTemplateInsuranceData()
           : await getInsuranceData(walletAddress);
 
-        setInsuranceData(fetchedData);
+        // Fetch additional details for each insurance
+        const detailedData = await Promise.all(
+          fetchedData.map(async (entry) => ({
+            ...entry,
+            insurances: await Promise.all(
+              entry.insurances.map(async (insurance) => ({
+                ...insurance,
+                ...(await getInsuranceDetails(insurance.hash, useTemplateData)), // Fetch additional details
+              }))
+            ),
+          }))
+        );
+
+        setInsuranceData(detailedData);
       } catch (error) {
         console.error("Failed to fetch insurance data:", error);
       } finally {
@@ -39,14 +60,36 @@ export const ViewInsurance: React.FC = () => {
   }, [walletAddress, useTemplateData]);
 
   // Function to fetch insurance data from backend or smart contract
-  const getInsuranceData = async (walletAddress: string) => {
+  const getInsuranceData = async (walletAddress: string): Promise<InsuranceEntry[]> => {
     // Replace this with actual backend or smart contract call
     console.log(`Fetching insurance data for wallet: ${walletAddress}`);
     return []; // Return an empty array if no data is found
   };
 
+  // Function to fetch additional details for an insurance
+  const getInsuranceDetails = async (
+    hash: string,
+    useTemplateData: boolean
+  ): Promise<{ maxCoverage: string; coverageEndDate: string }> => {
+    if (useTemplateData) {
+      // Return template data
+      return {
+        maxCoverage: "100 ETH", // Example value
+        coverageEndDate: "2025-12-31", // Example value
+      };
+    } else {
+      // Replace this with actual backend or smart contract call
+      console.log(`Fetching details for insurance with hash: ${hash}`);
+      // Simulate backend response
+      return {
+        maxCoverage: "Fetched from backend", // Replace with actual backend value
+        coverageEndDate: "Fetched from backend", // Replace with actual backend value
+      };
+    }
+  };
+
   // Template data for development purposes
-  const getTemplateInsuranceData = () => {
+  const getTemplateInsuranceData = (): InsuranceEntry[] => {
     return [
       {
         address: "123 Main St, City, State, Country",
@@ -96,6 +139,12 @@ export const ViewInsurance: React.FC = () => {
                         </p>
                         <p className="text-sm text-gray-600">
                           ID: <span className="text-gray-900">{insurance.hash}</span>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Max Coverage: <span className="text-gray-900">{insurance.maxCoverage || "N/A"}</span>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Coverage Ends: <span className="text-gray-900">{insurance.coverageEndDate || "N/A"}</span>
                         </p>
                       </div>
                     ))}
