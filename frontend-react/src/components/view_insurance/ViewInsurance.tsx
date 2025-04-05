@@ -8,7 +8,7 @@ interface InsuranceEntry {
   address: string;
   insurances: {
     type: string;
-    hash: string;
+    id: string;
     maxCoverage?: string; // Maximum coverage amount
     coverageEndDate?: string; // Coverage end date
   }[];
@@ -42,7 +42,7 @@ export const ViewInsurance: React.FC = () => {
             insurances: await Promise.all(
               entry.insurances.map(async (insurance) => ({
                 ...insurance,
-                ...(await getInsuranceDetails(insurance.hash, useTemplateData)), // Fetch additional details
+                ...(await getInsuranceDetails(insurance.id, useTemplateData)), // Fetch additional details
               }))
             ),
           }))
@@ -68,7 +68,7 @@ export const ViewInsurance: React.FC = () => {
 
   // Function to fetch additional details for an insurance
   const getInsuranceDetails = async (
-    hash: string,
+    id: string,
     useTemplateData: boolean
   ): Promise<{ maxCoverage: string; coverageEndDate: string }> => {
     if (useTemplateData) {
@@ -79,7 +79,7 @@ export const ViewInsurance: React.FC = () => {
       };
     } else {
       // Replace this with actual backend or smart contract call
-      console.log(`Fetching details for insurance with hash: ${hash}`);
+      console.log(`Fetching details for insurance with id: ${id}`);
       // Simulate backend response
       return {
         maxCoverage: "Fetched from backend", // Replace with actual backend value
@@ -94,14 +94,14 @@ export const ViewInsurance: React.FC = () => {
       {
         address: "123 Main St, City, State, Country",
         insurances: [
-          { type: "Wildfire", hash: "0xabc123" },
-          { type: "Flood", hash: "0xdef456" },
+          { type: "Wildfire", id: "0xabc123" },
+          { type: "Flood", id: "0xdef456" },
         ],
       },
       {
         address: "456 Business Ave, City, State, Country",
         insurances: [
-          { type: "Earthquake", hash: "0xghi789" },
+          { type: "Earthquake", id: "0xghi789" },
         ],
       },
     ];
@@ -138,7 +138,7 @@ export const ViewInsurance: React.FC = () => {
                           Insurance Type: {insurance.type}
                         </p>
                         <p className="text-sm text-gray-600">
-                          ID: <span className="text-gray-900">{insurance.hash}</span>
+                          ID: <span className="text-gray-900">{insurance.id}</span>
                         </p>
                         <p className="text-sm text-gray-600">
                           Max Coverage: <span className="text-gray-900">{insurance.maxCoverage || "N/A"}</span>
