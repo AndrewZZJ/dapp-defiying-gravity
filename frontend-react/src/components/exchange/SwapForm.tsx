@@ -71,7 +71,7 @@ export const SwapForm: React.FC = () => {
 
   const handleGovBurn = async () => {
     const amount = Number(burnAmount);
-    if (!amount || isNaN(amount) || amount <= 0) return alert("Invalid burn amount.");
+    if (!amount || isNaN(amount) || amount <= 0) return alert("Invalid amount to return to pool.");
 
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
@@ -81,12 +81,12 @@ export const SwapForm: React.FC = () => {
       const tx = await contract.burnGov(ethers.utils.parseEther(burnAmount));
       await tx.wait();
 
-      alert("Burn successful!");
+      alert("Return to pool successful!");
       setBurnAmount("");
       fetchPoolData();
     } catch (err) {
-      console.error("Burn failed:", err);
-      alert("Burn failed. Check console.");
+      console.error("Return to pool failed:", err);
+      alert("Return to pool failed. Check console.");
     }
   };
 
@@ -104,7 +104,7 @@ export const SwapForm: React.FC = () => {
       />
 
       <p className="text-sm mb-2">
-        You'll receive:
+        You will receive:
         <br />• <strong>{Number(govAmount) * exchangeRate.eth || 0} ETH</strong>
         <br />• <strong>{Number(govAmount) * exchangeRate.graviCha || 0} GraviCha</strong>
       </p>
@@ -118,9 +118,9 @@ export const SwapForm: React.FC = () => {
 
       <hr className="my-8" />
 
-      <h2 className="text-2xl font-semibold mb-4">Burn GraviGov for GraviCha</h2>
+      <h2 className="text-2xl font-semibold mb-4">Return GraviGov to pool for GraviCha</h2>
 
-      <label className="block mb-2 font-medium">Amount to Burn:</label>
+      <label className="block mb-2 font-medium">Amount to return to pool:</label>
       <input
         type="number"
         value={burnAmount}
@@ -137,7 +137,7 @@ export const SwapForm: React.FC = () => {
         onClick={handleGovBurn}
         className="w-full py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
       >
-        Burn GOV for GraviCha
+        Return GOV to pool for GraviCha
       </button>
 
       <div className="mt-8 text-sm text-gray-700">
