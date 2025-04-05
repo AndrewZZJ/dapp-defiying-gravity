@@ -15,6 +15,7 @@ export const Dashboard: React.FC = () => {
   const fetchWalletInfo = async (address: string) => {
     // Replace this with an actual API call to your backend
     const mockData: WalletInfo = {
+      // AJ: backedn functions getting all wallet info - current number of GovTokens, ChaTokens, and owned NFTs.
       graviGovTokens: 1200,
       graviChaTokens: 450,
       ownedNFTs: [
