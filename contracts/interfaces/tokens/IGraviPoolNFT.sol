@@ -16,10 +16,10 @@ interface IGraviPoolNFT is IERC721 {
     ) external payable;
     
     /// @notice Mints a new NFT to the specified pool address.
-    function mintToPool(address poolAddress, string memory tokenURI) external returns (uint256);
+    function mintToPool(address poolAddress, uint8 treasuryIndex, string memory tokenURI) external returns (uint256);
     
     /// @notice Starts an auction for a newly minted NFT.
-    function mintAndAuctionNFTs(string[] memory tokenURIs) external;
+    function mintAndAuctionNFTs(string[] memory tokenURIs, address[] memory insuranceAddresses) external;
     
     /// @notice Places a bid for an active auction using ERC20 tokens.
     function bid(uint256 tokenId, uint256 bidAmount) external;
@@ -33,8 +33,8 @@ interface IGraviPoolNFT is IERC721 {
     /// @notice Forcefully ends an auction and assigns the NFT to the highest bidder.
     function forceEndAuction(uint256 tokenId) external;
     
-    /// @notice Updates the treasury address.
-    function setTreasury(address _treasury) external;
+    // /// @notice Updates the treasury address.
+    // function setTreasury(address _treasury) external;
     
     /// @notice Updates the auction duration.
     function setAuctionDuration(uint256 _auctionDuration) external;
@@ -59,4 +59,14 @@ interface IGraviPoolNFT is IERC721 {
         bool ended,
         uint256 startTime
     );
+
+    function addTreasuryAddress(address treasury) external;
+    function getTreasuryAddresses() external view returns (address[] memory);
+    // function getTreasuryAddress(uint8 index) external view returns (address);
+    // function getTreasuryIndex(uint256 tokenId) external view returns (uint8);
+    function getTreasuryAddress(uint256 tokenId) external view returns (address);
+    function setTreasuryAddress(uint8 index, address treasury) external;
+    function transferWithDonation(address from, address to, uint256 tokenId ) external payable;
+
+    function getTreasuryIndexByAddress(address treasuryAddress) external view returns (uint8);
 }

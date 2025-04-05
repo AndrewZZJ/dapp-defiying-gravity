@@ -22,22 +22,24 @@ async function main() {
   const deploymentConfig = loadDeploymentConfig();
   const graviDAOAddress = deploymentConfig["GraviDAO"];
   const graviChaAddress = deploymentConfig["GraviCha"];
+  // const graviPoolNFTAddress = deploymentConfig["GraviPoolNFT"];
   if (!graviDAOAddress || !graviChaAddress) {
     throw new Error("Required addresses not found in deployment config.");
   }
   const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
+  // const graviPoolNFT = await ethers.getContractAt("GraviPoolNFT", graviPoolNFTAddress);
 
   // Define the new insurance details.
   const newInsuranceName = "Hurricane Insurance";
   const disasterType = "hurricane";
   const premiumRate = 5;
 
-  // Deploy a new GraviPoolNFT contract for the new insurance.
-  const GraviPoolNFT = await ethers.getContractFactory("GraviPoolNFT");
-  const graviPoolNFT = await GraviPoolNFT.deploy(graviChaAddress);
-  await graviPoolNFT.waitForDeployment();
-  const nftPoolAddress = await graviPoolNFT.getAddress();
-  console.log(`${newInsuranceName} - GraviPoolNFT deployed at:`, nftPoolAddress);
+  // // Deploy a new GraviPoolNFT contract for the new insurance.
+  // const GraviPoolNFT = await ethers.getContractFactory("GraviPoolNFT");
+  // const graviPoolNFT = await GraviPoolNFT.deploy(graviChaAddress);
+  // await graviPoolNFT.waitForDeployment();
+  // const nftPoolAddress = await graviPoolNFT.getAddress();
+  // console.log(`${newInsuranceName} - GraviPoolNFT deployed at:`, nftPoolAddress);
 
   // Deploy a new GraviInsurance contract for the new insurance.
   const GraviInsurance = await ethers.getContractFactory("GraviInsurance");
@@ -46,23 +48,22 @@ async function main() {
   const insurancePoolAddress = await graviInsurance.getAddress();
   console.log(`${newInsuranceName} - GraviInsurance deployed at:`, insurancePoolAddress);
 
-  // Set the NFT treasury to the new insurance contract address.
-  await graviPoolNFT.setTreasury(insurancePoolAddress);
-  console.log(`${newInsuranceName} - NFT treasury set to insurance contract address.`);
+  // // Set the NFT treasury to the new insurance contract address.
+  // await graviPoolNFT.setTreasury(insurancePoolAddress);
+  // console.log(`${newInsuranceName} - NFT treasury set to insurance contract address.`);
 
   // Transfer ownership of the insurance contract to the DAO.
   await graviInsurance.transferOwnership(graviDAOAddress);
   console.log(`${newInsuranceName} - Ownership transferred to DAO.`);
 
-  // Transfer ownership of the NFT contract to the DAO.
-  await graviPoolNFT.transferOwnership(graviDAOAddress);
-  console.log(`${newInsuranceName} - NFT ownership transferred to DAO.`);
+  // // Transfer ownership of the NFT contract to the DAO.
+  // await graviPoolNFT.transferOwnership(graviDAOAddress);
+  // console.log(`${newInsuranceName} - NFT ownership transferred to DAO.`);
 
   // Encode the function call to add this insurance pair into the DAO registry.
-  const encodedFunctionCall = graviDAO.interface.encodeFunctionData("addInsuranceAndNFTPool", [
+  const encodedFunctionCall = graviDAO.interface.encodeFunctionData("addInsurancePool", [
     newInsuranceName,
-    insurancePoolAddress,
-    nftPoolAddress,
+    insurancePoolAddress
   ]);
   const proposalDescription = `Add ${newInsuranceName} and its NFT Pool to the DAO.`;
 
@@ -124,14 +125,15 @@ async function main() {
 
   // Save the new insurance addresses to the deployment config.
   const insurancesPath = path.join(__dirname, "..", "metadata", "insurances.json");
-  let deployedInsurances: Record<string, { nftAddress: string; insuranceAddress: string }> = {};
+  // let deployedInsurances: Record<string, { nftAddress: string; insuranceAddress: string }> = {};
+  let deployedInsurances: Record<string, { insuranceAddress: string }> = {};
   if (fs.existsSync(insurancesPath)) {
     const fileData = fs.readFileSync(insurancesPath, "utf8");
     deployedInsurances = JSON.parse(fileData);
   }
   // Append the new insurance.
   deployedInsurances[newInsuranceName] = {
-    nftAddress: nftPoolAddress,
+    // nftAddress: nftPoolAddress,
     insuranceAddress: insurancePoolAddress,
   };
   // Write the merged data back to insurances.json.

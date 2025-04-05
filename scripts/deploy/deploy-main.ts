@@ -76,6 +76,20 @@ async function main() {
   await graviCha.transferOwnership(graviDAOAddress);
   await graviGov.transferOwnership(graviDAOAddress);
 
+  // Deploy GraviPoolNFT.
+  const GraviPoolNFT = await ethers.getContractFactory("GraviPoolNFT");
+  const graviPoolNFT = await GraviPoolNFT.deploy(graviChaAddress);
+  await graviPoolNFT.waitForDeployment();
+  const graviPoolNFTAddress = await graviPoolNFT.getAddress();
+  console.log(`GraviPoolNFT deployed at: ${graviPoolNFTAddress}`);
+  
+  // Transfer ownership of GraviPoolNFT to GraviDAO.
+  await graviPoolNFT.transferOwnership(graviDAOAddress);
+  console.log(`GraviPoolNFT ownership transferred to GraviDAO.`);
+
+  // Set the NFT as the DAO nft pool.
+  await graviDAO.setNFTPool(graviPoolNFTAddress);
+
   // Start an initial mint to governance pool.
   await graviDAO.monthlyMintGovTokens()
 
@@ -91,6 +105,7 @@ async function main() {
     GraviGov: graviGovAddress,
     TimelockController: timelockAddress,
     GraviDAO: graviDAOAddress,
+    GraviPoolNFT: graviPoolNFTAddress,
   });
 }
 

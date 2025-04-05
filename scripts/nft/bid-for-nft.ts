@@ -4,7 +4,7 @@ import { loadDeploymentConfig } from "../utils/deploymentUtils";
 
 async function main() {
   const deploymentConfig = loadDeploymentConfig();
-  const graviPoolNFTAddress = deploymentConfig["FireInsuranceNFT"];
+  const graviPoolNFTAddress = deploymentConfig["GraviPoolNFT"];
   const graviChaAddress = deploymentConfig["GraviCha"];
   if (!graviPoolNFTAddress || !graviChaAddress) {
     throw new Error("GraviPoolNFT or GraviCha address not found in deployment config.");

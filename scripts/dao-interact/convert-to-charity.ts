@@ -11,6 +11,7 @@ async function main() {
   const deploymentConfig = loadDeploymentConfig();
   const graviGovAddress = deploymentConfig["GraviGov"];
   const graviChaAddress = deploymentConfig["GraviCha"];
+  const daoAddress = deploymentConfig["GraviDAO"];
   if (!graviGovAddress || !graviChaAddress) {
     throw new Error("Required addresses (GraviGov or GraviCha) not found in deployment config.");
   }
@@ -33,7 +34,8 @@ async function main() {
   const govBalanceBefore = await graviGov.balanceOf(deployerAddress);
   const chaBalanceBefore = await graviCha.balanceOf(deployerAddress);
   // Get DAO address (the pool address) from the GraviGov contract.
-  const daoAddress = await graviGov.dao();
+  // const daoAddress = await graviGov.dao();
+
   const daoGovBalanceBefore = await graviGov.balanceOf(daoAddress);
 
   console.log("\n--- Before Conversion ---");

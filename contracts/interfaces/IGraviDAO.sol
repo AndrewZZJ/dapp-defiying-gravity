@@ -24,12 +24,14 @@ interface IGraviDAO is IGovernor {
     function calculatesGovTokenPurchasePrice(uint256 amount) external view returns (uint256 ethPrice, uint256 graviChaBurn);
 
     // 2. Insurance Pool management, NFT Pool Management and Monthly Minting
-    function addInsuranceAndNFTPool(
-        string memory poolName, 
-        address insurancePool, 
-        address nftPool
+    function setNFTPool(
+        address _nftPool
     ) external;
-    function removeInsuranceAndNFTPool(string memory insuranceName) external;
+    function addInsurancePool(
+        string memory poolName, 
+        address insurancePool
+    ) external;
+    function removeInsurancePool(string memory insuranceName) external;
     function getInsurancePoolAddresses(string memory insuranceName) external view returns (address insurancePoolAddress, address nftPoolAddress);
     function getAllInsurancePoolNames() external view returns (string[] memory);
     function monthlyMintNFTForPool(string memory insuranceName, string[] calldata tokenURIs) external;

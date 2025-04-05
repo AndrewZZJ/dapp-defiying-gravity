@@ -27,8 +27,10 @@ contract GraviPoolNFT is
     // The ERC20 token used for bidding (and charity donation)
     IGraviCha public graviCha;
 
-    // This should be the insurance pool contract address
-    IGraviInsurance public insurancePool;
+    // This should be the insurance pool contract address.
+    // We'll maintain an array of treasury addresses (e.g., four insurance pools).
+    mapping(uint256 => uint8) public tokenTreasuryIndex;
+    address[] public treasuries;
 
     // Tracking donations associated with each NFT.
     mapping(uint256 => uint256) public tokenDonations;
@@ -98,46 +100,107 @@ contract GraviPoolNFT is
         transferFee = _transferFee;
     }
 
-    /// @notice A custom transfer function that collects a fee (sent as ETH) to the treasury.
+    /// @notice Allows the owner to add a new treasury address.
+    function addTreasuryAddress(address treasury) external onlyOwner {
+        treasuries.push(treasury);
+    }
+
+    // View function to get the list of treasury addresses.
+    function getTreasuryAddresses() external view returns (address[] memory) {
+        return treasuries;
+    }
+
+    // View function to get the treasury address at a specific index.
+    function getTreasuryAddress(uint256 tokenId) external view returns (address) {
+        // Get the treasury index for the token ID.
+        uint8 index = tokenTreasuryIndex[tokenId];
+        // Ensure the index is within bounds.
+        require(index < treasuries.length, "GraviPoolNFT: Index out of bounds");
+        // Return the treasury address at that index.
+        return treasuries[index];
+    }
+
+    /// @notice Allows the owner to update an existing treasury address.
+    function setTreasuryAddress(uint8 index, address treasury) external onlyOwner {
+        require(index < treasuries.length, "GraviPoolNFT: Index out of bounds");
+        treasuries[index] = treasury;
+    }
+
+    /// @notice Returns the index of a treasury given its address.
+    /// @param treasuryAddress The treasury (insurance) address to search for.
+    /// @return The index of the treasury.
+    function getTreasuryIndexByAddress(address treasuryAddress) external view returns (uint8) {
+        return _getTreasuryIndexByAddress(treasuryAddress);
+    }
+
+    function _getTreasuryIndexByAddress(address treasuryAddress) internal view returns (uint8) {
+        for (uint8 i = 0; i < treasuries.length; i++) {
+            if (treasuries[i] == treasuryAddress) {
+                return i;
+            }
+        }
+        revert("GraviPoolNFT: Treasury address not found");
+    }
+
+    /// @notice A custom transfer function that collects a fixed fee to the NFT's treasury.
     function transferWithFee(
         address from,
         address to,
         uint256 tokenId
     ) external payable onlyTokenOwnerOrApproved(tokenId) nonReentrant {
         require(msg.value >= transferFee, "GraviPoolNFT: Insufficient fee");
-        (bool sent, ) = payable(address(insurancePool)).call{value: msg.value}(
-            ""
-        );
-
+        address treasury = treasuries[tokenTreasuryIndex[tokenId]];
+        require(treasury != address(0), "GraviPoolNFT: Treasury not set");
+        (bool sent, ) = payable(treasury).call{value: msg.value}("");
         require(sent, "GraviPoolNFT: Fee transfer failed");
         safeTransferFrom(from, to, tokenId);
     }
 
-    // Internal function used to mint a new NFT with a tokenURI.
+    /// @notice A new transfer function that allows a custom donation amount to be sent to the treasury.
+    function transferWithDonation(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external payable onlyTokenOwnerOrApproved(tokenId) nonReentrant {
+        require(msg.value > 0, "GraviPoolNFT: Donation amount must be > 0");
+        address treasury = treasuries[tokenTreasuryIndex[tokenId]];
+        require(treasury != address(0), "GraviPoolNFT: Treasury not set");
+        (bool sent, ) = payable(treasury).call{value: msg.value}("");
+        require(sent, "GraviPoolNFT: Donation transfer failed");
+        safeTransferFrom(from, to, tokenId);
+    }
+
+    /// @notice Internal function used to mint a new NFT with a tokenURI and treasury index.
     function _mintNFT(
         address to,
-        string memory tokenURI
+        string memory tokenURI,
+        uint8 treasuryIndex
     ) internal onlyOwner returns (uint256) {
+        require(treasuryIndex < treasuries.length, "GraviPoolNFT: Invalid treasury index");
         uint256 tokenId = _nextTokenId;
         _nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
+        tokenTreasuryIndex[tokenId] = treasuryIndex;
         return tokenId;
     }
 
-    // External Function to mint a new NFT to InsurancePool
+
+    /// @notice Mints a new NFT to an insurance pool along with its treasury index.
     function mintToPool(
         address poolAddress,
+        uint8 treasuryIndex,
         string memory tokenURI
     ) external onlyOwner returns (uint256) {
-        return _mintNFT(poolAddress, tokenURI);
+        return _mintNFT(poolAddress, tokenURI, treasuryIndex);
     }
 
-    /// @notice Starts an auction for a newly minted NFT. Only the owner may call.
+    /// @notice Starts an auction for a newly minted NFT with its treasury index.
     function startAuction(
-        string memory tokenURI
+        string memory tokenURI,
+        uint8 treasuryIndex
     ) internal onlyOwner returns (uint256) {
-        uint256 tokenId = _mintNFT(address(this), tokenURI);
+        uint256 tokenId = _mintNFT(address(this), tokenURI, treasuryIndex);
         auctions[tokenId] = Auction({
             tokenId: tokenId,
             highestBidder: address(0),
@@ -176,10 +239,28 @@ contract GraviPoolNFT is
         return (auction.tokenId, auction.highestBidder, auction.highestBid, auction.ended, auction.startTime);
     }
     
-    // External function by DAO to mint and auction a list of new NFTs.
-    function mintAndAuctionNFTs(string[] memory tokenURIs) external {
+    // /// @notice Allows the DAO to mint and auction a list of new NFTs.
+    // /// @dev Expects matching arrays of token URIs and treasury indices.
+    // function mintAndAuctionNFTs(
+    //     string[] memory tokenURIs,
+    //     uint8[] memory treasuryIndices
+    // ) external onlyOwner {
+    //     require(tokenURIs.length == treasuryIndices.length, "GraviPoolNFT: Arrays length mismatch");
+    //     for (uint256 i = 0; i < tokenURIs.length; i++) {
+    //         startAuction(tokenURIs[i], treasuryIndices[i]);
+    //     }
+    // }
+    /// @notice Allows the DAO to mint and auction a list of new NFTs.
+    /// @dev Expects matching arrays of token URIs and insurance contract addresses.
+    function mintAndAuctionNFTs(
+        string[] memory tokenURIs,
+        address[] memory insuranceAddresses
+    ) external onlyOwner {
+        require(tokenURIs.length == insuranceAddresses.length, "GraviPoolNFT: Arrays length mismatch");
         for (uint256 i = 0; i < tokenURIs.length; i++) {
-            startAuction(tokenURIs[i]);
+            // Retrieve the treasury index from the insurance contract instance.
+            uint8 treasuryIndex = _getTreasuryIndexByAddress(insuranceAddresses[i]);
+            startAuction(tokenURIs[i], treasuryIndex);
         }
     }
 
@@ -271,11 +352,6 @@ contract GraviPoolNFT is
         }
     }
 
-    /// @notice Allows the owner to update the treasury address.
-    function setTreasury(address _treasury) external onlyOwner {
-        insurancePool = IGraviInsurance(_treasury);
-    }
-
     /// @notice Allows the owner to update the auction duration.
     function setAuctionDuration(uint256 _auctionDuration) external onlyOwner {
         auctionDuration = _auctionDuration;
@@ -305,6 +381,4 @@ contract GraviPoolNFT is
     ) external pure override returns (bytes4) {
         return this.onERC721Received.selector;
     }
-
-    // function setToken(address _token) external override {}
 }

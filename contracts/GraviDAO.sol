@@ -58,9 +58,10 @@ contract GraviDAO is
     // State variables for Insurance and NFT pool
     // ---------------------------------------------------
     mapping(string => IGraviInsurance) public insurancePools;
-    mapping(string => address) public nftPools;
+    // mapping(string => address) public nftPools;
+    IGraviPoolNFT public nftPool;
     string[] public insurancePoolNames;
-    address[] public nftPoolList;
+    // address[] public nftPoolList;
 
     // ---------------------------------------------------
     // Initial Deployment permissions and parameters
@@ -289,59 +290,99 @@ contract GraviDAO is
     // ---------------------------------------------------
     // 2. Insurance Pool management, NFT Pool Management and Monthly Minting
     // ---------------------------------------------------
-    function addInsuranceAndNFTPool(
+    function setNFTPool(
+        address _nftPool
+    ) external onlyGovernanceOrInitialDeployer {
+        require(
+            address(_nftPool) != address(0),
+            "NFT pool address cannot be zero"
+        );
+
+        require(
+            Ownable(_nftPool).owner() == address(this),
+            "DAO must own NFT pool"
+        );
+
+        IGraviPoolNFT newNftPool = IGraviPoolNFT(_nftPool);
+
+        // Check if an existing NFT pool is already set
+        if (address(nftPool) != address(0)) {
+            // Revoke minter role for GraviCha from the old NFT pool
+            graviCha.removeMinter(address(nftPool));
+
+            // Emit event for NFT pool removal
+            emit NFTPoolRemoved(address(nftPool));
+        }
+
+        // Add the new NFT pool to the list
+        nftPool = newNftPool;
+
+        // Automatically grant minter role for GraviCha to the NFT pool
+        graviCha.addMinter(_nftPool);
+
+        // Emit event for NFT pool addition
+        emit NFTPoolAdded(_nftPool);
+    }
+
+    function addInsurancePool(
         string memory poolName,
-        address insurancePool,
-        address nftPool
+        address insurancePool
     ) external onlyGovernanceOrInitialDeployer {
         require(
             address(insurancePools[poolName]) == address(0),
             "Insurance pool already exists"
         );
-        require(nftPools[poolName] == address(0), "NFT pool already exists");
+
+        // Check NFT pool exists
+        require(
+            address(nftPool) != address(0),
+            "NFT pool must be set before adding insurance pool"
+        );
+
+        // require(nftPools[poolName] == address(0), "NFT pool already exists");
 
         // Check DAO ownership of both contracts
         require(
             Ownable(insurancePool).owner() == address(this),
             "DAO must own insurance pool"
         );
-        require(
-            Ownable(nftPool).owner() == address(this),
-            "DAO must own NFT pool"
-        );
+
+        // Add the treasury address to the NFT pool
+        // IGraviPoolNFT pool = IGraviPoolNFT(nftPool);
+        nftPool.addTreasuryAddress(insurancePool);
 
         insurancePools[poolName] = IGraviInsurance(insurancePool);
-        nftPools[poolName] = nftPool;
+        // nftPools[poolName] = nftPool;
         insurancePoolNames.push(poolName);
 
         // Automatically grant minter role for GraviCha to both contracts
         graviCha.addMinter(insurancePool);
-        graviCha.addMinter(nftPool);
+        // graviCha.addMinter(nftPool);
 
         emit InsuranceCreated(poolName, insurancePool);
-        emit NFTPoolAdded(nftPool);
+        // emit NFTPoolAdded(nftPool);
     }
 
-    function removeInsuranceAndNFTPool(
+    function removeInsurancePool(
         string memory insuranceName
     ) external onlyGovernance {
         address insPool = address(insurancePools[insuranceName]);
-        address nftPoolAddr = nftPools[insuranceName];
+        // address nftPoolAddr = nftPools[insuranceName];
         require(
-            insPool != address(0) && nftPoolAddr != address(0),
+            insPool != address(0),
             "Pool does not exist"
         );
 
         // Revoke minter roles from both pools
         graviCha.removeMinter(insPool);
-        graviCha.removeMinter(nftPoolAddr);
+        // graviCha.removeMinter(nftPoolAddr);
 
         // Remove from mappings
         delete insurancePools[insuranceName];
-        delete nftPools[insuranceName];
+        // delete nftPools[insuranceName];
 
         emit InsuranceRemoved(insuranceName, insPool);
-        emit NFTPoolRemoved(nftPoolAddr);
+        // emit NFTPoolRemoved(nftPoolAddr);
     }
 
     function getInsurancePoolAddresses(
@@ -352,7 +393,7 @@ contract GraviDAO is
         returns (address insurancePoolAddress, address nftPoolAddress)
     {
         insurancePoolAddress = address(insurancePools[insuranceName]);
-        nftPoolAddress = nftPools[insuranceName];
+        nftPoolAddress = address(nftPool);
     }
 
     function getAllInsurancePoolNames()
@@ -363,14 +404,34 @@ contract GraviDAO is
         return insurancePoolNames;
     }
 
+    // function monthlyMintNFTForPool(
+    //     string memory insuranceName,
+    //     string[] calldata tokenURIs
+    // ) external onlyGovernanceOrInitialDeployer {
+    //     address nftPoolAddress = nftPools[insuranceName];
+    //     require(nftPoolAddress != address(0), "NFT pool not found");
+    //     IGraviPoolNFT pool = IGraviPoolNFT(nftPoolAddress);
+    //     pool.mintAndAuctionNFTs(tokenURIs);
+    // }
     function monthlyMintNFTForPool(
         string memory insuranceName,
         string[] calldata tokenURIs
     ) external onlyGovernanceOrInitialDeployer {
-        address nftPoolAddress = nftPools[insuranceName];
+        address nftPoolAddress = address(nftPool);
         require(nftPoolAddress != address(0), "NFT pool not found");
+
+        // Get the insurance contract address for this insurance pool.
+        address insuranceAddress = address(insurancePools[insuranceName]);
+        require(insuranceAddress != address(0), "Insurance pool not found");
+
+        // Build an array of insurance addresses (same for each NFT).
+        address[] memory insuranceAddresses = new address[](tokenURIs.length);
+        for (uint256 i = 0; i < tokenURIs.length; i++) {
+            insuranceAddresses[i] = insuranceAddress;
+        }
+
         IGraviPoolNFT pool = IGraviPoolNFT(nftPoolAddress);
-        pool.mintAndAuctionNFTs(tokenURIs);
+        pool.mintAndAuctionNFTs(tokenURIs, insuranceAddresses);
     }
 
     /// @notice Move Ether from an insurance pool to a recipient address. For emergency use.
