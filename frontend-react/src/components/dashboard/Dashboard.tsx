@@ -1,4 +1,3 @@
-// filepath: /home/parsaban2204/courses/EECE_571G/dapp-defiying-gravity/frontend-react/src/components/dashboard/Dashboard.tsx
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
@@ -13,7 +12,7 @@ export const Dashboard: React.FC = () => {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
 
   const fetchWalletInfo = async (address: string) => {
-    // Replace this with an actual API call to your backend
+    // Replace this with an actual API call to backend
     const mockData: WalletInfo = {
       graviGovTokens: 1200,
       graviChaTokens: 450,

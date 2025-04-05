@@ -16,6 +16,7 @@ import PendingOracle from './components/pending_oracle/PendingOracle';
 import CurrentProposals from './components/current_proposals/CurrentProposals'
 import NFTMarketplace from './components/nft_marketplace/NFTMarketplace';
 import Exchange from './components/exchange/Exchange';
+import { ViewInsurance } from './components/view_insurance/ViewInsurance';
 
 const StyledAppDiv = styled.div`
   display: grid;
@@ -33,6 +34,7 @@ export function App(): ReactElement {
             <Route path="/dashboard" element={<GraviTrustLanding />} />
             <Route path="/claims-buying" element={<Claims />} />
             <Route path="/buy-insurance" element={<BuyInsurance />} />
+            <Route path="/view-insurance" element={<ViewInsurance />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/donate" element={<Donate />} />
