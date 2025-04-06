@@ -10,7 +10,6 @@ interface Claim {
   id: string;
   title: string;
   policyId: string;
-  information?: string;
   status: ClaimStatus;
 }
 
@@ -21,35 +20,30 @@ const mockClaims: Claim[] = [
     id: "1",
     title: "Cover ID: 34-A",
     policyId: "POL-001",
-    information: "Damage due to wildfire. Initial payout pending.",
     status: "In Progress",
   },
   {
     id: "2",
     title: "Cover ID: 87-K",
     policyId: "POL-002",
-    information: "Claim declined due to lack of coverage documentation.",
     status: "Declined",
   },
   {
     id: "3",
     title: "Cover ID: 11-P",
     policyId: "POL-003",
-    information: "Approved for 2.5 ETH payout. Awaiting final transfer.",
     status: "Approved",
   },
   {
     id: "4",
     title: "Cover ID: 92-Z",
     policyId: "POL-004",
-    information: "Under review by claims team.",
     status: "In Progress",
   },
   {
     id: "5",
     title: "Cover ID: 73-T",
     policyId: "POL-005",
-    information: "Approved. Finalized on-chain.",
     status: "Approved",
   },
 ];
@@ -61,7 +55,7 @@ export const ClaimsList: React.FC = () => {
 
   const contractAddress = "0xYourContractAddress";
   const contractABI = [
-    "function getClaims() public view returns (tuple(string id, string title, string policyId, string information, string status)[])",
+    "function getClaims() public view returns (tuple(string id, string title, string policyId, string status)[])",
   ];
 
   const fetchClaims = async () => {
@@ -76,7 +70,6 @@ export const ClaimsList: React.FC = () => {
         id: claim.id,
         title: claim.title,
         policyId: claim.policyId,
-        information: claim.information,
         status: claim.status as ClaimStatus,
       }));
 
@@ -102,22 +95,30 @@ export const ClaimsList: React.FC = () => {
     // In the future, hook this into smart contract call or backend cancel
   };
 
+  // Sort claims so "In Progress" claims appear first
+  const sortedClaims = [...claims].sort((a, b) => {
+    if (a.status === "In Progress" && b.status !== "In Progress") return -1;
+    if (a.status !== "In Progress" && b.status === "In Progress") return 1;
+    return 0;
+  });
+
   return (
     <main className="relative px-0 py-3.5 bg-gray-50 min-h-[782px]">
       <section className="flex flex-col gap-4 p-16 mx-auto max-w-screen-sm max-md:px-4 max-md:py-8 max-sm:px-2 max-sm:py-4">
         {loading ? (
           <p className="text-center text-lg font-medium">Loading claims...</p>
-        ) : claims.length === 0 ? (
+        ) : sortedClaims.length === 0 ? (
           <p className="text-center text-lg font-medium">No claims found.</p>
         ) : (
-          claims.map((claim) => (
+          sortedClaims.map((claim) => (
             <ClaimItem
               key={claim.id}
               title={claim.title}
               status={claim.status}
-              policyId={claim.policyId}
-              information={claim.information}
-              onCancel={() => handleCancel(claim.id)}
+              policyId={claim.policyId} // Pass policyId to ClaimItem
+              onCancel={
+                claim.status === "In Progress" ? () => handleCancel(claim.id) : undefined
+              } // Only allow canceling "In Progress" claims
             />
           ))
         )}

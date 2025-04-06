@@ -1,11 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "./Icons";
 
 interface ClaimItemProps {
   title: string;
   status: "Approved" | "Declined" | "In Progress";
-  information?: string;
+  information?: string; // This will now represent the user's claim description
   policyId: string;
   onCancel?: () => void;
 }
@@ -18,11 +18,59 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
   onCancel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [moderator, setModerator] = useState<string | null>(null);
+  const [description, setDescription] = useState<string | null>(null); // State for claim description
 
   const statusColor = {
     Approved: "text-green-600",
     Declined: "text-red-500",
     "In Progress": "text-yellow-500",
+  };
+
+  // Fetch the moderator's wallet address for approved or declined claims
+  useEffect(() => {
+    const fetchModerator = async () => {
+      if (status === "Approved" || status === "Declined") {
+        try {
+          // Replace this with an actual backend call
+          const response = await mockFetchModerator(policyId);
+          setModerator(response);
+        } catch (error) {
+          console.error("Failed to fetch moderator:", error);
+        }
+      }
+    };
+
+    fetchModerator();
+  }, [status, policyId]);
+
+  // Fetch the claim description (simulated backend call)
+  useEffect(() => {
+    const fetchDescription = async () => {
+      try {
+        // Replace this with an actual backend call
+        const response = await mockFetchDescription(policyId);
+        setDescription(response);
+      } catch (error) {
+        console.error("Failed to fetch claim description:", error);
+      }
+    };
+
+    fetchDescription();
+  }, [policyId]);
+
+  // Mock backend call to fetch the moderator's wallet address
+  const mockFetchModerator = async (policyId: string): Promise<string> => {
+    console.log(`Fetching moderator for policy ID: ${policyId}`);
+    // Simulate a backend response
+    return "0xModeratorWalletAddress";
+  };
+
+  // Mock backend call to fetch the claim description
+  const mockFetchDescription = async (policyId: string): Promise<string> => {
+    console.log(`Fetching description for policy ID: ${policyId}`);
+    // Simulate a backend response
+    return information || "No description available.";
   };
 
   return (
@@ -36,6 +84,14 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
               {title}
             </h3>
             <p className="text-sm text-gray-500">Policy ID: {policyId}</p>
+
+            {/* Approved/Declined By Field */}
+            {(status === "Approved" || status === "Declined") && moderator && (
+              <p className="text-sm text-gray-500">
+                {status === "Approved" ? "Approved by:" : "Declined by:"}{" "}
+                <span className="text-gray-900 font-medium">{moderator}</span>
+              </p>
+            )}
           </div>
 
           {/* Right: Status + Chevron */}
@@ -54,24 +110,26 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
         </div>
 
         {/* Expanded Info Section */}
-        {isOpen && information && (
+        {isOpen && (
           <div
             id={`claim-info-${policyId}`}
             className="mt-3 text-sm text-zinc-700 whitespace-pre-wrap"
           >
-            {information}
+            {description || "Loading description..."}
           </div>
         )}
 
-        {/* Cancel Button */}
-        <div className="mt-4 text-right">
-          <button
-            onClick={onCancel}
-            className="text-sm px-4 py-1.5 border border-red-500 text-red-500 rounded hover:bg-red-100 transition"
-          >
-            Cancel
-          </button>
-        </div>
+        {/* Cancel Button - Only Render for "In Progress" Claims */}
+        {status === "In Progress" && (
+          <div className="mt-4 text-right">
+            <button
+              onClick={onCancel}
+              className="text-sm px-4 py-1.5 border border-red-500 text-red-500 rounded hover:bg-red-100 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
