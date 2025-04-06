@@ -9,12 +9,11 @@ export const ClaimForm: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [eventOptions, setEventOptions] = useState<string[]>([]);
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [insuranceOptions, setInsuranceOptions] = useState<string[]>([]); // Insurance IDs
+  const [insuranceId, setInsuranceId] = useState<string | null>(null);
+  const [incidentDate, setIncidentDate] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [generatedHash, setGeneratedHash] = useState<string | null>(null);
-
-  const [incidentDate, setIncidentDate] = useState("");
-  const [insuranceId, setInsuranceId] = useState("");
 
   const { walletAddress } = useWallet();
 
@@ -38,10 +37,27 @@ export const ClaimForm: React.FC = () => {
     }
   }, [selectedDisaster]);
 
-  const uploadToIPFS = async (file: File): Promise<string> => {
-    const mockHash = "QmExampleHash";
-    console.log("Uploading file to IPFS:", file.name);
-    return mockHash;
+  // Fetch insurance IDs for the connected wallet
+  useEffect(() => {
+    const fetchInsuranceIds = async () => {
+      if (!walletAddress) return;
+
+      try {
+        // Replace this with an actual backend call
+        const response = await mockFetchInsuranceIds(walletAddress);
+        setInsuranceOptions(response);
+      } catch (error) {
+        console.error("Failed to fetch insurance IDs:", error);
+      }
+    };
+
+    fetchInsuranceIds();
+  }, [walletAddress]);
+
+  const mockFetchInsuranceIds = async (wallet: string): Promise<string[]> => {
+    console.log(`Fetching insurance IDs for wallet: ${wallet}`);
+    // Mock response
+    return ["InsuranceID1", "InsuranceID2", "InsuranceID3"];
   };
 
   const generateClaimHash = (
@@ -49,11 +65,10 @@ export const ClaimForm: React.FC = () => {
     disaster: string,
     event: string,
     desc: string,
-    evHash: string,
     date: string,
     insId: string
   ): string => {
-    const concatenated = `${wallet}-${disaster}-${event}-${desc}-${evHash}-${date}-${insId}`;
+    const concatenated = `${wallet}-${disaster}-${event}-${desc}-${date}-${insId}`;
     return keccak256(toUtf8Bytes(concatenated));
   };
 
@@ -65,26 +80,17 @@ export const ClaimForm: React.FC = () => {
       return;
     }
 
-    if (
-      !selectedDisaster ||
-      !selectedEvent ||
-      !description ||
-      !evidenceFile ||
-      !incidentDate ||
-      !insuranceId
-    ) {
-      alert("Please fill out all fields and upload evidence.");
+    if (!selectedDisaster || !selectedEvent || !description || !incidentDate || !insuranceId) {
+      alert("Please fill out all fields.");
       return;
     }
 
     try {
-      const evidenceHash = await uploadToIPFS(evidenceFile);
       const claimHash = generateClaimHash(
         walletAddress,
         selectedDisaster,
         selectedEvent,
         description,
-        evidenceHash,
         incidentDate,
         insuranceId
       );
@@ -105,9 +111,8 @@ export const ClaimForm: React.FC = () => {
     setSelectedDisaster(null);
     setSelectedEvent(null);
     setEventOptions([]);
-    setEvidenceFile(null);
     setIncidentDate("");
-    setInsuranceId("");
+    setInsuranceId(null);
   };
 
   const disasterOptions = [
@@ -193,18 +198,23 @@ export const ClaimForm: React.FC = () => {
             />
           </div>
 
-          {/* Insurance ID */}
+          {/* Insurance ID Dropdown */}
           <div>
             <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Insurance ID / Hash
+              Select Insurance ID
             </label>
-            <input
-              type="text"
-              value={insuranceId}
+            <select
+              className="w-full p-2 border border-zinc-300 rounded-md"
+              value={insuranceId || ""}
               onChange={(e) => setInsuranceId(e.target.value)}
-              placeholder="Enter Insurance ID"
-              className="w-full p-3 border border-zinc-300 rounded-md"
-            />
+            >
+              <option value="" disabled>Select an insurance ID</option>
+              {insuranceOptions.map((id, index) => (
+                <option key={index} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Description */}
@@ -214,31 +224,11 @@ export const ClaimForm: React.FC = () => {
             </label>
             <textarea
               className="w-full p-3 border border-zinc-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="Describe the incident..."
+              placeholder="Describe the incident and include links to any evidence (e.g., images, videos, or documents)."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
             />
-          </div>
-
-          {/* Image Upload */}
-          <div>
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Upload Evidence (Image)
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) =>
-                setEvidenceFile(e.target.files ? e.target.files[0] : null)
-              }
-              className="block w-full text-sm text-gray-900 border border-zinc-300 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
-            />
-            {evidenceFile && (
-              <p className="mt-2 text-sm text-gray-600">
-                Selected file: {evidenceFile.name}
-              </p>
-            )}
           </div>
 
           {/* Submit Button */}
