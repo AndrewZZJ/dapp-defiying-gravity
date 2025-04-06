@@ -150,7 +150,7 @@ export default function NFTMarketplace() {
           </>
         ) : (
           <div className="text-center">
-            <p className="text-lg font-medium">Please connect your wallet to view the marketplace.</p>
+            <p className="text-lg font-medium">Please connect your wallet to view auctions.</p>
             <button
               onClick={connectWallet}
               className="mt-4 px-4 py-2 bg-black text-white rounded-lg"

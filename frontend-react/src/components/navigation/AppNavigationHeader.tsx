@@ -60,7 +60,7 @@ export const NavigationHeader: React.FC = () => {
           <NavigationPill to="/buy-insurance" active={location.pathname === "/buy-insurance"}>Buy Insurance</NavigationPill>
           <NavigationPill to="/view-insurance" active={location.pathname === "/view-insurance"}>View Insurance</NavigationPill>
           <NavigationPill to="/donate" active={location.pathname === "/donate"}>Donate</NavigationPill>
-          <NavigationPill to="/marketplace" active={location.pathname === "/marketplace"}>Marketplace</NavigationPill>
+          <NavigationPill to="/marketplace" active={location.pathname === "/marketplace"}>Auction</NavigationPill>
           <NavigationPill to="/exchange" active={location.pathname === "/exchange"}>Exchange</NavigationPill>
 
 
