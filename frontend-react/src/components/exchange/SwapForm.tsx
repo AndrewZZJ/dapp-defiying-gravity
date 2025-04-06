@@ -92,7 +92,7 @@ export const SwapForm: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg p-8 shadow-xl text-black">
-      <h2 className="text-2xl font-semibold mb-4">Swap GraviGov for ETH + GraviCha</h2>
+      <h2 className="text-2xl font-semibold mb-4">Purchase GraviGov from Pool</h2>
 
       <label className="block mb-2 font-medium">Amount of GraviGov:</label>
       <input
@@ -104,7 +104,7 @@ export const SwapForm: React.FC = () => {
       />
 
       <p className="text-sm mb-2">
-        You will receive:
+        You will spend:
         <br />• <strong>{Number(govAmount) * exchangeRate.eth || 0} ETH</strong>
         <br />• <strong>{Number(govAmount) * exchangeRate.graviCha || 0} GraviCha</strong>
       </p>
@@ -113,7 +113,7 @@ export const SwapForm: React.FC = () => {
         onClick={handleGovSwap}
         className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
       >
-        Swap
+        Purchase
       </button>
 
       <hr className="my-8" />
