@@ -203,7 +203,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         // Use a simple formula:
         // premium = (propertyValue * coveragePeriod * addressFactor) / divisor
         // The divisor is chosen to adjust the scale of the premium.
-        uint256 divisor = 10000; // Example divisor;
+        uint256 divisor = (1 ether * 100000000000000); // Example divisor;
         
         premium = (propertyValue * coveragePeriod * addressFactor) / divisor;
     }

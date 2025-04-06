@@ -68,6 +68,9 @@ npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
 npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
+# Insurances
+npx hardhat run scripts/insurance/buy-insurance.ts --network localhost
+
 ### DAO - Buy Governance Tokens
 npx hardhat run scripts/view/view-gov-pool-and-burn-prices.ts --network localhost
 npx hardhat run scripts/view/calc-gov-token-cost.ts --network localhost
@@ -81,6 +84,10 @@ npx hardhat run scripts/dao-interact/convert-to-charity.ts --network localhost
 npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
 npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
 npx hardhat run scripts/nft/claim-nft.ts --network localhost
+
+
+
+
 
 
 ### Dao - proposal - local testing
