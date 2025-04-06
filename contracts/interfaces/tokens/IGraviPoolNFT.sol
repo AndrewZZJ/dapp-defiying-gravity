@@ -2,9 +2,11 @@
 pragma solidity ^0.8.28;
 
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+// import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+// import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-interface IGraviPoolNFT is IERC721 {
+// interface IGraviPoolNFT is IERC721 {
+interface IGraviPoolNFT {
     /// @notice Allows the owner to update the transfer fee.
     function setTransferFee(uint256 _transferFee) external;
     

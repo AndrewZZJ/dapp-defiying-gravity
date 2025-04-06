@@ -7,9 +7,9 @@ import { loadDeploymentConfig } from "../utils/deploymentUtils";
 // Keys: Insurance names.
 // Values: Array of token URIs to be minted (for example purposes, replace with actual URIs).
 const initialNFTs: Record<string, string[]> = {
-  "Fire Insurance": ["https://drive.google.com/uc?id=1f_xy2l8bD-NXwH7t7WE2qI4mw2O0PHPR&export=view"],
-  "Flood Insurance": ["https://drive.google.com/uc?id=1cvsJU54aXFQBFgoJMUe8ociNTjeofOCP&export=view"],
-  "Earthquake Insurance": ["https://drive.google.com/uc?id=1ZNQ_YYtjwMwsmtJJEY-SSqgPvTIXhux2&export=view"],
+  "Fire Insurance": ["https://yellow-generous-goldfish-728.mypinata.cloud/ipfs/bafkreifsxfxpfvs4ax42hrzb6npjmklrdee6l6v4livsyoiybcluiakf4m"],
+  "Flood Insurance": ["https://yellow-generous-goldfish-728.mypinata.cloud/ipfs/bafkreiccic6cvackjndvvstz62zbeuqxyz2klq24ngkblam5yezwfhgk6m"],
+  "Earthquake Insurance": ["https://yellow-generous-goldfish-728.mypinata.cloud/ipfs/bafkreib46vtbcievsjjmyi7lbgwzrghksxx2dr6kzfskz5k4yougjlxctm"],
 };
 
 async function main() {

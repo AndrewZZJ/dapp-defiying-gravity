@@ -58,6 +58,12 @@ async function main() {
 
   // Process each distribution.
   for (const dist of distributions) {
+    // Fetch the recipient's balance before the transfer.
+    const beforeBalance = await graviGov.balanceOf(dist.address);
+    console.log(
+      `Before transfer, ${dist.name} (${dist.address}) has a balance of: ${beforeBalance.toString()}`
+    );
+
     // Calculate token amount: (percentage / 100) * totalBalance.
     const amount = (totalBalance * BigInt(dist.percentage)) / BigInt(100);
     console.log(
@@ -68,12 +74,20 @@ async function main() {
     const tx = await graviGov.transfer(dist.address, amount);
     await tx.wait();
 
+    // Fetch the recipient's balance after the transfer.
+    const afterBalance = await graviGov.balanceOf(dist.address);
+    console.log(
+      `After transfer, ${dist.name} (${dist.address}) has a balance of: ${afterBalance.toString()}`
+    );
+
     distributionResults.push({
       name: dist.name,
       address: dist.address,
       description: dist.description,
       percentage: dist.percentage,
       amount: amount.toString(),
+      beforeBalance: beforeBalance.toString(),
+      afterBalance: afterBalance.toString(),
       txHash: tx.hash,
     });
   }

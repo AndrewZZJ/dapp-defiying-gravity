@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+// import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
-interface IGraviDAO is IGovernor {
+// interface IGraviDAO is IGovernor {
+interface IGraviDAO {
     // 0. Inital setup
     function setFinishedInitialSetup() external;
 
@@ -54,12 +55,12 @@ interface IGraviDAO is IGovernor {
     //     string memory eventId,
     //     uint256 newDonationAmount
     // ) external;
-    function modifyDisasterEvent(
-        string memory insuranceName,
-        string memory eventId,
-        string memory newEventDescription,
-        uint256 newDisasterDate
-    ) external;
+    // function modifyDisasterEvent(
+    //     string memory insuranceName,
+    //     string memory eventId,
+    //     string memory newEventDescription,
+    //     uint256 newDisasterDate
+    // ) external;
     function removeDisasterEvent(string memory insuranceName, string memory eventId) external;
     function addClaimModerator(
         string memory insuranceName,

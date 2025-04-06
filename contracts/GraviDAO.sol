@@ -58,6 +58,7 @@ contract GraviDAO is
     // State variables for Insurance and NFT pool
     // ---------------------------------------------------
     mapping(string => IGraviInsurance) public insurancePools;
+
     // mapping(string => address) public nftPools;
     IGraviPoolNFT public nftPool;
     string[] public insurancePoolNames;
@@ -90,10 +91,27 @@ contract GraviDAO is
     // State variables for voting and governance
     // ---------------------------------------------------
     // Note: This is in blocks, not seconds
-    uint256 public govVotingDelay = 7200; // 1 day
+    // uint256 public govVotingDelay = 7200; // 1 day
+    uint256 public govVotingDelay = 0; // Immediate
     uint256 public govVotingPeriod = 50400; // 1 week
     uint256 public govProposalThreshold = 0;
+    struct ProposalData {
+        uint256 id;
+        string title;
+        string description;
+        address[] targets;
+        uint256[] values;
+        bytes[] calldatas;
+        address proposer;
+        uint256 created;
+    }
 
+    mapping(uint256 => ProposalData) public proposals;
+
+    /// @notice Array to keep track of all proposal IDs.
+    uint256[] public allProposalIds;
+
+    // event ProposalCreated(uint256 indexed proposalId, string title, address proposer);
     // ---------------------------------------------------
     // Events - Emitted for important contract actions
     // ---------------------------------------------------
@@ -147,6 +165,65 @@ contract GraviDAO is
         setupComplete = true;
     }
 
+    // ---------------------------------------------------
+    // 1. Governance and voting functions (additional/extended metadata)
+    // ---------------------------------------------------
+    /// @notice Creates a proposal with extended metadata.
+    /// @param title The title of the proposal.
+    /// @param description The description of the proposal (also passed to the base propose function).
+    /// @param targets The list of target addresses for calls.
+    /// @param values The list of ETH values for each call.
+    /// @param calldatas The list of call data payloads for each call.
+    /// @return proposalId The ID of the created proposal.
+    function createProposal(
+        string memory title,
+        string memory description,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas
+    ) external returns (uint256 proposalId) {
+        // Call the base Governor's propose function (which includes necessary checks)
+        proposalId = super.propose(targets, values, calldatas, description);
+
+        // Record the extended proposal metadata
+        proposals[proposalId] = ProposalData({
+            id: proposalId,
+            title: title,
+            description: description,
+            targets: targets,
+            values: values,
+            calldatas: calldatas,
+            proposer: msg.sender,
+            created: block.timestamp
+        });
+
+        // Track this proposal ID for later retrieval
+        allProposalIds.push(proposalId);
+
+        // Emit an event so off-chain services can track the proposal
+        // emit ProposalCreated(proposalId, title, msg.sender);
+    }
+
+    /// @notice Returns the list of all proposal IDs created so far.
+    function getAllProposalIds() external view returns (uint256[] memory) {
+        return allProposalIds;
+    }
+
+    /// @notice Retrieves the detailed proposal data for a given proposal ID.
+    /// @param proposalId The ID of the proposal.
+    /// @return The ProposalData struct containing the proposal's extended information.
+    function getProposalDetail(uint256 proposalId) external view returns (ProposalData memory) {
+        // Optional: You can add a check to ensure the proposal exists.
+        require(proposals[proposalId].proposer != address(0), "Proposal does not exist");
+        return proposals[proposalId];
+    }
+
+    /// @notice Returns the total count of proposals created.
+    /// @return count The number of proposals.
+    function getProposalCount() external view returns (uint256 count) {
+        return allProposalIds.length;
+    }
+
     // // To Enable TimeStamp based clock instead of block based (default)
     // function clock() public view override(Governor, GovernorVotes) returns (uint48) {
     //     return SafeCast.toUint48(block.timestamp);
@@ -156,37 +233,37 @@ contract GraviDAO is
     //     return "mode=timestamp";
     // }
 
-    // Override clock() to resolve conflict.
-    function clock()
-        public
-        view
-        override(Governor, GovernorVotes, IERC6372)
-        returns (uint48)
-    {
-        return super.clock();
-    }
+    // // Override clock() to resolve conflict.
+    // function clock()
+    //     public
+    //     view
+    //     override(Governor, GovernorVotes, IERC6372)
+    //     returns (uint48)
+    // {
+    //     return super.clock();
+    // }
 
-    // Override CLOCK_MODE() to resolve conflict.
-    function CLOCK_MODE()
-        public
-        view
-        override(Governor, GovernorVotes, IERC6372)
-        returns (string memory)
-    {
-        return super.CLOCK_MODE();
-    }
+    // // Override CLOCK_MODE() to resolve conflict.
+    // function CLOCK_MODE()
+    //     public
+    //     view
+    //     override(Governor, GovernorVotes, IERC6372)
+    //     returns (string memory)
+    // {
+    //     return super.CLOCK_MODE();
+    // }
 
-    // Override quorum() to resolve conflict.
-    function quorum(
-        uint256 blockNumber
-    )
-        public
-        view
-        override(Governor, GovernorVotesQuorumFraction, IGovernor)
-        returns (uint256)
-    {
-        return super.quorum(blockNumber);
-    }
+    // // Override quorum() to resolve conflict.
+    // function quorum(
+    //     uint256 blockNumber
+    // )
+    //     public
+    //     view
+    //     override(Governor, GovernorVotesQuorumFraction, IGovernor)
+    //     returns (uint256)
+    // {
+    //     return super.quorum(blockNumber);
+    // }
 
     // ---------------------------------------------------
     // 1. GraviGov Token Minting and Purchase Pool
@@ -478,21 +555,21 @@ contract GraviDAO is
     //     insurance.modifyDonationAmount(eventId, newDonationAmount);
     // }
 
-    function modifyDisasterEvent(
-        string memory insuranceName,
-        string memory eventId, // Identifier for the event to modify
-        string memory newEventDescription,
-        uint256 newDisasterDate
-    ) external onlyGovernance {
-        IGraviInsurance insurance = insurancePools[insuranceName];
-        require(address(insurance) != address(0), "Insurance pool not found");
-        insurance.modifyDisasterEvent(
-            eventId,
-            insuranceName,
-            newEventDescription,
-            newDisasterDate
-        );
-    }
+    // function modifyDisasterEvent(
+    //     string memory insuranceName,
+    //     string memory eventId, // Identifier for the event to modify
+    //     string memory newEventDescription,
+    //     uint256 newDisasterDate
+    // ) external onlyGovernance {
+    //     IGraviInsurance insurance = insurancePools[insuranceName];
+    //     require(address(insurance) != address(0), "Insurance pool not found");
+    //     insurance.modifyDisasterEvent(
+    //         eventId,
+    //         insuranceName,
+    //         newEventDescription,
+    //         newDisasterDate
+    //     );
+    // }
 
     function removeDisasterEvent(
         string memory insuranceName,
@@ -642,27 +719,61 @@ contract GraviDAO is
     // ---------------------------------------------------
     // Governance parameters required by Governor
     // ---------------------------------------------------
-    function votingDelay() public view override(Governor, IGovernor) returns (uint256) {
+    function votingDelay() public view override returns (uint256) {
         return govVotingDelay;
     }
 
-    function votingPeriod() public view override(Governor, IGovernor) returns (uint256) {
+    function votingPeriod() public view override returns (uint256) {
         return govVotingPeriod;
     }
 
-    function proposalThreshold() public view override(Governor, IGovernor) returns (uint256) {
+    function proposalThreshold() public view override returns (uint256) {
         return govProposalThreshold;
     }
+
+    // function votingDelay() public view override(Governor, IGovernor) returns (uint256) {
+    //     return govVotingDelay;
+    // }
+
+    // function votingPeriod() public view override(Governor, IGovernor) returns (uint256) {
+    //     return govVotingPeriod;
+    // }
+
+    // function proposalThreshold() public view override(Governor, IGovernor) returns (uint256) {
+    //     return govProposalThreshold;
+    // }
 
     // ---------------------------------------------------
     // Overrides required by Solidity.
     // ---------------------------------------------------
+    // function state(
+    //     uint256 proposalId
+    // )
+    //     public
+    //     view
+    //     override(Governor, GovernorTimelockControl, IGovernor)
+    //     returns (ProposalState)
+    // {
+    //     return super.state(proposalId);
+    // }
+
+    // function proposalNeedsQueuing(
+    //     uint256 proposalId
+    // )
+    //     public
+    //     view
+    //     virtual
+    //     override(Governor, GovernorTimelockControl, IGovernor)
+    //     returns (bool)
+    // {
+    //     return super.proposalNeedsQueuing(proposalId);
+    // }
     function state(
         uint256 proposalId
     )
         public
         view
-        override(Governor, GovernorTimelockControl, IGovernor)
+        override(Governor, GovernorTimelockControl)
         returns (ProposalState)
     {
         return super.state(proposalId);
@@ -674,7 +785,7 @@ contract GraviDAO is
         public
         view
         virtual
-        override(Governor, GovernorTimelockControl, IGovernor)
+        override(Governor, GovernorTimelockControl)
         returns (bool)
     {
         return super.proposalNeedsQueuing(proposalId);
