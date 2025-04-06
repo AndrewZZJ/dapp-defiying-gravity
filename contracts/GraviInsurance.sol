@@ -18,7 +18,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     struct Policy {
         bytes32 policyId;
         address policyHolder;
-        uint256 coverageAmount;
+        uint256 maxCoverageAmount;
         uint256 premiumPaid;
         uint256 startTime;
         uint256 endTime;          // End time of the insurance policy
@@ -27,41 +27,52 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         uint256 propertyValue;    // Value of the property (in ETH)
     }
 
-
     // Enum for claim statuses.
     enum ClaimStatus {
         Pending,
         Accepted,
         Denied
     }
-
+    // Struct to track each moderator's decision on a claim.
+    struct ModeratorInfo {
+        Moderator moderator;     // Moderator Info
+        bool hasDecided;        // Whether the moderator has given their decision
+        bool isApproved;        // Whether the moderator approved the claim
+        uint256 approvedAmount; // Amount the moderator approved
+    }
     // Claim record structure, associated with both a policy and a disaster event.
     struct ClaimRecord {
         uint256 claimId; // Auto-incremented claim ID.
         bytes32 policyId; // Associated policy.
         string eventId; // Associated disaster event (string ID, e.g., "EVT#1").
-        uint256 claimAmount; // Automatically set to the active policy's coverage amount.
+        uint256 approvedClaimAmount; // The final approved amount.
         uint256 assessmentStart; // Timestamp when claim assessment starts.
         uint256 assessmentEnd; // Timestamp when claim assessment ends.
         ClaimStatus status; // Current claim status.
         string incidentDescription; // Details about the incident.
+        ModeratorInfo[] moderatorTeam; // Array of moderator decisions
     }
-
     // Disaster event structure.
     struct DisasterEvent {
         string eventId; // Auto-generated unique id as a string, e.g., "EVT#1".
         string name; // Human-readable event name.
         uint256 disasterDate;
         string eventDescription;
-        address[] claimModerators;
     }
-
     // Consolidated user record that stores all data related to a user.
     struct UserRecord {
         bytes32[] policyIds;
         uint256[] claimIds;
         uint256 donationTotal;
     }
+    struct Moderator {
+        address moderatorAddress;      // Moderator address
+        uint256 maxApprovalAmount;     // The maximum amount this moderator can approve per claim
+        uint256 totalClaimsAssessed;   // Total number of claims this moderator has assessed
+        uint256 totalClaimsApproved;   // Total number of claims this moderator has approved
+        uint256 totalApprovedAmount;   // Total amount approved across all claims
+    }
+
 
     // ========================================
     // State Variables
@@ -82,6 +93,10 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
     // Storage for all donors, for iterating
     address[] public donors;
+
+
+    // Mapping from moderator address to their information
+    mapping(address => Moderator) public moderators;
 
     // Disaster events storage, keyed by string eventId.
     mapping(string => DisasterEvent) public disasterEvents;
@@ -105,15 +120,21 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         uint256 startTime,
         uint256 endTime
     );
-    event ClaimStarted(uint256 claimId, string incidentDescription);
-    event ClaimProcessed(uint256 claimId, ClaimStatus status);
-    event ClaimApproved(address indexed user, bytes32 policyId, uint256 payout);
+
     event FundsDonated(address indexed donor, uint256 amount);
+
     event DisasterEventAdded(string eventId);
     event DisasterEventModified(string eventId);
     event DisasterEventRemoved(string eventId);
-    event ClaimModeratorAdded(string eventId, address moderator);
-    event ClaimModeratorRemoved(string eventId, address moderator);
+
+    event ModeratorAdded(address moderator, uint256 maxAmount);
+    event ModeratorRemoved(address moderator);
+
+    event ClaimStarted(uint256 claimId, string incidentDescription);
+    event ClaimAssessed(address moderator, uint256 claimId, bool isApproved, uint256 amount);
+    event ClaimProcessed(uint256 claimId, ClaimStatus claimStatus, uint256 approvedClaimAmount);
+    event ClaimApproved(address indexed user, bytes32 policyId, uint256 payout);
+
 
     // ========================================
     // Constructor
@@ -131,8 +152,6 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         disasterType = _disasterType;
         premiumRate = _premiumRate;
         graviCha = IGraviCha(_graviCha);
-        // graviPoolNFT = IGraviPoolNFT(_graviPoolNFT);
-        //disasterOracle = IGraviDisasterOracle(_oracleAddress);
     }
 
     // ========================================
@@ -149,7 +168,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         uint256 coveragePeriod, // Coverage period in days
         string memory propertyAddress,
         uint256 propertyValue
-    ) external payable returns (bytes32) {
+    ) external payable override returns (bytes32) {
         // Validate inputs
         require(startTime <= block.timestamp, "Start time must be <= current time");
         uint256 endTime = startTime + (coveragePeriod * 1 days);
@@ -169,7 +188,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         Policy memory policy = Policy({
             policyId: policyId,
             policyHolder: msg.sender,
-            coverageAmount: coverageAmount, // calculate using mocked function
+            maxCoverageAmount: coverageAmount,
             premiumPaid: premium,
             startTime: startTime,
             endTime: endTime,
@@ -192,7 +211,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
      * @param propertyAddress The address of the property (as a string).
      * @param propertyValue The value of the property in ETH.
      * @param coveragePeriod The coverage period in days.
-     * @return premium The calculated premium amount in ETH (In wei).
+     * @return premium The calculated premium amount in ETH.
      */
     function calculatePremium(
         string memory propertyAddress,
@@ -206,18 +225,17 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         // Use a simple formula:
         // premium = (propertyValue * coveragePeriod * addressFactor) / divisor
         // The divisor is chosen to adjust the scale of the premium.
-        // uint256 divisor = (1 ether * 100000000000000); // Example divisor;
-        uint256 divisor = 100000000000000; // Example divisor;
+        uint256 divisor = 10000; // Example divisor;
         
         premium = (propertyValue * coveragePeriod * addressFactor) / divisor;
     }
 
-    /// @notice Calculates a mocked coverage amount based solely on the premium and a fixed ratio.
+    /// @notice Calculates a mocked MAX coverage amount based solely on the premium and a fixed ratio.
     /// @param premium The premium paid (in ETH).
     /// @return coverageAmount The resulting coverage amount (in ETH).
     function calculateCoverageAmountFromPremium(uint256 premium) public pure returns (uint256 coverageAmount) {
-        // Define a fixed ratio. For example, if the ratio is 2, then coverage = 2 * premium.
-        uint256 ratio = 2;
+        // Define a fixed ratio. For example, if the ratio is 5, then coverage = 5 * premium.
+        uint256 ratio = 5;
         coverageAmount = premium * ratio;
     }
 
@@ -234,7 +252,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
     /// @notice Donate ETH to the pool and receive tokens/NFT.
-    function donate() external payable {
+    /// @return tokensReceived The amount of charity tokens minted for this donation.
+    function donate() external payable returns (uint256 tokensReceived) {
         require(msg.value > 0, "Must send ETH");
         totalPoolFunds += msg.value;
 
@@ -246,7 +265,13 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
         graviCha.mint(msg.sender, msg.value * donationRewardRate);
         emit FundsDonated(msg.sender, msg.value);
+
+        graviCha.mint(msg.sender, msg.value * donationRewardRate);
+
+        emit FundsDonated(msg.sender, tokensReceived);
+        return msg.value * donationRewardRate;
     }
+
 
     // Allow receiving ETH directly.
     receive() external payable {
@@ -258,9 +283,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     function addDisasterEvent(
         string memory eventName,
         string memory eventDescription,
-        uint256 disasterDate,
-        address[] calldata initialModerators
-    ) external onlyOwner {
+        uint256 disasterDate
+    ) external override onlyOwner {
         // Generate a unique eventId as a string, e.g., "EVT#1"
         string memory autoEventId = string(abi.encodePacked("EVT#", nextEventId.toString()));
         nextEventId++;
@@ -268,8 +292,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
             eventId: autoEventId,
             name: eventName,
             disasterDate: disasterDate,
-            eventDescription: eventDescription,
-            claimModerators: initialModerators
+            eventDescription: eventDescription
         });
         emit DisasterEventAdded(autoEventId);
     }
@@ -302,44 +325,37 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Adds a claim moderator to the specified disaster event.
-    function addClaimModerator(
-        string memory eventId,
-        address moderator
-    ) external override onlyOwner {
-        require(bytes(disasterEvents[eventId].eventId).length != 0, "Event does not exist");
-        DisasterEvent storage de = disasterEvents[eventId];
-        // Ensure the moderator isn't already added.
-        for (uint256 i = 0; i < de.claimModerators.length; i++) {
-            require(de.claimModerators[i] != moderator, "Moderator already exists");
-        }
-        de.claimModerators.push(moderator);
-        emit ClaimModeratorAdded(eventId, moderator);
+    /// @notice Adds a new moderator to the pool if not already present.
+    /// @param _moderatorAddress The address of the moderator to be added.
+    /// @param maxAmount The maximum claim amount the moderator can approve.
+    function addModeratorToPool(address _moderatorAddress, uint256 maxAmount) external override onlyOwner {
+        require(_moderatorAddress != address(0), "Invalid moderator address");
+        require(maxAmount > 0, "Max approval amount must be greater than zero");
+        require(moderators[_moderatorAddress].maxApprovalAmount == 0, "Moderator already exists");
+
+        // Add moderator to the pool
+        moderators[_moderatorAddress] = Moderator({
+            moderatorAddress: _moderatorAddress,
+            maxApprovalAmount: maxAmount,
+            totalClaimsAssessed: 0,
+            totalClaimsApproved: 0,
+            totalApprovedAmount: 0
+        });
+
+        emit ModeratorAdded(_moderatorAddress, maxAmount);
     }
 
-    /// @notice Removes a claim moderator from the specified disaster event.
-    function removeClaimModerator(
-        string memory eventId,
-        address moderator
-    ) external override onlyOwner {
-        require(bytes(disasterEvents[eventId].eventId).length != 0, "Event does not exist");
-        DisasterEvent storage de = disasterEvents[eventId];
-        bool found = false;
-        uint256 indexToRemove;
-        for (uint256 i = 0; i < de.claimModerators.length; i++) {
-            if (de.claimModerators[i] == moderator) {
-                found = true;
-                indexToRemove = i;
-                break;
-            }
-        }
-        require(found, "Moderator not found");
-        // Remove the moderator by replacing it with the last element and then popping.
-        de.claimModerators[indexToRemove] = de.claimModerators[de.claimModerators.length - 1];
-        de.claimModerators.pop();
-        emit ClaimModeratorRemoved(eventId, moderator);
-    }
+    /// @notice Removes a moderator from the pool.
+    /// @param moderator The address of the moderator to be removed.
+    function removeModeratorFromPool(address moderator) external override onlyOwner {
+        require(moderator != address(0), "Invalid moderator address");
+        require(moderators[moderator].maxApprovalAmount != 0, "Moderator does not exist");
 
+        // Delete the moderator from the mapping
+        delete moderators[moderator];
+
+        emit ModeratorRemoved(moderator);
+    }
 
     function transferEther(
         address payable recipient,
@@ -351,241 +367,200 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-
-    /// @notice Starts a claim. The claim amount is set to the active policy's coverage amount.
+    /// @notice Starts a new claim for the given policy and event.
+    /// @param eventId The ID of the disaster event.
+    /// @param policyId The ID of the insurance policy.
+    /// @param incidentDescription A description of the incident.
     function startAClaim(
         string memory eventId,
+        bytes32 policyId,
         string memory incidentDescription
     ) external override returns (bool) {
+        // Check if the disaster event exists
         require(bytes(disasterEvents[eventId].eventId).length != 0, "Event does not exist");
-        // Ensure the caller has an active, unclaimed policy.
-        bytes32[] memory userPolicies = userRecords[msg.sender].policyIds;
-        require(userPolicies.length > 0, "No policy found");
-        bytes32 activePolicy;
-        bool found = false;
-        for (uint256 i = 0; i < userPolicies.length; i++) {
-            if (!policies[userPolicies[i]].isClaimed) {
-                activePolicy = userPolicies[i];
-                found = true;
-                break;
-            }
-        }
-        require(found, "No active policy found");
 
-        Policy memory policy = policies[activePolicy];
+        // Ensure the caller owns the policy
+        require(policies[policyId].policyHolder == msg.sender, "Not the policy holder");
+
+        // Ensure the policy exists and is not already claimed
+        Policy memory policy = policies[policyId];
+        require(!policy.isClaimed, "Policy already claimed");
+
+        // Check that the policy is active
+        require(block.timestamp >= policy.startTime, "Policy not yet active");
+        require(block.timestamp <= policy.endTime, "Policy has expired");
+
         uint256 assessmentStart = block.timestamp;
-        uint256 assessmentEnd = block.timestamp + 3 days; //Todo: update assessmentEnd time WHEN
+        uint256 assessmentEnd = block.timestamp + 3 days;
 
+        // Generate a new claim ID
+        uint256 claimId = nextClaimId;
+        nextClaimId++;
+
+        // Create a new claim record
         ClaimRecord memory newClaim = ClaimRecord({
-            claimId: nextClaimId,
-            policyId: activePolicy,
-            eventId: eventId, // Associate the claim with the specified event.
-            claimAmount: policy.coverageAmount,
+            claimId: claimId,
+            policyId: policyId,
+            eventId: eventId,
+            approvedClaimAmount: 0,    // Default to 0, to be updated after assessment
             assessmentStart: assessmentStart,
             assessmentEnd: assessmentEnd,
             status: ClaimStatus.Pending,
-            incidentDescription: incidentDescription
+            incidentDescription: incidentDescription,
+            moderatorTeam: new ModeratorInfo[](0)  // Initialize empty array
         });
+
+        // Store the new claim record
         claimRecords.push(newClaim);
-        // Record the claim in the user's record.
-        userRecords[msg.sender].claimIds.push(nextClaimId);
-        emit ClaimStarted(nextClaimId, incidentDescription);
-        nextClaimId++;
+
+        // Record the claim in the user's record
+        userRecords[msg.sender].claimIds.push(claimId);
+
+        emit ClaimStarted(claimId, incidentDescription);
         return true;
     }
 
-    /// @notice Processes a claim by its claim ID.
-    /// Verifies that the caller is the owner of the associated policy and updates the claim status.
-    function processClaim(uint256 _claimId) external {
-        require(_claimId > 0 && _claimId < nextClaimId, "Invalid claim id");
-        ClaimRecord storage claim = claimRecords[_claimId - 1];
-        Policy storage policy = policies[claim.policyId];
-        require(policy.policyHolder == msg.sender, "Not your policy");
+
+    /// @notice Processes the claim to determine the final decision based on moderator votes.
+    /// @param claimId The ID of the claim to process.
+    function processClaim(uint256 claimId) external override {
+        require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+
+        // Access the claim record from the array
+        ClaimRecord storage claim = claimRecords[claimId - 1];
+        require(claim.status == ClaimStatus.Pending, "Claim already finalized");
+
+        uint256 totalModerators = claim.moderatorTeam.length;
+        require(totalModerators >= 3, "Not enough moderators have assessed this claim");
+
+        uint256 approvals = 0;
+        uint256 totalApprovedAmount = 0;
+
+        // Calculate the majority threshold
+        uint256 majority = (totalModerators / 2) + 1;
+
+        // Count approvals from moderators
+        for (uint256 i = 0; i < totalModerators; i++) {
+            ModeratorInfo memory decision = claim.moderatorTeam[i];
+            if (decision.hasDecided && decision.isApproved) {
+                approvals++;
+                totalApprovedAmount += decision.approvedAmount;
+            }
+        }
+
+        uint256 averageApprovedAmount = 0;
+        if (approvals > 0) {
+            // Calculate the average approved amount
+            averageApprovedAmount = totalApprovedAmount / approvals;
+        }
+
+        // Determine the final claim status based on the majority vote
+        if (approvals >= majority) {
+            claim.status = ClaimStatus.Accepted;
+            claim.approvedClaimAmount = averageApprovedAmount;
+
+            // Update moderator statistics only if the claim is approved
+            for (uint256 i = 0; i < totalModerators; i++) {
+                ModeratorInfo memory decision = claim.moderatorTeam[i];
+                if (decision.isApproved) {
+                    moderators[decision.moderator.moderatorAddress].totalClaimsApproved++;
+                    moderators[decision.moderator.moderatorAddress].totalApprovedAmount += decision.approvedAmount;
+                }
+                moderators[decision.moderator.moderatorAddress].totalClaimsAssessed++;
+            }
+
+            emit ClaimProcessed(claimId, ClaimStatus.Accepted, averageApprovedAmount);
+        } else {
+            claim.status = ClaimStatus.Denied;
+            claim.approvedClaimAmount = 0;
+            emit ClaimProcessed(claimId, ClaimStatus.Denied, 0);
+        }
+
+        // Mark the claim as processed
+        claim.assessmentEnd = block.timestamp;
+    }
+
+
+
+    /// @notice Allows a moderator to assess a claim by approving or denying it.
+    /// @param claimId The ID of the claim being assessed.
+    /// @param isApproved A boolean indicating whether the claim is approved (true) or denied (false).
+    /// @param amount The amount the moderator approves (if isApproved is true).
+    function assessClaim(uint256 claimId, bool isApproved, uint256 amount) external override {
+        require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+
+        // Access the claim record from the array
+        ClaimRecord storage claim = claimRecords[claimId - 1];
         require(claim.status == ClaimStatus.Pending, "Claim already processed");
 
-        // Todo: Call the oracle to validate the claim.
-        // bool valid = disasterOracle.validateClaim(claim.incidentDescription, disasterType, claim.evidence);
-        // require(valid, "Oracle validation failed");
+        // Check if the caller is a registered moderator
+        require(moderators[msg.sender].maxApprovalAmount > 0, "Not a registered moderator");
 
-        // Todo: DAO approval
+        // Validate the approval amount if approved
+        if (isApproved) {
+            require(amount > 0, "Approval amount must be greater than zero");
+            require(amount <= moderators[msg.sender].maxApprovalAmount, "Amount exceeds moderator cap");
+        } else {
+            amount = 0;  // Set to zero if denied
+        }
 
-        // Update claim status to Accepted.
-        claim.status = ClaimStatus.Accepted;
-        emit ClaimProcessed(_claimId, ClaimStatus.Accepted);
+        // Check if the moderator has already assessed this claim
+        for (uint256 i = 0; i < claim.moderatorTeam.length; i++) {
+            require(claim.moderatorTeam[i].moderator.moderatorAddress != msg.sender, "Already assessed");
+        }
+
+        // Add the moderator's decision to the claim record
+        claim.moderatorTeam.push(ModeratorInfo({
+            moderator: moderators[msg.sender],
+            hasDecided: true,
+            isApproved: isApproved,
+            approvedAmount: amount
+        }));
+
+        emit ClaimAssessed(msg.sender, claimId, isApproved, amount);
     }
+
+
+
 
     /// @notice Executes payout for a processed claim.
     /// Only the contract owner can call this function.
-    function payoutClaim(uint256 _claimId) external onlyOwner {
-        require(_claimId > 0 && _claimId < nextClaimId, "Invalid claim id");
-        ClaimRecord storage claim = claimRecords[_claimId - 1];
+    /// @param claimId The ID of the claim to process for payout.
+    function payoutClaim(uint256 claimId) external override onlyOwner {
+        require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+
+        // Access the claim record from the array
+        ClaimRecord storage claim = claimRecords[claimId - 1];
         require(claim.status == ClaimStatus.Accepted, "Claim not accepted");
+        
+        // Access the associated policy using the policy ID
         Policy storage policy = policies[claim.policyId];
         require(!policy.isClaimed, "Policy already claimed");
-        require(totalPoolFunds >= policy.coverageAmount, "Insufficient funds");
+        
+        // Check if the approved claim amount is greater than zero
+        uint256 payoutAmount = claim.approvedClaimAmount;
+        require(payoutAmount > 0, "No approved claim amount");
+        require(totalPoolFunds >= payoutAmount, "Insufficient funds in the pool");
 
-        // Mark the policy as claimed and update funds.
+        // Mark the policy as claimed and update the pool funds
         policy.isClaimed = true;
-        totalPoolFunds -= policy.coverageAmount;
+        totalPoolFunds -= payoutAmount;
 
-        (bool sent, ) = policy.policyHolder.call{value: policy.coverageAmount}(
-            ""
-        );
+        // Transfer the payout to the policy holder
+        (bool sent, ) = policy.policyHolder.call{value: payoutAmount}("");
         require(sent, "ETH transfer failed");
+
+        // Update claim status to mark it as paid
+        claim.status = ClaimStatus.Accepted;
 
         emit ClaimApproved(
             policy.policyHolder,
             policy.policyId,
-            policy.coverageAmount
+            payoutAmount
         );
     }
 
-    // ========================================
-    // View Functions
-    // ========================================
 
-    /// @notice Returns the insurance (policy) details for the user.
-    /// @return user The caller's address.
-    /// @return policyIds An array of policy IDs held by the user.
-    /// @return propertyAddresses An array of the property addresses.
-    /// @return coverageAmounts An array of coverage amounts (in ETH).
-    /// @return coverageEndDates An array of the policy end times (as Unix timestamps).
-    /// @return insuranceTypes An array of insurance types (e.g., "fire", "flood", "earthquake").
-    function getUserPolicies() external view override returns (
-        address user,
-        bytes32[] memory policyIds,
-        string[] memory propertyAddresses,
-        uint256[] memory coverageAmounts,
-        uint256[] memory coverageEndDates,
-        string[] memory insuranceTypes
-    ) {
-        user = msg.sender;
-        uint256 count = userRecords[msg.sender].policyIds.length;
-        policyIds = new bytes32[](count);
-        propertyAddresses = new string[](count);
-        coverageAmounts = new uint256[](count);
-        coverageEndDates = new uint256[](count);
-
-        for (uint256 i = 0; i < count; i++) {
-            bytes32 pid = userRecords[msg.sender].policyIds[i];
-            Policy memory policy = policies[pid];
-            policyIds[i] = pid;
-            propertyAddresses[i] = policy.propertyAddress;
-            coverageAmounts[i] = policy.coverageAmount;
-            coverageEndDates[i] = policy.endTime;
-            insuranceTypes[i] = disasterType;
-        }
-    }
-
-    /// @notice Returns the list of claim moderators for the specified disaster event.
-    function getClaimModerators(string calldata eventId) external view override returns (address[] memory) {
-        require(bytes(disasterEvents[eventId].eventId).length != 0, "Event does not exist");
-        return disasterEvents[eventId].claimModerators;
-    }
-
-
-    // Returns basic claim info: ID, PROJECT (disaster event name), CLAIM AMOUNT, and STATUS.
-    function getAllClaims()
-        external
-        view
-        override
-        returns (
-            uint[] memory,
-            string[] memory,
-            string[] memory,
-            string[] memory
-        )
-    {
-        uint256 claimsLength = claimRecords.length;
-        uint[] memory claimIds = new uint[](claimsLength);
-        string[] memory projects = new string[](claimsLength);
-        string[] memory claimAmounts = new string[](claimsLength);
-        string[] memory statuses = new string[](claimsLength);
-
-        for (uint256 i = 0; i < claimsLength; i++) {
-            ClaimRecord storage cr = claimRecords[i];
-            claimIds[i] = cr.claimId;
-            projects[i] = disasterEvents[cr.eventId].name;
-            claimAmounts[i] = string(
-                abi.encodePacked(cr.claimAmount.toString(), " ETH")
-            );
-            statuses[i] = getStatusString(cr.status);
-        }
-        return (claimIds, projects, claimAmounts, statuses);
-    }
-
-    /// @notice Returns claim data
-    function getAllClaimSummaries()
-        external
-        view
-        returns (
-            uint256[] memory claimIds,
-            string[] memory eventNames,
-            uint256[] memory claimAmounts,
-            uint256[] memory assessmentStarts,
-            uint256[] memory assessmentEnds,
-            uint8[] memory statuses
-        )
-    {
-        uint256 count = claimRecords.length;
-        claimIds = new uint256[](count);
-        eventNames = new string[](count);
-        claimAmounts = new uint256[](count);
-        assessmentStarts = new uint256[](count);
-        assessmentEnds = new uint256[](count);
-        statuses = new uint8[](count);
-
-        for (uint256 i = 0; i < count; i++) {
-            ClaimRecord memory claim = claimRecords[i];
-            claimIds[i] = claim.claimId;
-            eventNames[i] = disasterEvents[claim.eventId].name;
-            claimAmounts[i] = claim.claimAmount;
-            assessmentStarts[i] = claim.assessmentStart;
-            assessmentEnds[i] = claim.assessmentEnd;
-            statuses[i] = uint8(claim.status);
-        }
-    }
-
-    /// @notice Returns detailed information for a specific claim.
-    /// For example, returns:
-    /// - Claim ID (e.g., "22")
-    /// - Project/event name
-    /// - Purchase date (from the associated policy)
-    /// - Expiry (assumed as 30 days after purchase)
-    /// - Total cover amount and requested amount (with "ETH")
-    /// - Claim status
-    /// - incident details
-    // Returns detailed claim data as raw values.
-    function getClaimDetail(
-        uint256 _claimId
-    )
-        external
-        view
-        returns (
-            uint256 claimId,
-            string memory eventName,
-            uint256 purchaseDate,
-            uint256 expiry,
-            uint256 totalCoverAmount,
-            uint256 requestedAmount,
-            uint8 status,
-            string memory incidentDescription
-        )
-    {
-        require(_claimId > 0 && _claimId < nextClaimId, "Invalid claim id");
-        ClaimRecord memory claim = claimRecords[_claimId - 1];
-        Policy memory policy = policies[claim.policyId];
-        return (
-            claim.claimId,
-            disasterEvents[claim.eventId].name,
-            policy.startTime,
-            policy.startTime + 30 days, // Example expiry period.
-            policy.coverageAmount,
-            claim.claimAmount,
-            uint8(claim.status),
-            claim.incidentDescription
-        );
-    }
 
     // ========================================
     // Internal Helper Functions
@@ -601,30 +576,129 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
     // ========================================
-    // View Helper Functions
+    // View Functions
     // ========================================
+
     /// @notice Returns the policy IDs for a given user.
     function fetchInsuranceIds(
         address user
     ) external view override returns (bytes32[] memory) {
         return userRecords[user].policyIds;
     }
+    /// @notice Returns the insurance (policy) details for the user.
+    /// @return user The caller's address.
+    /// @return policyIds An array of policy IDs held by the user.
+    /// @return propertyAddresses An array of the property addresses.
+    /// @return maxCoverageAmounts An array of coverage amounts (in ETH).
+    /// @return coverageEndDates An array of the policy end times (as Unix timestamps).
+    /// @return insuranceTypes An array of insurance types (e.g., "fire", "flood", "earthquake").
 
-    /// @notice Returns the claim IDs for a given user.
-    function getUserClaims(
-        address user
-    ) external view returns (uint256[] memory) {
-        return userRecords[user].claimIds;
+    function getUserPolicies() external view override returns (
+        address user,
+        bytes32[] memory policyIds,
+        string[] memory propertyAddresses,
+        uint256[] memory maxCoverageAmounts,
+        uint256[] memory coverageEndDates,
+        string[] memory insuranceTypes
+    ) {
+        user = msg.sender;
+        uint256 count = userRecords[msg.sender].policyIds.length;
+        policyIds = new bytes32[](count);
+        propertyAddresses = new string[](count);
+        maxCoverageAmounts = new uint256[](count);
+        coverageEndDates = new uint256[](count);
+
+        for (uint256 i = 0; i < count; i++) {
+            bytes32 pid = userRecords[msg.sender].policyIds[i];
+            Policy memory policy = policies[pid];
+            policyIds[i] = pid;
+            propertyAddresses[i] = policy.propertyAddress;
+            maxCoverageAmounts[i] = policy.maxCoverageAmount;
+            coverageEndDates[i] = policy.endTime;
+            insuranceTypes[i] = disasterType;
+        }
     }
 
-    function getPolicy(bytes32 policyId) external view returns (Policy memory) {
-        return policies[policyId];
+
+    /// @notice Returns the addresses of all moderators assigned to a specific claim.
+    /// @param claimId The ID of the claim to retrieve moderators for.
+    /// @return moderatorAddresses An array of moderator addresses.
+    function getClaimModerators(uint256 claimId) external view override returns (address[] memory) {
+        require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+
+        // Access the claim record from the array
+        ClaimRecord storage claim = claimRecords[claimId - 1];
+
+        // Get the number of moderators in the team
+        uint256 numModerators = claim.moderatorTeam.length;
+        address[] memory moderatorAddresses = new address[](numModerators);
+
+        // Iterate through the moderator team and extract their addresses
+        for (uint256 i = 0; i < numModerators; i++) {
+            moderatorAddresses[i] = claim.moderatorTeam[i].moderator.moderatorAddress;
+        }
+
+        return moderatorAddresses;
     }
+
+    /// @notice Returns the claims associated with the user.
+    /// @return claimIds An array of claim IDs held by the user.
+    /// @return policyIds An array of policy IDs associated with the claims.
+    /// @return moderatorList An array of arrays containing the addresses of moderators who assessed each claim.
+    /// @return statuses An array of claim statuses.
+    /// @return descriptions An array of claim descriptions.
+    function getUserClaims() 
+        external 
+        view override
+        returns (
+            uint256[] memory claimIds,
+            bytes32[] memory policyIds,
+            address[][] memory moderatorList,
+            string[] memory statuses,
+            string[] memory descriptions
+        ) 
+    {
+        uint256 claimCount = userRecords[msg.sender].claimIds.length;
+        require(claimCount > 0, "User has no claims");
+
+        // Initialize arrays to store the results
+        claimIds = new uint256[](claimCount);
+        policyIds = new bytes32[](claimCount);
+        moderatorList = new address[][](claimCount);
+        statuses = new string[](claimCount);
+        descriptions = new string[](claimCount);
+
+        for (uint256 i = 0; i < claimCount; i++) {
+            uint256 claimId = userRecords[msg.sender].claimIds[i];
+            require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+
+            ClaimRecord storage claim = claimRecords[claimId - 1];
+            
+            // Populate claim data
+            claimIds[i] = claim.claimId;
+            policyIds[i] = claim.policyId;
+            descriptions[i] = claim.incidentDescription;
+            statuses[i] = getStatusString(claim.status);
+
+            // Check for valid moderator data
+            uint256 numModerators = claim.moderatorTeam.length;
+            address[] memory moderatorAddresses = new address[](numModerators);
+            for (uint256 j = 0; j < numModerators; j++) {
+                address modAddr = claim.moderatorTeam[j].moderator.moderatorAddress;
+                require(modAddr != address(0), "Invalid moderator address");
+                moderatorAddresses[j] = modAddr;
+            }
+            moderatorList[i] = moderatorAddresses;
+        }
+
+        return (claimIds, policyIds, moderatorList, statuses, descriptions);
+    }
+
 
     /// @notice Returns all donors and their total donated amounts.
     function getAllDonors()
         external
-        view
+        view override
         returns (address[] memory, uint256[] memory)
     {
         uint256 len = donors.length;
@@ -637,10 +711,44 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         return (addrs, amounts);
     }
 
-    // function getHighestDonors()
-    //     external
-    //     view
-    //     override
-    //     returns (address[] memory, uint256[] memory)
-    // {}
+    /// @notice Returns the top 10 highest donors based on the total donation amount.
+    /// @return topDonors An array of the top 10 donor addresses.
+    /// @return topAmounts An array of the corresponding donation amounts.
+    function getTopDonors() external view override returns (address[] memory topDonors, uint256[] memory topAmounts) {
+        uint256 donorCount = donors.length;
+        uint256 topCount = donorCount < 10 ? donorCount : 10;
+
+        // Initialize arrays for the top donors and amounts
+        topDonors = new address[](topCount);
+        topAmounts = new uint256[](topCount);
+
+        // Temporary arrays to store donors and amounts for sorting
+        address[] memory donorArray = new address[](donorCount);
+        uint256[] memory amountArray = new uint256[](donorCount);
+
+        // Populate the temporary arrays with donors and their donation amounts
+        for (uint256 i = 0; i < donorCount; i++) {
+            donorArray[i] = donors[i];
+            amountArray[i] = userRecords[donors[i]].donationTotal;
+        }
+
+        // Sort the donors by donation amount in descending order (Bubble Sort for simplicity)
+        for (uint256 i = 0; i < donorCount; i++) {
+            for (uint256 j = i + 1; j < donorCount; j++) {
+                if (amountArray[i] < amountArray[j]) {
+                    // Swap amounts
+                    (amountArray[i], amountArray[j]) = (amountArray[j], amountArray[i]);
+                    // Swap addresses
+                    (donorArray[i], donorArray[j]) = (donorArray[j], donorArray[i]);
+                }
+            }
+        }
+
+        // Store the top 10 donors after sorting
+        for (uint256 k = 0; k < topCount; k++) {
+            topDonors[k] = donorArray[k];
+            topAmounts[k] = amountArray[k];
+        }
+    }
+
 }

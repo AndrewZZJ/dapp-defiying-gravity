@@ -2,15 +2,18 @@
 pragma solidity ^0.8.28;
 
 interface IGraviInsurance {
-    // Add a new disaster event.
+    // ========================================
+    // Disaster Event Management
+    // ========================================
+
+    /// @notice Adds a new disaster event.
     function addDisasterEvent(
         string calldata eventName,
         string calldata eventDescription,
-        uint256 disasterDate,
-        address[] calldata initialModerators
+        uint256 disasterDate
     ) external;
 
-    // Modify an existing disaster event identified by eventName (or an event ID if available).
+    /// @notice Modifies an existing disaster event.
     function modifyDisasterEvent(
         string calldata eventId,
         string calldata newName,
@@ -18,83 +21,101 @@ interface IGraviInsurance {
         uint256 disasterDate
     ) external;
 
-    // Remove a disaster event.
+    /// @notice Removes a disaster event.
     function removeDisasterEvent(
         string memory eventId
     ) external;
 
-    // Add a claim moderator for a given disaster event.
-    function addClaimModerator(
-        string memory eventId,
-        address moderator
-    ) external;
+    /// @notice Gets moderators for a specific claim.
+    function getClaimModerators(uint256 claimId) external view returns (address[] memory);
 
-    // Remove a claim moderator for a given disaster event.
-    function removeClaimModerator(
-        string memory eventId,
-        address moderator
-    ) external;
+    // ========================================
+    // Insurance Policy Management
+    // ========================================
 
-    // buyInsurance allows a user to purchase an insurance policy by sending ETH.
-    // It returns a bytes32 policyId.
+    /// @notice Buys an insurance policy.
     function buyInsurance(
-        uint256 startTime,      // Unix timestamp in seconds
-        uint256 coveragePeriod, // Coverage period in days
+        uint256 startTime,
+        uint256 coveragePeriod,
         string memory propertyAddress,
         uint256 propertyValue
     ) external payable returns (bytes32);
 
-     // Returns the insurance (policy) details for the user.
+    /// @notice Retrieves the insurance policies of the user.
     function getUserPolicies() external view returns (
         address user,
         bytes32[] memory policyIds,
         string[] memory propertyAddresses,
-        uint256[] memory coverageAmounts,
+        uint256[] memory maxCoverageAmounts,
         uint256[] memory coverageEndDates,
         string[] memory insuranceTypes
     );
 
-    /// @notice Returns the policy IDs for a given user.
-    function fetchInsuranceIds(
-        address user
-    ) external view returns (bytes32[] memory);
+    /// @notice Gets policy IDs for a given user.
+    function fetchInsuranceIds(address user) external view returns (bytes32[] memory);
 
-    // donate allows a user to donate ETH and receive tokens.
-    function donate() external payable;
-
-
-    // Calculates a mock insurance premium based on a property’s address, its value (in ETH), and a coverage period (in days).
+    /// @notice Calculates the insurance premium.
     function calculatePremium(
         string memory propertyAddress,
         uint256 propertyValue,
         uint256 coveragePeriod
     ) external pure returns (uint256);
 
-    // Transfer ether to a recipient.
+    /// @notice Calculates the coverage amount based on the premium.
+    function calculateCoverageAmountFromPremium(uint256 premium) external pure returns (uint256);
+
+    // ========================================
+    // Claim Management
+    // ========================================
+
+    /// @notice Starts a claim.
+    function startAClaim(
+        string memory eventId,
+        bytes32 policyId,
+        string memory incidentDescription
+    ) external returns (bool);
+
+    /// @notice Processes a claim based on moderator votes.
+    function processClaim(uint256 claimId) external;
+
+    /// @notice Payouts a processed claim.
+    function payoutClaim(uint256 claimId) external;
+
+    /// @notice Allows a moderator to assess a claim.
+    function assessClaim(uint256 claimId, bool isApproved, uint256 amount) external;
+
+    /// @notice Gets the claims associated with the user.
+    function getUserClaims() external view returns (
+        uint256[] memory claimIds,
+        bytes32[] memory policyIds,
+        address[][] memory moderators,
+        string[] memory statuses,
+        string[] memory descriptions
+    );
+
+    // ========================================
+    // Moderator Management
+    // ========================================
+
+    /// @notice Adds a moderator to the pool.
+    function addModeratorToPool(address moderator, uint256 maxAmount) external;
+
+    /// @notice Removes a moderator from the pool.
+    function removeModeratorFromPool(address moderator) external;
+
+    // ========================================
+    // Donation and Fund Management
+    // ========================================
+
+    /// @notice Donates ETH to the pool and receives tokens/NFT.
+    function donate() external payable returns (uint256 tokensReceived);
+
+    /// @notice Transfers ether to a recipient.
     function transferEther(address payable recipient, uint256 amount) external payable;
 
-    // AJ: need a method getting all claims for page:Claims -> View Claims
-    // input: N/A
-    // output: a list of claims. (might need to change format here)
-    function getAllClaims() external view returns (uint[] memory, string[] memory, string[] memory, string[] memory); 
+    /// @notice Retrieves all donors and their total donated amounts.
+    function getAllDonors() external view returns (address[] memory, uint256[] memory);
 
-    // AJ: not 100% sure if we need an additional method for starting a claim.
-    // input: incident description, disaster type, and evidence.
-    // output: boolean
-    // this method is expected to: start a claim (or preprocess the data for Moderator?), calls addClaimModerator, and returns if a claim is submitted successfully.
-    function startAClaim(string memory incidentDescription, string memory disasterType) external returns (bool);
-    
-    // AJ: a method getting highest donors
-    // input: N/A
-    // output: a list of highest donors. (might need to change format here)
-    //function getHighestDonors() external view returns (address[] memory, uint256[] memory);
-
-    function getClaimModerators(
-                string calldata eventId
-        ) external view returns (address[] memory);
-
-    function calculateCoverageAmountFromPremium(uint256 premium) external pure returns (uint256 coverageAmount);
-} 
-
-
-        
+    /// @notice Retrieves the top 10 highest donors.
+    function getTopDonors() external view returns (address[] memory, uint256[] memory);
+}
