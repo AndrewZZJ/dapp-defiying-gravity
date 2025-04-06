@@ -48,7 +48,7 @@ interface IGraviInsurance {
     function getUserPolicies() external view returns (
         address user,
         bytes32[] memory policyIds,
-        bytes32[] memory hashedPropertyAddresses,
+        string[] memory propertyAddresses,
         uint256[] memory coverageAmounts,
         uint256[] memory coverageEndDates,
         string[] memory insuranceTypes

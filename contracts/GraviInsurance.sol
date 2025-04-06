@@ -23,7 +23,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         uint256 startTime;
         uint256 endTime;          // End time of the insurance policy
         bool isClaimed;
-        bytes32 propertyAddress;  // Hashed property address
+        string propertyAddress;   // property address
         uint256 propertyValue;    // Value of the property (in ETH)
     }
 
@@ -154,9 +154,6 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         uint256 premium = calculatePremium(propertyAddress, propertyValue, coveragePeriod);
         require(premium > 0, "Premium must be greater than 0");
         require(msg.value == premium, "Incorrect ETH amount");
-        
-        // Hash the property address for secure storage
-        bytes32 hashedAddress = keccak256(abi.encodePacked(propertyAddress));
 
         // Create unique policyId using hash
         bytes32 policyId = keccak256(
@@ -174,7 +171,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
             startTime: startTime,
             endTime: endTime,
             isClaimed: false,
-            propertyAddress: hashedAddress,  // Store the hashed property address
+            propertyAddress: propertyAddress,  // Store the property address
             propertyValue: propertyValue
         });
 
@@ -434,14 +431,14 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     /// @notice Returns the insurance (policy) details for the user.
     /// @return user The caller's address.
     /// @return policyIds An array of policy IDs held by the user.
-    /// @return hashedPropertyAddresses An array of the hashed property addresses.
+    /// @return propertyAddresses An array of the property addresses.
     /// @return coverageAmounts An array of coverage amounts (in ETH).
     /// @return coverageEndDates An array of the policy end times (as Unix timestamps).
     /// @return insuranceTypes An array of insurance types (e.g., "fire", "flood", "earthquake").
     function getUserPolicies() external view override returns (
         address user,
         bytes32[] memory policyIds,
-        bytes32[] memory hashedPropertyAddresses,
+        string[] memory propertyAddresses,
         uint256[] memory coverageAmounts,
         uint256[] memory coverageEndDates,
         string[] memory insuranceTypes
@@ -449,7 +446,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         user = msg.sender;
         uint256 count = userRecords[msg.sender].policyIds.length;
         policyIds = new bytes32[](count);
-        hashedPropertyAddresses = new bytes32[](count);
+        propertyAddresses = new string[](count);
         coverageAmounts = new uint256[](count);
         coverageEndDates = new uint256[](count);
 
@@ -457,7 +454,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
             bytes32 pid = userRecords[msg.sender].policyIds[i];
             Policy memory policy = policies[pid];
             policyIds[i] = pid;
-            hashedPropertyAddresses[i] = policy.propertyAddress;
+            propertyAddresses[i] = policy.propertyAddress;
             coverageAmounts[i] = policy.coverageAmount;
             coverageEndDates[i] = policy.endTime;
             insuranceTypes[i] = disasterType;
