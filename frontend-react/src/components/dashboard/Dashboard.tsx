@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
+import GraviChaABI from "../../artifacts/contracts/tokens/GraviCha.sol/GraviCha.json";
 
 interface WalletInfo {
   graviGovTokens: number;
@@ -12,25 +14,76 @@ export const Dashboard: React.FC = () => {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
 
   const fetchWalletInfo = async (address: string) => {
-    // Replace this with an actual API call to backend
-    const mockData: WalletInfo = {
-      // AJ: backedn functions getting all wallet info - current number of GovTokens, ChaTokens, and owned NFTs.
-      graviGovTokens: 1200,
-      graviChaTokens: 450,
-      ownedNFTs: [
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+
+      // Fetch deployment config from public/addresses.json
+      const response = await fetch("/addresses.json");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch addresses.json: ${response.statusText}`);
+      }
+      const deploymentConfig = await response.json();
+
+      const graviGovAddress = deploymentConfig["GraviGov"];
+      const graviChaAddress = deploymentConfig["GraviCha"];
+
+      if (!graviGovAddress || !graviChaAddress) {
+        throw new Error("Required addresses (GraviGov or GraviCha) not found in addresses.json.");
+      }
+
+      console.log("Wallet Address:", address);
+      console.log("GraviGov Address:", graviGovAddress);
+      console.log("GraviCha Address:", graviChaAddress);
+
+      // Get the GraviGov contract instance using the full ABI
+      const graviGov = new ethers.Contract(graviGovAddress, GraviGovABI.abi, provider);
+
+      // Get the GraviCha contract instance using the full ABI
+      const graviCha = new ethers.Contract(graviChaAddress, GraviChaABI.abi, provider);
+
+      // Fetch balances
+      const govBalance = await graviGov.balanceOf(address);
+      const chaBalance = await graviCha.balanceOf(address);
+
+      console.log("Raw GraviGov Balance:", govBalance.toString());
+      console.log("Raw GraviCha Balance:", chaBalance.toString());
+
+      // Convert balances to Ether format
+      const graviGovTokens = parseFloat(ethers.utils.formatEther(govBalance));
+      const graviChaTokens = parseFloat(ethers.utils.formatEther(chaBalance));
+
+      console.log("Formatted GraviGov Tokens:", graviGovTokens);
+      console.log("Formatted GraviCha Tokens:", graviChaTokens);
+
+      // Mock NFT data (replace with actual backend call if needed)
+      const ownedNFTs = [
         {
           id: "1",
           name: "Fire NFT",
-          image: "https://cdn.builder.io/api/v1/image/assets/TEMP/804793bedaabda1cf9c4091b86cae6469cbe02c2",
+          image:
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/804793bedaabda1cf9c4091b86cae6469cbe02c2",
         },
         {
           id: "2",
           name: "Earthquake NFT",
-          image: "https://cdn.builder.io/api/v1/image/assets/TEMP/da420caf50e77f5a82cd88b049ac8d85fefa8be4",
+          image:
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/da420caf50e77f5a82cd88b049ac8d85fefa8be4",
         },
-      ],
-    };
-    return mockData;
+      ];
+
+      return {
+        graviGovTokens,
+        graviChaTokens,
+        ownedNFTs,
+      };
+    } catch (error) {
+      console.error("Failed to fetch wallet info:", error);
+      return {
+        graviGovTokens: 0,
+        graviChaTokens: 0,
+        ownedNFTs: [],
+      };
+    }
   };
 
   useEffect(() => {
@@ -41,7 +94,7 @@ export const Dashboard: React.FC = () => {
         const address = await signer.getAddress();
         setWalletAddress(address);
 
-        // Fetch wallet info from the backend
+        // Fetch wallet info from the blockchain
         const walletData = await fetchWalletInfo(address);
         setWalletInfo(walletData);
       }
