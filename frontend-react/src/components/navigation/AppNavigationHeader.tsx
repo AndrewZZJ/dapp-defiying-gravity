@@ -62,9 +62,10 @@ export const NavigationHeader: React.FC = () => {
           <NavigationPill to="/donate" active={location.pathname === "/donate"}>Donate</NavigationPill>
           <NavigationPill to="/marketplace" active={location.pathname === "/marketplace"}>Auction</NavigationPill>
           <NavigationPill to="/exchange" active={location.pathname === "/exchange"}>Exchange</NavigationPill>
+          <NavigationPill to="/governance/current" active={location.pathname.startsWith("/governance")}>Governance</NavigationPill>
 
 
-          {/* Governance Dropdown */}
+          {/* Governance Dropdown
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setGovernanceOpen(prev => !prev)}
@@ -95,7 +96,7 @@ export const NavigationHeader: React.FC = () => {
                 </Link>
               </div>
             )}
-          </div>
+          </div> */}
         </nav>
 
         {/* Wallet Connection */}

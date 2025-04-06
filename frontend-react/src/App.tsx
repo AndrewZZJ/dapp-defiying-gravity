@@ -10,7 +10,7 @@ import BuyInsurance from './components/buying_insurance/BuyInsurance';
 import About from './components/about/About';
 import ContactUs from './components/contact_us/ContactUs';
 import Donate from './components/donate/Donate';
-import Governance from './components/governance/Governance';
+// import Governance from './components/governance/Governance';
 import ClaimsPage from './components/claims_covered/ClaimsPage';
 import PendingOracle from './components/pending_oracle/PendingOracle';
 import CurrentProposals from './components/current_proposals/CurrentProposals'
@@ -39,7 +39,7 @@ export function App(): ReactElement {
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/donate" element={<Donate />} />
             <Route path="/marketplace" element={<NFTMarketplace />} />  
-            <Route path="/governance/submit" element={<Governance />} />
+            {/* <Route path="/governance/submit" element={<Governance />} /> */}
             <Route path="/governance/current" element={<CurrentProposals />} />
             <Route path="/claims-covered" element={<ClaimsPage />} />
             <Route path="/pending-oracle" element={<PendingOracle />} />
