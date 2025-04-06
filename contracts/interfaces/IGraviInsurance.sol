@@ -54,6 +54,11 @@ interface IGraviInsurance {
         string[] memory insuranceTypes
     );
 
+    /// @notice Returns the policy IDs for a given user.
+    function fetchInsuranceIds(
+        address user
+    ) external view returns (bytes32[] memory);
+
     // donate allows a user to donate ETH and receive tokens.
     function donate() external payable;
 

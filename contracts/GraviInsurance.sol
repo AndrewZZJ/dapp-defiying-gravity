@@ -588,9 +588,9 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     // View Helper Functions
     // ========================================
     /// @notice Returns the policy IDs for a given user.
-    function getUserPolicies(
+    function fetchInsuranceIds(
         address user
-    ) external view returns (bytes32[] memory) {
+    ) external view override returns (bytes32[] memory) {
         return userRecords[user].policyIds;
     }
 
