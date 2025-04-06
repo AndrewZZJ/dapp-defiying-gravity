@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 
 const METADATA_DIR = path.join(__dirname, "..", "metadata");
+const FRONTEND_METADATA_DIR = path.join(__dirname, "..", "..", "frontend-react", "public", "metadata");
 
 /**
  * Loads the deployment addresses from addresses.json.
@@ -29,6 +30,10 @@ export function writeDeploymentConfig(config: Record<string, string>): void {
   const filePath = path.join(METADATA_DIR, "addresses.json");
   fs.writeFileSync(filePath, JSON.stringify(config, null, 2), "utf8");
   console.log("Deployment configuration written to:", filePath);
+
+  const frontedFilePath = path.join(FRONTEND_METADATA_DIR, "addresses.json");
+  fs.writeFileSync(filePath, JSON.stringify(config, null, 2), "utf8");
+  console.log("Deployment configuration written to:", frontedFilePath);
 }
 
 /**
@@ -41,4 +46,8 @@ export function writeMetadata(filename: string, data: any): void {
   const filePath = path.join(METADATA_DIR, filename);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
   console.log("Metadata written to:", filePath);
+
+  const frontedFilePath = path.join(FRONTEND_METADATA_DIR, "addresses.json");
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
+  console.log("Deployment configuration written to:", frontedFilePath);
 }
