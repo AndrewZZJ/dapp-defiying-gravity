@@ -251,7 +251,7 @@ export const ClaimForm: React.FC = () => {
           >
             <div className="flex flex-col items-center justify-center h-full space-y-4">
               <p className="text-3xl font-bold text-center">
-                Form Successfully Submitted to the Oracle
+                Form Successfully Submitted to Moderators
               </p>
               {generatedHash && (
                 <p className="text-sm text-center break-all">
