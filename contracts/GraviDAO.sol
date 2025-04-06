@@ -454,12 +454,8 @@ contract GraviDAO is
         string memory insuranceName,
         string memory eventName,
         string memory eventDescription,
-        string[] calldata approvedCities,
-        string[] calldata approvedProvinces,
-        string calldata approvedCountry,
-        string calldata autoPayoutGranularity, // e.g.: "City", "Province", "Country", "None", None indicates manual payout.
         uint256 disasterDate,
-        uint256 donationAmount, // In ETH
+        //uint256 donationAmount, // In ETH
         address[] calldata initialModerators
     ) external onlyGovernance {
         IGraviInsurance insurance = insurancePools[insuranceName];
@@ -467,45 +463,33 @@ contract GraviDAO is
         insurance.addDisasterEvent(
             eventName,
             eventDescription,
-            approvedCities,
-            approvedProvinces,
-            approvedCountry,
-            autoPayoutGranularity,
             disasterDate,
-            donationAmount,
             initialModerators
         );
     }
 
-    function updateDonationAmount(
-        string memory insuranceName,
-        string memory eventId,
-        uint256 newDonationAmount
-    ) external onlyGovernance {
-        IGraviInsurance insurance = insurancePools[insuranceName];
-        require(address(insurance) != address(0), "Insurance pool not found");
-        insurance.modifyDonationAmount(eventId, newDonationAmount);
-    }
+    // function updateDonationAmount(
+    //     string memory insuranceName,
+    //     string memory eventId,
+    //     uint256 newDonationAmount
+    // ) external onlyGovernance {
+    //     IGraviInsurance insurance = insurancePools[insuranceName];
+    //     require(address(insurance) != address(0), "Insurance pool not found");
+    //     insurance.modifyDonationAmount(eventId, newDonationAmount);
+    // }
 
     function modifyDisasterEvent(
         string memory insuranceName,
         string memory eventId, // Identifier for the event to modify
         string memory newEventDescription,
-        string[] calldata newApprovedCities,
-        string[] calldata newApprovedProvinces,
-        string calldata newApprovedCountry,
-        string calldata newAutoPayoutGranularity,
         uint256 newDisasterDate
     ) external onlyGovernance {
         IGraviInsurance insurance = insurancePools[insuranceName];
         require(address(insurance) != address(0), "Insurance pool not found");
         insurance.modifyDisasterEvent(
             eventId,
+            insuranceName,
             newEventDescription,
-            newApprovedCities,
-            newApprovedProvinces,
-            newApprovedCountry,
-            newAutoPayoutGranularity,
             newDisasterDate
         );
     }

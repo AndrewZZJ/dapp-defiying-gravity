@@ -42,31 +42,22 @@ interface IGraviDAO is IGovernor {
     ) external;
 
     // 3. Insurance Disaster Event Recording and Management
-    function recordDisasterEvent(
-        string memory insuranceName,
-        string memory eventName,
-        string memory eventDescription,
-        string[] calldata approvedCities,
-        string[] calldata approvedProvinces,
-        string calldata approvedCountry,
-        string calldata autoPayoutGranularity,
-        uint256 disasterDate,
-        uint256 donationAmount,
-        address[] calldata initialModerators
-    ) external;
-    function updateDonationAmount(
-        string memory insuranceName,
-        string memory eventId,
-        uint256 newDonationAmount
-    ) external;
+    // function recordDisasterEvent(
+    //     string memory insuranceName,
+    //     string memory eventName,
+    //     string memory eventDescription,
+    //     uint256 disasterDate,
+    //     address[] calldata initialModerators
+    // ) external;
+    // function updateDonationAmount(
+    //     string memory insuranceName,
+    //     string memory eventId,
+    //     uint256 newDonationAmount
+    // ) external;
     function modifyDisasterEvent(
         string memory insuranceName,
         string memory eventId,
         string memory newEventDescription,
-        string[] calldata newApprovedCities,
-        string[] calldata newApprovedProvinces,
-        string calldata newApprovedCountry,
-        string calldata newAutoPayoutGranularity,
         uint256 newDisasterDate
     ) external;
     function removeDisasterEvent(string memory insuranceName, string memory eventId) external;
