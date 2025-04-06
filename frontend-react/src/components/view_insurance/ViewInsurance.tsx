@@ -15,12 +15,31 @@ interface InsuranceEntry {
 }
 
 export const ViewInsurance: React.FC = () => {
-  const { walletAddress } = useWallet(); // Access wallet state from context
+  const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state from context
   const [insuranceData, setInsuranceData] = useState<InsuranceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Toggle this line to use template data or backend/smart contract data
   const useTemplateData = true; // Set to `true` to use template data, otherwise backend data is used
+
+  // Function to connect wallet
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(
+          window.ethereum as ethers.providers.ExternalProvider
+        );
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address); // Update global wallet state
+      } catch (error) {
+        console.error("Wallet connection failed:", error);
+      }
+    } else {
+      alert("Please install MetaMask to connect your wallet.");
+    }
+  };
 
   // Fetch insurance data for the connected wallet
   useEffect(() => {
@@ -161,13 +180,7 @@ export const ViewInsurance: React.FC = () => {
           <div className="text-center">
             <p className="text-lg font-medium">Please connect your wallet to view insurance data.</p>
             <button
-              onClick={() => {
-                if (typeof window.ethereum !== "undefined") {
-                  window.ethereum.request({ method: "eth_requestAccounts" });
-                } else {
-                  alert("Please install MetaMask to connect your wallet.");
-                }
-              }}
+              onClick={connectWallet}
               className="mt-4 px-4 py-2 bg-black text-white rounded-lg"
             >
               Connect Wallet
