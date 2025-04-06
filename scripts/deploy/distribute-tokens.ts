@@ -55,13 +55,12 @@ async function main() {
   // We will accumulate distribution details to later save to metadata.
   const distributionResults: any[] = [];
 
-
   // Process each distribution.
   for (const dist of distributions) {
     // Fetch the recipient's balance before the transfer.
     const beforeBalance = await graviGov.balanceOf(dist.address);
     console.log(
-      `Before transfer, ${dist.name} (${dist.address}) has a balance of: ${beforeBalance.toString()}`
+      `\nBefore transfer, ${dist.name} (${dist.address}) has a balance of: ${beforeBalance.toString()}`
     );
 
     // Calculate token amount: (percentage / 100) * totalBalance.

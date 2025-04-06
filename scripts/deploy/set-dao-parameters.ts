@@ -10,11 +10,11 @@ const parameters = {
     newBurnAmount: 10,    // Amount of utility tokens to burn when a governance token is brought.
     mintAmount: 10000, // Amount of tokens to mint additionally, monthly
   },
-  govParameters: {
-    votingDelay: 7200,       // Delay (in blocks or seconds) before voting starts
-    votingPeriod: 50400,    // Duration of the voting period
-    proposalThreshold: 1000, // Threshold of tokens required to submit a proposal
-  }
+  // govParameters: {
+  //   votingDelay: 7200,       // Delay (in blocks or seconds) before voting starts
+  //   votingPeriod: 50400,    // Duration of the voting period
+  //   proposalThreshold: 1000, // Threshold of tokens required to submit a proposal
+  // }
 };
 
 async function main() {
@@ -35,18 +35,18 @@ async function main() {
   const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
 
   // Set Governance Token Parameters.
-  console.log("Setting governance token parameters, through DAO...");
+  console.log("Setting governance token parameters...");
   const { newRate, newPrice, newBurnAmount, mintAmount } = parameters.governanceTokenParameters;
   const txGov = await graviDAO.setGovernanceTokenParameters(newRate, newPrice, newBurnAmount, mintAmount);
   await txGov.wait();
   console.log("Governance token parameters set. Transaction hash:", txGov.hash);
 
-  // Set DAO Governance Parameters.
-  console.log("Setting DAO governance parameters...");
-  const { votingDelay, votingPeriod, proposalThreshold } = parameters.govParameters;
-  const txDAO = await graviDAO.setGovParameters(votingDelay, votingPeriod, proposalThreshold);
-  await txDAO.wait();
-  console.log("DAO governance parameters set. Transaction hash:", txDAO.hash);
+  // // Set DAO Governance Parameters.
+  // console.log("Setting DAO governance parameters...");
+  // const { votingDelay, votingPeriod, proposalThreshold } = parameters.govParameters;
+  // const txDAO = await graviDAO.setGovParameters(votingDelay, votingPeriod, proposalThreshold);
+  // await txDAO.wait();
+  // console.log("DAO governance parameters set. Transaction hash:", txDAO.hash);
 }
 
 main().catch((error) => {

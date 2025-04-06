@@ -52,9 +52,16 @@ async function main() {
   const timelockAddress = await timelock.getAddress();
   console.log("TimelockController deployed at:", timelockAddress);
 
+  // Deploy GraviGoverance.
+  const GraviGovernance = await ethers.getContractFactory("GraviGovernance");
+  const graviGovernance = await GraviGovernance.deploy(graviGovAddress, timelockAddress);
+  await graviGovernance.waitForDeployment();
+  const graviGovernanceAddress = await graviGovernance.getAddress();
+  console.log("GraviGovernance deployed at:", graviGovernanceAddress);
+
   // Deploy GraviDAO.
   const GraviDAO = await ethers.getContractFactory("GraviDAO");
-  const graviDAO = await GraviDAO.deploy(graviChaAddress, graviGovAddress, graviGovAddress, timelockAddress);
+  const graviDAO = await GraviDAO.deploy(graviChaAddress, graviGovAddress);
   await graviDAO.waitForDeployment();
   const graviDAOAddress = await graviDAO.getAddress();
   console.log("GraviDAO deployed at:", graviDAOAddress);
@@ -64,11 +71,16 @@ async function main() {
   await setDaoTx.wait();
   console.log("GraviGov DAO set to:", graviDAOAddress);
 
-  // Grant required roles in Timelock to GraviDAO.
+  // Grant required roles in Timelock to GraviGovernance.
   const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
   const EXECUTOR_ROLE = await timelock.EXECUTOR_ROLE();
-  await timelock.grantRole(PROPOSER_ROLE, graviDAOAddress);
-  await timelock.grantRole(EXECUTOR_ROLE, graviDAOAddress);
+  await timelock.grantRole(PROPOSER_ROLE, graviGovernanceAddress);
+  await timelock.grantRole(EXECUTOR_ROLE, graviGovernanceAddress);
+
+  // Set the setTimelockController function in GraviDAO.
+  const setTimelockTx = await graviDAO.setTimelockController(timelockAddress);
+  await setTimelockTx.wait();
+  console.log("GraviDAO TimelockController set to:", timelockAddress);
 
   // Grant minting roles and transfer ownership for tokens.
   await graviCha.addMinter(graviDAOAddress);
@@ -96,7 +108,7 @@ async function main() {
   // Print deployer's voting power.
   const currentBlock = await ethers.provider.getBlockNumber();
   // The getVotes function uses the snapshot from the previous block.
-  const votingPower = await graviDAO.getVotes(deployerAddress, currentBlock - 1);
+  const votingPower = await graviGovernance.getVotes(deployerAddress, currentBlock - 1);
   console.log("Voting power of deployer:", votingPower.toString());
 
   // Save core deployments.
@@ -105,6 +117,7 @@ async function main() {
     GraviGov: graviGovAddress,
     TimelockController: timelockAddress,
     GraviDAO: graviDAOAddress,
+    GraviGovernance: graviGovernanceAddress,
     GraviPoolNFT: graviPoolNFTAddress,
   });
 }

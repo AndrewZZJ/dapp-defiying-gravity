@@ -22,24 +22,18 @@ async function main() {
   const deploymentConfig = loadDeploymentConfig();
   const graviDAOAddress = deploymentConfig["GraviDAO"];
   const graviChaAddress = deploymentConfig["GraviCha"];
+  const graviGoveranceAddress = deploymentConfig["GraviGovernance"];
   // const graviPoolNFTAddress = deploymentConfig["GraviPoolNFT"];
-  if (!graviDAOAddress || !graviChaAddress) {
+  if (!graviDAOAddress || !graviChaAddress || !graviGoveranceAddress) {
     throw new Error("Required addresses not found in deployment config.");
   }
   const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
-  // const graviPoolNFT = await ethers.getContractAt("GraviPoolNFT", graviPoolNFTAddress);
-
+  const graviGoverance = await ethers.getContractAt("GraviGovernance", graviGoveranceAddress);
+  
   // Define the new insurance details.
   const newInsuranceName = "Hurricane Insurance";
   const disasterType = "hurricane";
   const premiumRate = 5;
-
-  // // Deploy a new GraviPoolNFT contract for the new insurance.
-  // const GraviPoolNFT = await ethers.getContractFactory("GraviPoolNFT");
-  // const graviPoolNFT = await GraviPoolNFT.deploy(graviChaAddress);
-  // await graviPoolNFT.waitForDeployment();
-  // const nftPoolAddress = await graviPoolNFT.getAddress();
-  // console.log(`${newInsuranceName} - GraviPoolNFT deployed at:`, nftPoolAddress);
 
   // Deploy a new GraviInsurance contract for the new insurance.
   const GraviInsurance = await ethers.getContractFactory("GraviInsurance");
@@ -48,17 +42,9 @@ async function main() {
   const insurancePoolAddress = await graviInsurance.getAddress();
   console.log(`${newInsuranceName} - GraviInsurance deployed at:`, insurancePoolAddress);
 
-  // // Set the NFT treasury to the new insurance contract address.
-  // await graviPoolNFT.setTreasury(insurancePoolAddress);
-  // console.log(`${newInsuranceName} - NFT treasury set to insurance contract address.`);
-
   // Transfer ownership of the insurance contract to the DAO.
   await graviInsurance.transferOwnership(graviDAOAddress);
   console.log(`${newInsuranceName} - Ownership transferred to DAO.`);
-
-  // // Transfer ownership of the NFT contract to the DAO.
-  // await graviPoolNFT.transferOwnership(graviDAOAddress);
-  // console.log(`${newInsuranceName} - NFT ownership transferred to DAO.`);
 
   // Encode the function call to add this insurance pair into the DAO registry.
   const encodedFunctionCall = graviDAO.interface.encodeFunctionData("addInsurancePool", [
@@ -69,7 +55,7 @@ async function main() {
 
   // Create the proposal.
   const proposalId = await createProposal(
-    graviDAO,
+    graviGoverance,
     [graviDAOAddress], // Target is the DAO itself.
     [0],              // No ETH value.
     [encodedFunctionCall],
@@ -79,28 +65,28 @@ async function main() {
 
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after creation:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGoverance, proposalId);
 
   // Simulate the timelock delay. - To when you can vote.
   await simulateTimeSkip(7200 * 12);
 
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after waiting until voting time:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGoverance, proposalId);
 
   // Vote in favor.
-  await voteOnProposal(graviDAO, proposalId, 1);
+  await voteOnProposal(graviGoverance, proposalId, 1);
 
   // Simulate the end of the voting period.
   await simulateTimeSkip(50400 * 12); // Advance until after the voting period ends.
 
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after end of voting period:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGoverance, proposalId);
 
   // Queue the proposal.
   const descriptionHash = await queueProposal(
-    graviDAO,
+    graviGoverance,
     [graviDAOAddress],
     [0],
     [encodedFunctionCall],
@@ -112,14 +98,14 @@ async function main() {
   
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after queuing:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGoverance, proposalId);
 
   // Execute the proposal.
-  await executeProposal(graviDAO, [graviDAOAddress], [0], [encodedFunctionCall], descriptionHash);
+  await executeProposal(graviGoverance, [graviDAOAddress], [0], [encodedFunctionCall], descriptionHash);
 
   // Print proposal info (state, snapshot, deadline, current block).
   console.log("Proposal status, after execution:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGoverance, proposalId);
 
   console.log("New insurance added via governance.");
 

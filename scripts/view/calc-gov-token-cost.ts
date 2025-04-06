@@ -14,7 +14,7 @@ async function main() {
   }
   
   // Get the GraviDAO contract instance.
-  const graviDAO = await ethers.getContractAt("IGraviDAO", graviDAOAddress);
+  const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
 
   // Calculate purchase cost for the desired token amount.
   const [ethPrice, graviChaBurn] = await graviDAO.calculatesGovTokenPurchasePrice(tokenAmount);

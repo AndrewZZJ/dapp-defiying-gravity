@@ -21,10 +21,14 @@ async function main() {
   // Load deployment configuration.
   const deploymentConfig = loadDeploymentConfig();
   const graviDAOAddress = deploymentConfig["GraviDAO"];
-  if (!graviDAOAddress) {
-    throw new Error("GraviDAO address not found in deployment config.");
+  const graviGovAddress = deploymentConfig["GraviGov"];
+  const graviGovernanceAddress = deploymentConfig["GraviGovernance"];
+  if (!graviDAOAddress || !graviGovAddress || !graviGovernanceAddress) {
+    throw new Error("Required addresses not found in deployment config.");
   }
   const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
+  const graviGov = await ethers.getContractAt("GraviGov", graviGovAddress);
+  const graviGovernance = await ethers.getContractAt("GraviGovernance", graviGovernanceAddress);
 
   // Get all insurance pool names from the DAO.
   const insuranceNames: string[] = await graviDAO.getAllInsurancePoolNames();
@@ -47,43 +51,43 @@ async function main() {
   const proposalDescription = "Monthly mint NFTs for all insurance pools.";
 
   // Create the proposal.
-  const proposalId = await createProposal(graviDAO, targets, values, calldatas, proposalDescription);
+  const proposalId = await createProposal(graviGovernance, targets, values, calldatas, proposalDescription);
   console.log("Proposal created with ID:", proposalId.toString());
 
   // Display proposal status after creation.
   console.log("Proposal status, after creation:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGovernance, proposalId);
 
   // Simulate the timelock delay until voting starts.
   await simulateTimeSkip(7200 * 12);
   console.log("Proposal status, after waiting until voting time:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGovernance, proposalId);
 
   // Vote in favor of the proposal.
-  await voteOnProposal(graviDAO, proposalId, 1);
+  await voteOnProposal(graviGovernance, proposalId, 1);
   console.log("Voted in favor of the proposal.");
 
   // Simulate the timelock delay. 12 second and 1 block.
   await simulateTimeSkip(50400 * 12);
   console.log("Proposal status, after end of voting period:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGovernance, proposalId);
 
   // Queue the proposal.
-  const descriptionHash = await queueProposal(graviDAO, targets, values, calldatas, proposalDescription);
+  const descriptionHash = await queueProposal(graviGovernance, targets, values, calldatas, proposalDescription);
   console.log("Proposal queued with description hash:", descriptionHash);
 
   // Simulate a short delay until execution.
   await simulateTimeSkip(1 * 12);
   console.log("Proposal status, after queuing:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGovernance, proposalId);
 
   // Execute the proposal.
-  await executeProposal(graviDAO, targets, values, calldatas, descriptionHash);
+  await executeProposal(graviGovernance, targets, values, calldatas, descriptionHash);
   console.log("Executed the proposal.");
 
   // Final proposal status.
   console.log("Final proposal status:");
-  await printProposalInfo(graviDAO, proposalId);
+  await printProposalInfo(graviGovernance, proposalId);
 
   console.log("Monthly NFT minting process via governance completed.");
 }

@@ -11,15 +11,20 @@ async function main() {
   // Load core deployments.
   const deploymentConfig = loadDeploymentConfig();
   const graviDAOAddress = deploymentConfig["GraviDAO"];
-  if (!graviDAOAddress) {
+  const graviGovernanceAddress = deploymentConfig["GraviGovernance"];
+  if (!graviDAOAddress || !graviGovernanceAddress) {
     throw new Error("Core contracts not deployed. Run deploy-main.ts first.");
   }
 
-  // Finally, finish the initial setup by revoking deployer’s elevated power.
+  // Finally, grant ownership of GraviDAO to GraviGovernance.
   const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
-  console.log("Finalizing initial setup by revoking deployer elevated power...");
-  const tx = await graviDAO.setFinishedInitialSetup();
+  // const graviGovernance = await ethers.getContractAt("GraviGovernance", graviGovernanceAddress);
+
+  console.log("Transferring ownership of GraviDAO to GraviGovernance...");
+  const tx = await graviDAO.transferOwnership(graviGovernanceAddress);
   await tx.wait();
+  console.log("Ownership of GraviDAO transferred to GraviGovernance.");
+
   console.log("Initial setup finalized; deployer elevated power revoked.");
 }
 

@@ -9,15 +9,18 @@ async function main() {
 
   const deploymentConfig = loadDeploymentConfig();
   const graviDAOAddress = deploymentConfig["GraviDAO"];
-  if (!graviDAOAddress) {
-    throw new Error("GraviDAO address not found in deployment config.");
+  const graviGovAddress = deploymentConfig["GraviGov"];
+  if (!graviDAOAddress || !graviGovAddress) {
+    throw new Error("GraviDAO or GraviGov address not found in deployment config.");
   }
   
-  // Get the GraviDAO contract instance that implements IGraviDAO.
-  const graviDAO = await ethers.getContractAt("IGraviDAO", graviDAOAddress);
+  // Get the GraviDAO contract instance that.
+  const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
+  const graviGov = await ethers.getContractAt("GraviGov", graviGovAddress);
 
   // 1. Get the governance token pool balance.
-  const poolBalance = await graviDAO.getGovTokenPoolBalance();
+  const poolBalance = await graviGov.balanceOf(graviDAOAddress);
+  // const poolBalance = await graviDAO.getGovTokenPoolBalance();
   console.log("Governance Token Pool Balance:", poolBalance.toString());
 
   // 2. Get the current purchase price and burn amount for 1 token.

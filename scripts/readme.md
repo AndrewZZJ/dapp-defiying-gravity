@@ -85,11 +85,6 @@ npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
 npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
 npx hardhat run scripts/nft/claim-nft.ts --network localhost
 
-
-
-
-
-
 ### Dao - proposal - local testing
 npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
 npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
@@ -102,16 +97,8 @@ npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
 npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
 npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
 
-
-npx hardhat run scripts/deploy/deploy-main.ts --network localhost
-npx hardhat run scripts/deploy/set-dao-parameters.ts --network localhost
-npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
-npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
-npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
-npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
-
-
-npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
-npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost
-npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
+# Using the right Node version
+nvm install 20
+nvm use 20
+<!-- nvm alias default 20 -->
+npm install npm --global # Upgrade npm to the latest version

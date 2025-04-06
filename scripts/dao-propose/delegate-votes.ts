@@ -11,13 +11,13 @@ async function main() {
   // Load deployment config to retrieve the GraviGov and GraviDAO addresses.
   const deploymentConfig = loadDeploymentConfig();
   const graviGovAddress = deploymentConfig["GraviGov"];
-  const graviDAOAddress = deploymentConfig["GraviDAO"];
-  if (!graviGovAddress || !graviDAOAddress) {
-    throw new Error("GraviGov or GraviDAO address not found in deployment config.");
+  const graviGoveranceAddress = deploymentConfig["GraviGovernance"];
+  if (!graviGovAddress || !graviGoveranceAddress) {
+    throw new Error("GraviGov or GraviGovernance address not found in deployment config.");
   }
 
   // Get the GraviGov contract instance using the IGraviGov interface.
-  const graviGov = await ethers.getContractAt("IGraviGov", graviGovAddress);
+  const graviGov = await ethers.getContractAt("GraviGov", graviGovAddress);
 
   // Print deployer's current GraviGov token balance.
   const initialBalance = await graviGov.balanceOf(deployerAddress);
@@ -28,9 +28,9 @@ async function main() {
   let tokenVotesBefore = await graviGov.getVotes(deployerAddress);
   console.log("Voting power (Token) before delegation:", tokenVotesBefore.toString());
 
-  // Get the GraviDAO contract instance.
-  const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
-  let daoVotesBefore = await graviDAO.getVotes(deployerAddress, currentBlock - 1);
+  // Get the GraviGovernance contract instance.
+  const graviGovernance = await ethers.getContractAt("GraviGovernance", graviGoveranceAddress);
+  let daoVotesBefore = await graviGovernance.getVotes(deployerAddress, currentBlock - 1);
   console.log("Voting power (DAO) before delegation:", daoVotesBefore.toString());
 
   // Delegate the deployer's voting power to self.
@@ -49,7 +49,7 @@ async function main() {
   const tokenVotesAfter = await graviGov.getVotes(deployerAddress);
   console.log("Voting power (Token) after delegation:", tokenVotesAfter.toString());
 
-  const daoVotesAfter = await graviDAO.getVotes(deployerAddress, currentBlock - 1);
+  const daoVotesAfter = await graviGovernance.getVotes(deployerAddress, currentBlock - 1);
   console.log("Voting power (DAO) after delegation:", daoVotesAfter.toString());
 }
 
