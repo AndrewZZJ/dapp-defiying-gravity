@@ -189,7 +189,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
      * @param propertyAddress The address of the property (as a string).
      * @param propertyValue The value of the property in ETH.
      * @param coveragePeriod The coverage period in days.
-     * @return premium The calculated premium amount in ETH.
+     * @return premium The calculated premium amount in ETH (In wei).
      */
     function calculatePremium(
         string memory propertyAddress,
@@ -203,7 +203,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         // Use a simple formula:
         // premium = (propertyValue * coveragePeriod * addressFactor) / divisor
         // The divisor is chosen to adjust the scale of the premium.
-        uint256 divisor = (1 ether * 100000000000000); // Example divisor;
+        // uint256 divisor = (1 ether * 100000000000000); // Example divisor;
+        uint256 divisor = 100000000000000; // Example divisor;
         
         premium = (propertyValue * coveragePeriod * addressFactor) / divisor;
     }

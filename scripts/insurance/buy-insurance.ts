@@ -34,7 +34,13 @@ async function main() {
 
   // Calculate the cost for purchasing the desired number of tokens.
   const premium = await fireInsurance.calculatePremium(propertyAddress, propertyValue, coveragePeriod);
-  console.log("Ether required:", premium.toString());
+  console.log("Ether required (wei):", premium.toString());
+  console.log("Ether required (ETH):", ethers.formatEther(premium));
+
+  // Calculate the calculateCoverageAmountFromPremium
+  const coverageAmount = await fireInsurance.calculateCoverageAmountFromPremium(premium);
+  console.log("Coverage Amount (wei):", coverageAmount.toString());
+  console.log("Coverage Amount (ETH):", ethers.formatEther(coverageAmount));
 
   // Buy insurance.
   console.log("Buying insurance...");
@@ -56,8 +62,16 @@ async function main() {
 
   // Print the number of fetchInsuranceIds
   const insuranceIds = await fireInsurance.fetchInsuranceIds(deployerAddress);
-
   console.log("Insurance IDs:", insuranceIds.toString());
+
+  // Print final balances.
+  const ethBalanceAfter = await provider.getBalance(deployerAddress);
+  console.log("After Purchase:");
+
+  // Determine the difference in ETH balance.
+  const ethDifference = ethBalanceBefore - ethBalanceAfter;
+  console.log("ETH Balance After:", ethers.formatEther(ethBalanceAfter));
+  console.log("Difference in ETH Balance:", ethers.formatEther(ethDifference));
 }
 
 main().catch((error) => {
