@@ -62,8 +62,10 @@ interface IGraviPoolNFT is IERC721 {
 
     function addTreasuryAddress(address treasury) external;
     function getTreasuryAddresses() external view returns (address[] memory);
+
     // function getTreasuryAddress(uint8 index) external view returns (address);
     // function getTreasuryIndex(uint256 tokenId) external view returns (uint8);
+    
     function getTreasuryAddress(uint256 tokenId) external view returns (address);
     function setTreasuryAddress(uint8 index, address treasury) external;
     function transferWithDonation(address from, address to, uint256 tokenId ) external payable;

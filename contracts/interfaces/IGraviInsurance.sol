@@ -92,6 +92,8 @@ interface IGraviInsurance {
     function getClaimModerators(
                 string calldata eventId
         ) external view returns (address[] memory);
+
+    function calculateCoverageAmountFromPremium(uint256 premium) external pure returns (uint256 coverageAmount);
 } 
 
 
