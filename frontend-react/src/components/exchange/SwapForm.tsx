@@ -94,6 +94,12 @@ export const SwapForm: React.FC = () => {
     <div className="bg-white rounded-lg p-8 shadow-xl text-black">
       <h2 className="text-2xl font-semibold mb-4">Purchase GraviGov from Pool</h2>
 
+      {/* Display Pool Balance */}
+      <p className="text-sm mb-4">
+        <strong>Available in Pool:</strong>{" "}
+        {govPoolBalance !== null ? `${govPoolBalance.toLocaleString()} GOV` : "Loading..."}
+      </p>
+
       <label className="block mb-2 font-medium">Amount of GraviGov:</label>
       <input
         type="number"
