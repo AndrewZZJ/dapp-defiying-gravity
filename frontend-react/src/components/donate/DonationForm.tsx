@@ -4,20 +4,18 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 import { InputField } from "./InputField";
-import { TextareaField } from "./TextareaField";
 
 export const DonationForm: React.FC = () => {
   const { walletAddress } = useWallet(); // Access wallet state from context
   const [amount, setAmount] = useState("");
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [charityTokens, setCharityTokens] = useState<number | null>(null); // New state for charity tokens
 
   const contractAddress = "0xYourContractAddress"; // Replace with your contract address
   const contractABI = [
-    "function donate(string poolName, string message) public payable",
+    "function donate(string poolName) public payable",
   ];
 
   const handleSubmit = async () => {
@@ -41,7 +39,7 @@ export const DonationForm: React.FC = () => {
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
       // Call the donate function on the smart contract
-      const tx = await contract.donate(selectedPool, message, {
+      const tx = await contract.donate(selectedPool, {
         value: ethers.utils.parseEther(amount), // Convert ETH to Wei
       });
       await tx.wait();
@@ -57,13 +55,6 @@ export const DonationForm: React.FC = () => {
       alert("Donation failed. Please try again.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleMessageChange = (value: string) => {
-    // Limit the message to 500 characters
-    if (value.length <= 500) {
-      setMessage(value);
     }
   };
 
@@ -90,7 +81,7 @@ export const DonationForm: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row gap-8">
       {/* Donation Form Section */}
-      <section className="flex-1 px-6 pt-6 pb-11 bg-white rounded-lg border border-solid border-zinc-300 max-md:px-5">
+      <section className="flex-1 px-4 pt-4 pb-1 bg-white rounded-lg border border-solid border-zinc-300 max-md:px-4">
         <InputField
           label="Amount to Donate"
           placeholder="Enter amount in ETH"
@@ -98,7 +89,7 @@ export const DonationForm: React.FC = () => {
           onChange={setAmount}
         />
 
-        <div className="mt-4">
+        <div className="mt-3">
           <div
             className={`relative border border-zinc-300 rounded-md shadow-sm ${selectedColor} text-black`}
           >
@@ -129,21 +120,10 @@ export const DonationForm: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-4">
-          <TextareaField
-            label="Message"
-            value={message}
-            onChange={handleMessageChange}
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            {message.length}/500 characters
-          </p>
-        </div>
-
-        <div className="flex gap-4 items-center mt-4 leading-none whitespace-nowrap min-h-10 text-neutral-100">
+        <div className="flex gap-4 items-center mt-3 leading-none whitespace-nowrap text-neutral-100">
           <button
             onClick={handleSubmit}
-            className={`overflow-hidden flex-1 shrink gap-2 self-stretch p-3 my-auto w-full rounded-md border border-solid basis-0 ${
+            className={`overflow-hidden flex-1 shrink gap-2 self-stretch p-3 w-full rounded-md border border-solid ${
               loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 hover:text-gray-200"
             }`}
             disabled={loading}
@@ -170,11 +150,6 @@ export const DonationForm: React.FC = () => {
         <div className="mt-4">
           <p className="font-medium">Amount:</p>
           <p className="text-sm text-gray-700">{amount || "0 ETH"}</p>
-        </div>
-
-        <div className="mt-4">
-          <p className="font-medium">Message:</p>
-          <p className="text-sm text-gray-700">{message || "No message provided."}</p>
         </div>
 
         <div className="mt-4">
