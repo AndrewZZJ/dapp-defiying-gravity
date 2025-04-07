@@ -28,9 +28,9 @@ export const DonationForm: React.FC = () => {
         const response = await fetch("/addresses.json");
         const deploymentConfig = await response.json();
   
-        const wildfire = deploymentConfig["GraviInsurance_Wildfire"];
-        const flood = deploymentConfig["GraviInsurance_Flood"];
-        const earthquake = deploymentConfig["GraviInsurance_Earthquake"];
+        const wildfire = deploymentConfig["FireInsurance"];
+        const flood = deploymentConfig["FloodInsurance"];
+        const earthquake = deploymentConfig["EarthquakeInsurance"];
 
 
         // Fetch charity tokens from the backend (Note this should be PER insurance)
