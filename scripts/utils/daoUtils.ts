@@ -31,6 +31,41 @@ export async function createProposal(
 }
 
 /**
+ * Creates a proposal on the DAO.
+ * @param dao - The DAO contract instance.
+ * @param targets - Array of target addresses.
+ * @param values - Array of ETH values (in wei).
+ * @param calldatas - Array of encoded function calls.
+ * @param description - Proposal description.
+ * @returns The proposalId.
+ */
+export async function createFullProposal(
+  dao: any,
+  title: string,
+  description: string,
+  targets: string[],
+  values: number[],
+  calldatas: any[]
+): Promise<any> {
+  const tx = await dao.createProposal(
+    title,
+    description,
+    targets,
+    values,
+    calldatas
+  )
+  const receipt = await tx.wait();
+  
+  // Search for the ProposalCreated event and return its proposalId.
+  const events = await dao.queryFilter(dao.filters.ProposalCreated());
+  const proposal = events.find((e: any) => e.args.description === description);
+  if (!proposal) {
+    throw new Error("Proposal not found in events.");
+  }
+  return proposal.args.proposalId;
+}
+
+/**
  * Casts a vote on a proposal.
  * @param dao - The DAO contract instance.
  * @param proposalId - The ID of the proposal.

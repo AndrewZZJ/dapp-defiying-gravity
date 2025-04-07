@@ -55,6 +55,34 @@ contract GraviGovernance is IGraviGovernance, Governor, GovernorCountingSimple, 
         govProposalThreshold = newProposalThreshold;
     }
 
+    /// @notice Override default proposal creation to include extended metadata.
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public override returns (uint256) {
+        // Call the base propose function.
+        uint256 proposalId = super.propose(targets, values, calldatas, description);
+        
+        // Store the proposal metadata.
+        proposals[proposalId] = ProposalData({
+            id: proposalId,
+            title: "",
+            description: description,
+            targets: targets,
+            values: values,
+            calldatas: calldatas,
+            proposer: msg.sender,
+            created: block.timestamp
+        });
+        
+        allProposalIds.push(proposalId);
+        emit GraviProposalCreated(proposalId, "", msg.sender);
+        
+        return proposalId;
+    }
+
     /// @notice Creates a proposal with extended metadata.
     function createProposal(
         string memory title,
