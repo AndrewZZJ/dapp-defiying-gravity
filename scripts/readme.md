@@ -68,6 +68,9 @@ npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
 npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
+npx hardhat run scripts/deploy/debug-auto-mine.ts --network localhost
+
+
 ### Dao - proposal - local testing
 npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
 npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
