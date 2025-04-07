@@ -14,11 +14,11 @@ import {IGraviDAO} from "../interfaces/IGraviDAO.sol";
 import {IGraviGov} from "../interfaces/tokens/IGraviGov.sol";
 
 contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable, IGraviGov {
-    uint256 public monthlyMintAmount = 10000;
+    uint256 public monthlyMintAmount = 10000 * 10 ** 18;
     uint256 public lastMintTimestamp;
 
     // Charity token exchange rate. Can be updated by the owner.
-    uint256 public charityTokenExchangeRate = 1000; // 1 GGOV = 1000 CHARITY
+    uint256 public charityTokenExchangeRate = 10; // 1 GGOV = 10 CHARITY
 
     // The charity token used for minting.
     IGraviCha public charityToken;
@@ -53,6 +53,10 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable, IGraviGov {
         charityTokenExchangeRate = _charityTokenExchangeRate;
     }
 
+    function getCharityTokenExchangeRate() external view returns (uint256) {
+        return charityTokenExchangeRate;
+    }
+
     function mintMonthly() external onlyOwner {
         _mint(owner(), monthlyMintAmount); // Mint to DAO for further distribution.
         lastMintTimestamp = block.timestamp;
@@ -72,9 +76,5 @@ contract GraviGov is ERC20, ERC20Permit, ERC20Votes, Ownable, IGraviGov {
 
     function nonces(address owner) public view virtual override(ERC20Permit, Nonces) returns (uint256) {
         return super.nonces(owner);
-    }
-
-    function decimals() public pure override(ERC20, IGraviGov) returns (uint8) {
-        return 18;
     }
 }

@@ -25,8 +25,8 @@ contract GraviDAO is IGraviDAO, Ownable {
     IGraviGov public graviGov;
     
     // Governance token parameters.
-    uint256 public govTokenEthPrice = 100 wei;
-    uint256 public govTokenGraviChaBurn = 1;
+    uint256 public govTokenEthPrice = 0.01 ether; // Price in wei for 1 governance token.
+    uint256 public govTokenGraviChaBurn = 10 ether;
     
     // Insurance and NFT pools.
     mapping(string => IGraviInsurance) public insurancePools;
@@ -58,6 +58,7 @@ contract GraviDAO is IGraviDAO, Ownable {
         uint256 newBurnAmount,
         uint256 mintAmount
     ) external onlyOwnerOrTimelock {
+        // Get the decimal precision of the GraviCha token.
         govTokenEthPrice = newPrice;
         govTokenGraviChaBurn = newBurnAmount;
         graviGov.setCharityTokenExchangeRate(newRate);
@@ -77,11 +78,11 @@ contract GraviDAO is IGraviDAO, Ownable {
     }
     
     function purchaseGovTokens(uint256 amount) external payable {
-        uint256 requiredEth = amount * govTokenEthPrice;
+        uint256 requiredEth = amount * govTokenEthPrice / 10 ** 18;
         require(msg.value >= requiredEth, "Insufficient Ether sent");
         require(graviGov.balanceOf(address(this)) >= amount, "Not enough governance tokens in pool");
         
-        uint256 requiredCharityTokens = amount * govTokenGraviChaBurn;
+        uint256 requiredCharityTokens = amount * govTokenGraviChaBurn / 10 ** 18;
         require(graviCha.balanceOf(msg.sender) >= requiredCharityTokens, "Insufficient charity tokens");
         
         graviCha.burnFrom(msg.sender, requiredCharityTokens);
@@ -96,7 +97,7 @@ contract GraviDAO is IGraviDAO, Ownable {
         emit GovTokensPurchased(msg.sender, amount);
     }
 
-    // Calculates the token purchase price per given governance tokens, in ETH and GraviCha
+    // Calculates the token purchase price per (FULL) given governance tokens, in ETH and GraviCha.
     function calculatesGovTokenPurchasePrice(
         uint256 amount
     ) external view returns (uint256 ethPrice, uint256 graviChaBurn) {

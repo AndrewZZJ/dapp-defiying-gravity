@@ -26,6 +26,9 @@ interface IGraviGov is IERC20, IVotes {
     /// @notice Returns the current charity token exchange rate.
     function charityTokenExchangeRate() external view returns (uint256);
     
+    /// @notice Get the charity exchange rate.
+    function getCharityTokenExchangeRate() external view returns (uint256);
+
     /// @notice Returns the timestamp when the last mint occurred.
     function lastMintTimestamp() external view returns (uint256);
     
@@ -38,7 +41,7 @@ interface IGraviGov is IERC20, IVotes {
     /// @notice Mints new tokens for rewarding charitable actions. Only authorized minters can call.
     function mint(address to, uint256 amount) external;
 
-    /// Prints the decimals of the token.
-    /// @return The number of decimals used to get its user representation.
-    function decimals() external pure returns (uint8);
+    // /// Prints the decimals of the token.
+    // /// @return The number of decimals used to get its user representation.
+    // function decimals() external pure returns (uint8);
 }

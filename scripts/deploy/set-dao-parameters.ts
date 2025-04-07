@@ -5,10 +5,10 @@ import { loadDeploymentConfig } from "../utils/deploymentUtils";
 // Define the desired configuration parameters.
 const parameters = {
   governanceTokenParameters: {
-    newRate: 100,         // For a governance token, the rate of utility conversion when burned. E.g. 10 means 1 token = 10 utility tokens.
-    newPrice: ethers.parseUnits("1000", "wei"),  // Price in ether to buy a governance token.
-    newBurnAmount: 10,    // Amount of utility tokens to burn when a governance token is brought.
-    mintAmount: 10000, // Amount of tokens to mint additionally, monthly
+    newRate: 10,         // For a governance token, the rate of utility conversion when burned. E.g. 10 means 1 token = 10 utility tokens.
+    newPrice: ethers.parseUnits("0.01", "ether"),  // Price in ether to buy a governance token.
+    newBurnAmount: ethers.parseUnits("10", "ether"), // Amount of utility tokens to burn when a governance token is brought.
+    mintAmount: ethers.parseUnits("10000", "ether"), // Amount of tokens to mint additionally, monthly
   },
   // govParameters: {
   //   votingDelay: 7200,       // Delay (in blocks or seconds) before voting starts

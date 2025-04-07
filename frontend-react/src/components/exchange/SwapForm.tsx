@@ -8,12 +8,12 @@ import GraviChaABI from "../../artifacts/contracts/tokens/GraviCha.sol/GraviCha.
 import GraviDAOABI from "../../artifacts/contracts/GraviDAO.sol/GraviDAO.json";
 
 
-const contractAddress = "0xYourContractAddress"; // replace with real one
-const contractABI = [
-  "function calculatesGovTokenPurchasePrice(uint256 amount) public view returns (uint256, uint256)",
-  "function swapGov(uint256 amount) public",
-  "function burnGov(uint256 amount) public"
-];
+// const contractAddress = "0xYourContractAddress"; // replace with real one
+// const contractABI = [
+//   "function calculatesGovTokenPurchasePrice(uint256 amount) public view returns (uint256, uint256)",
+//   "function swapGov(uint256 amount) public",
+//   "function burnGov(uint256 amount) public"
+// ];
 // const contractABI = [
 //   "function getGovPoolBalance() public view returns (uint256)",
 //   "function getExchangeRate() public view returns (uint256, uint256)",
@@ -25,11 +25,13 @@ export const SwapForm: React.FC = () => {
   const { walletAddress } = useWallet();
   const [govAmount, setGovAmount] = useState("");
   const [burnAmount, setBurnAmount] = useState("");
+  const [mintAmount, setMintAmount] = useState("");
   const [exchangeRate, setExchangeRate] = useState({ eth: 0, graviCha: 0 });
   const [govPoolBalance, setGovPoolBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [graviGovAddress, setGraviGovAddress] = useState<string>("");
   const [graviDaoAddress, setGraviDaoAddress] = useState<string>("");
+  const [graviChaAddress, setGraviChaAddress] = useState<string>("");
 
 
   const fetchPoolData = async () => {
@@ -48,35 +50,43 @@ export const SwapForm: React.FC = () => {
       const deploymentConfig = await response.json();
       const govAddr = deploymentConfig["GraviGov"];
       const daoAddr = deploymentConfig["GraviDAO"];
-      if (!govAddr || !daoAddr) throw new Error("Missing GOV or DAO address");
+      const chaAddr = deploymentConfig["GraviCha"];
+      if (!govAddr || !daoAddr || !chaAddr) {
+        throw new Error("Required addresses not found in addresses.json.");
+      }
 
       setGraviGovAddress(govAddr);
       setGraviDaoAddress(daoAddr);
+      setGraviChaAddress(chaAddr);
 
-      const address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      // const address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      // address = govAddr;
 
       // const graviGov = new ethers.Contract(govAddr, GraviGovABI.abi, provider);
       const graviDAO = new ethers.Contract(daoAddr, GraviDAOABI.abi, provider);
       // Get the GraviGov contract instance using the full ABI
       const graviGov = new ethers.Contract(govAddr, GraviGovABI.abi, provider);
 
+      const burnToMintAmount = await graviGov.getCharityTokenExchangeRate();
+      console.log("Burn to Mint Amount: ", burnToMintAmount.toString());
+      setMintAmount(burnToMintAmount);
 
-      const govBalance = await graviGov.balanceOf(address);
-      const graviGovTokens = parseFloat(ethers.utils.formatEther(govBalance));
-      console.log("Gov Balance: ", graviGovTokens);
-      setGovPoolBalance(graviGovTokens);
+      // const govBalance = await graviGov.balanceOf(address);
+      // const graviGovTokens = parseFloat(ethers.utils.formatEther(govBalance));
+      // console.log("Gov Balance: ", graviGovTokens);
+      // setGovPoolBalance(graviGovTokens);
 
       const poolBalance = await graviGov.balanceOf(daoAddr);
       const DAOgraviGovTokens = parseFloat(ethers.utils.formatEther(poolBalance));
       console.log("Gov Balance: ", DAOgraviGovTokens);
       console.log("DAO Address: ", daoAddr);
-      // setGovPoolBalance(parseFloat(ethers.utils.formatEther(poolBalance)));
+      setGovPoolBalance(parseFloat(ethers.utils.formatEther(poolBalance)));
       
 
       const [ethRate, graviChaRate] = await graviDAO.calculatesGovTokenPurchasePrice(1);
       setExchangeRate({
         eth: parseFloat(ethers.utils.formatEther(ethRate)),
-        graviCha: parseFloat(graviChaRate.toString()),
+        graviCha: parseFloat(ethers.utils.formatEther(graviChaRate)),
       });
       // setLoading(true);
       // const provider = new ethers.providers.Web3Provider(window.ethereum as any);
@@ -107,12 +117,36 @@ export const SwapForm: React.FC = () => {
     if (!amount || isNaN(amount) || amount <= 0) return alert("Invalid GOV amount.");
   
     try {
+      console.log("Gov Amount: ", govAmount);
+
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
-      const dao = new ethers.Contract(graviDaoAddress, contractABI, signer);
-  
-      const tx = await dao.swapGov(ethers.utils.parseEther(govAmount));
-      await tx.wait();
+      const graviDAO = new ethers.Contract(graviDaoAddress, GraviDAOABI.abi, signer);
+      const graviCha = new ethers.Contract(graviChaAddress, GraviChaABI.abi, signer);
+      
+      const [ethPrice, graviChaBurn] = await graviDAO.calculatesGovTokenPurchasePrice(amount);
+      console.log("ETH Price:", ethPrice.toString());
+      console.log("GraviCha Burn:", graviChaBurn.toString());
+
+
+      const currentAllowance = await graviCha.allowance(walletAddress, graviDaoAddress);
+
+      // Print the current allowance
+      console.log("Current allowance:", ethers.utils.formatEther(currentAllowance));
+      console.log("GraviCha burn amount:", ethers.utils.formatEther(graviChaBurn));
+      console.log("Wallet Address:", walletAddress);
+
+      if (currentAllowance.lt(graviChaBurn)) {
+        console.log("Allowance is less than burn amount. Approving...");
+        const approveTx = await graviCha.approve(graviDaoAddress, graviChaBurn);
+        await approveTx.wait();
+      }
+
+      console.log("Allowance is sufficient or approved.");
+      console.log("Purchasing tokens...");
+
+      const purchaseTx = await graviDAO.purchaseGovTokens(ethers.utils.parseEther(govAmount), { value: ethPrice.toString() });
+      await purchaseTx.wait();
   
       alert("Swap successful!");
       setGovAmount("");
@@ -151,9 +185,10 @@ export const SwapForm: React.FC = () => {
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
-      const dao = new ethers.Contract(graviDaoAddress, contractABI, signer);
+      // const dao = new ethers.Contract(graviDaoAddress, contractABI, signer);
+      const graviGov = new ethers.Contract(graviGovAddress, GraviGovABI.abi, signer);
   
-      const tx = await dao.burnGov(ethers.utils.parseEther(burnAmount));
+      const tx = await graviGov.convertToCharityTokens(ethers.utils.parseEther(burnAmount));
       await tx.wait();
   
       alert("Return to pool successful!");
@@ -232,7 +267,7 @@ export const SwapForm: React.FC = () => {
       />
 
       <p className="text-sm mb-2">
-        You’ll mint: <strong>{Number(burnAmount) || 0} GraviCha</strong>
+        You’ll mint: <strong>{Number(burnAmount) * Number(mintAmount) || 0} GraviCha</strong>
       </p>
 
       <button

@@ -27,20 +27,30 @@ async function main() {
   console.log("GraviGov deployed at:", graviGovAddress);
 
   // Mint initial tokens.
-  const mintAmount = 1000000; // Adjust mint amount as needed.
+  const mintAmount = ethers.parseEther("1000000"); // Adjust mint amount as needed.
   const mintTx = await graviGov.mint(deployerAddress, mintAmount);
   await mintTx.wait();
   const govBalance = await graviGov.balanceOf(deployerAddress);
   console.log("Deployer GraviGov balance:", govBalance.toString());
 
+  // // Also mint some to "0x65ef71Aa063cEcEB6569b9fdcd632952B2F141D9"
+  // const mintTx2 = await graviGov.mint("0x65ef71Aa063cEcEB6569b9fdcd632952B2F141D9", mintAmount);
+  // await mintTx2.wait();
+
   // Mint some charity tokens. (For testing purposes) for deployer.
-  const charityMintAmount = 1000000; // Adjust mint amount as needed.
+  const charityMintAmount = ethers.parseEther("1000000"); // Adjust mint amount as needed.
   await graviCha.addMinter(deployerAddress);
   const charityMintTx = await graviCha.mint(deployerAddress, charityMintAmount);
   await charityMintTx.wait();
+
+  // // Also mint some to "0x65ef71Aa063cEcEB6569b9fdcd632952B2F141D9"
+  // const charityMintTx2 = await graviCha.mint("0x65ef71Aa063cEcEB6569b9fdcd632952B2F141D9", charityMintAmount);
+  // await charityMintTx2.wait();
+
   const chaBalance = await graviCha.balanceOf(deployerAddress);
   await graviCha.removeMinter(deployerAddress);
   console.log("Deployer GraviCha balance:", chaBalance.toString());
+
 
   // Deploy TimelockController.
   const minDelay = 0;
