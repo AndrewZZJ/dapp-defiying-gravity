@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { ProposalItem } from "./ProposalItem";
 import { useWallet } from "../../context/WalletContext";
+import GraviGovernanceABI from "../../artifacts/contracts/GraviGovernance.sol/GraviGovernance.json";
+import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
+
 
 type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed";
 
@@ -42,8 +45,12 @@ export const ProposalsSection: React.FC = () => {
   const [hasDelegated, setHasDelegated] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
+  const [governanceAddress, setGovernanceAddress] = useState<string>("");
+  const [graviGovAddress, setGraviGovAddress] = useState("");
+
 
   const contractAddress = "0xYourContractAddress";
+  
   const contractABI = [
     "function getProposals() public view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[])",
     "function delegate(address delegateAddress) public",
@@ -51,6 +58,49 @@ export const ProposalsSection: React.FC = () => {
     "function hasDelegate(address user) public view returns (bool)",
     "function vote(uint proposalId, bool approve) public",
   ];
+
+  
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const response = await fetch("/addresses.json");
+        const data = await response.json();
+  
+        setGovernanceAddress(data["GraviGovernance"]);
+        setGraviGovAddress(data["GraviGov"]);
+      } catch (err) {
+        console.error("Failed to load addresses:", err);
+      }
+    };
+  
+    fetchAddresses();
+  }, []);
+
+  // 2️⃣ Second useEffect – load proposals and delegation logic
+  useEffect(() => {
+    if (governanceAddress && walletAddress) {
+      fetchProposals();
+      checkDelegation();
+    } else if (useMockData) {
+      fetchProposals(); // allow preview without wallet
+    }
+  }, [governanceAddress, walletAddress]);
+
+  const getGovernanceContract = (withSigner = false) => {
+    if (!governanceAddress || !window.ethereum) throw new Error("Governance address or provider not available");
+  
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+    const signerOrProvider = withSigner ? provider.getSigner() : provider;
+  
+    return new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signerOrProvider);
+  };
+
+  const getGraviGovContract = (withSigner = false) => {
+    if (!graviGovAddress || !window.ethereum) throw new Error("GraviGov contract not ready");
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+    const signerOrProvider = withSigner ? provider.getSigner() : provider;
+    return new ethers.Contract(graviGovAddress, GraviGovABI.abi, signerOrProvider);
+  };  
 
   const fetchProposals = async () => {
     setLoading(true);
@@ -64,11 +114,9 @@ export const ProposalsSection: React.FC = () => {
     }
 
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
+      const contract = getGovernanceContract();
       const proposalsData = await contract.getProposals();
+  
       const formatted: Proposal[] = proposalsData.map((p: any) => ({
         id: Number(p.id),
         title: p.title,
@@ -76,10 +124,10 @@ export const ProposalsSection: React.FC = () => {
         startDate: Number(p.startDate),
         endDate: Number(p.endDate),
       }));
-
+  
       const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
       formatted.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-
+  
       setProposals(formatted);
     } catch (err) {
       console.error("Fetch proposals failed:", err);
@@ -90,26 +138,21 @@ export const ProposalsSection: React.FC = () => {
 
   const checkDelegation = async () => {
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-      const result = await contract.hasDelegate(walletAddress);
-      setHasDelegated(result);
+      const contract = getGraviGovContract(); // Don't need signer for view
+      const delegatee = await contract.delegates(walletAddress);
+      setHasDelegated(delegatee !== ethers.constants.AddressZero);
     } catch (err) {
       console.error("Delegation check failed:", err);
     }
   };
-
+  
+  
   const handleDelegate = async () => {
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-      const tx = await contract.delegate(delegateInput);
+      const contract = getGraviGovContract(true); // ✅ use GraviGov, not GraviGovernance
+      const tx = await contract.delegate(delegateInput); // ✅ this will now work
       await tx.wait();
-
+  
       alert("Delegation successful.");
       setDelegateInput("");
       checkDelegation();
@@ -122,10 +165,12 @@ export const ProposalsSection: React.FC = () => {
   const handleUndelegate = async () => {
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      await provider.send("eth_requestAccounts", []);
       const signer = provider.getSigner();
+
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-      const tx = await contract.undelegate();
+      const tx = await contract.delegate("0x0000000000000000000000000000000000000000");
       await tx.wait();
 
       alert("Undelegated successfully.");
@@ -134,6 +179,7 @@ export const ProposalsSection: React.FC = () => {
       console.error("Undelegation failed:", err);
     }
   };
+
 
   const openVoteModal = (proposalId: number) => {
     if (!hasDelegated) {
@@ -167,21 +213,12 @@ export const ProposalsSection: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (walletAddress) {
-      fetchProposals();
-      checkDelegation();
-    } else if (useMockData) {
-      fetchProposals(); // allow preview without wallet
-    }
-  }, [walletAddress]);
-
   return (
     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
       <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl">
         Current Proposals
       </h1>
-
+  
       {/* Delegation Controls */}
       <div className="flex flex-col items-center mb-10">
         <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
@@ -199,17 +236,9 @@ export const ProposalsSection: React.FC = () => {
           >
             Submit Delegation
           </button>
-          {hasDelegated && (
-            <button
-              onClick={handleUndelegate}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Undo Delegation
-            </button>
-          )}
         </div>
       </div>
-
+  
       <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
         {loading ? (
           <p className="text-center text-lg font-medium">Loading proposals...</p>
@@ -219,7 +248,7 @@ export const ProposalsSection: React.FC = () => {
             const isInProgress = proposal.status === "In Progress";
             const beforeEnd = now < proposal.endDate * 1000;
             const canVote = isInProgress && beforeEnd && hasDelegated;
-
+  
             return (
               <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
                 <ProposalItem title={proposal.title} status={proposal.status}>
@@ -230,7 +259,7 @@ export const ProposalsSection: React.FC = () => {
                   <p className="text-sm text-gray-600">
                     End: {new Date(proposal.endDate * 1000).toLocaleString()}
                   </p>
-
+  
                   <button
                     onClick={() => openVoteModal(proposal.id)}
                     disabled={!canVote}
@@ -248,7 +277,7 @@ export const ProposalsSection: React.FC = () => {
           <p className="text-center text-lg font-medium">No proposals found. Please check back later.</p>
         )}
       </section>
-
+  
       {/* Vote Modal */}
       {modalOpen && selectedProposalId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -257,7 +286,7 @@ export const ProposalsSection: React.FC = () => {
               Vote on Proposal #{selectedProposalId}
             </h2>
             <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
-
+  
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => submitVote(selectedProposalId, true)}
@@ -283,6 +312,7 @@ export const ProposalsSection: React.FC = () => {
       )}
     </main>
   );
+  
 };
 
 // "use client";
