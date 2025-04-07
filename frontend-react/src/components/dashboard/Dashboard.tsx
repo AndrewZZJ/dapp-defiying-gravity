@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
 import GraviChaABI from "../../artifacts/contracts/tokens/GraviCha.sol/GraviCha.json";
+import GraviPoolNFTABI from "../../artifacts/contracts/tokens/GraviPoolNFT.sol/GraviPoolNFT.json";
 
 interface WalletInfo {
   graviGovTokens: number;
@@ -12,6 +13,66 @@ interface WalletInfo {
 export const Dashboard: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+
+  const addressEqual = (to: string, account: string): boolean => {
+    return to.toLowerCase() === account.toLowerCase();
+  };
+
+const getOwnerNFTs = async (graviPoolNFT: any, ownerAddress: string): Promise<string[]> => {
+    // Get all transfer logs where the address is the sender and receiver.
+    const sentLogs = await graviPoolNFT.queryFilter(
+        graviPoolNFT.filters.Transfer(ownerAddress, undefined)
+    );
+    const receivedLogs = await graviPoolNFT.queryFilter(
+        graviPoolNFT.filters.Transfer(undefined, ownerAddress)
+    );
+
+    console.log(`Owner's sent logs:`, sentLogs);
+    console.log(`Owner's received logs:`, receivedLogs);
+    console.log(`Owner's address:`, ownerAddress);
+
+    // Combine and sort logs by block number and transaction index.
+    const logs = sentLogs.concat(receivedLogs).sort(
+        (a: { blockNumber: number; transactionIndex: number }, b: { blockNumber: number; transactionIndex: number }) =>
+            a.blockNumber - b.blockNumber || a.transactionIndex - b.transactionIndex
+    );
+
+    // Process logs to determine the tokens currently owned.
+    const owned = new Set<string>();
+    for (const { args: { from, to, tokenId } } of logs) {
+        if (addressEqual(to, ownerAddress)) {
+            owned.add(tokenId.toString());
+        } else if (addressEqual(from, ownerAddress)) {
+            owned.delete(tokenId.toString());
+        }
+    }
+    console.log(`Owner's NFTs:`, Array.from(owned));
+
+    return Array.from(owned);
+};
+
+  const fetchNFTData = async (tokenURIs: { tokenId: string; tokenURI: string }[]) => {
+    try {
+      const nftData = await Promise.all(
+        tokenURIs.map(async ({ tokenId, tokenURI }) => {
+          const response = await fetch(tokenURI);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch NFT data from ${tokenURI}: ${response.statusText}`);
+          }
+          const nftJson = await response.json();
+          return {
+            id: tokenId,
+            name: nftJson.name,
+            image: nftJson.image,
+          };
+        })
+      );
+      return nftData;
+    } catch (error) {
+      console.error("Failed to fetch NFT data:", error);
+      return [];
+    }
+  };
 
   const fetchWalletInfo = async (address: string) => {
     try {
@@ -26,20 +87,25 @@ export const Dashboard: React.FC = () => {
 
       const graviGovAddress = deploymentConfig["GraviGov"];
       const graviChaAddress = deploymentConfig["GraviCha"];
+      const graviPoolNFTAddress = deploymentConfig["GraviPoolNFT"];
 
-      if (!graviGovAddress || !graviChaAddress) {
-        throw new Error("Required addresses (GraviGov or GraviCha) not found in addresses.json.");
+      if (!graviGovAddress || !graviChaAddress || !graviPoolNFTAddress) {
+        throw new Error("Required addresses not found in addresses.json.");
       }
 
       console.log("Wallet Address:", address);
       console.log("GraviGov Address:", graviGovAddress);
       console.log("GraviCha Address:", graviChaAddress);
+      console.log("GraviPoolNFT Address:", graviPoolNFTAddress);
 
       // Get the GraviGov contract instance using the full ABI
       const graviGov = new ethers.Contract(graviGovAddress, GraviGovABI.abi, provider);
 
       // Get the GraviCha contract instance using the full ABI
       const graviCha = new ethers.Contract(graviChaAddress, GraviChaABI.abi, provider);
+
+      // Get the GraviPoolNFT contract instance
+      const graviPoolNFT = new ethers.Contract(graviPoolNFTAddress, GraviPoolNFTABI.abi, provider);
 
       // Fetch balances
       const govBalance = await graviGov.balanceOf(address);
@@ -55,21 +121,17 @@ export const Dashboard: React.FC = () => {
       console.log("Formatted GraviGov Tokens:", graviGovTokens);
       console.log("Formatted GraviCha Tokens:", graviChaTokens);
 
-      // Mock NFT data (replace with actual backend call if needed)
-      const ownedNFTs = [
-        {
-          id: "1",
-          name: "Fire NFT",
-          image:
-            "https://cdn.builder.io/api/v1/image/assets/TEMP/804793bedaabda1cf9c4091b86cae6469cbe02c2",
-        },
-        {
-          id: "2",
-          name: "Earthquake NFT",
-          image:
-            "https://cdn.builder.io/api/v1/image/assets/TEMP/da420caf50e77f5a82cd88b049ac8d85fefa8be4",
-        },
-      ];
+      // Fetch NFTs owned by the user
+      const tokens = await getOwnerNFTs(graviPoolNFT, address);
+      const tokenURIs = await Promise.all(
+        tokens.map(async (tokenId: string) => {
+          const tokenURI = await graviPoolNFT.tokenURI(tokenId);
+          return { tokenId, tokenURI };
+        })
+      );
+
+      // Fetch NFT metadata
+      const ownedNFTs = await fetchNFTData(tokenURIs);
 
       return {
         graviGovTokens,
