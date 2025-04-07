@@ -68,6 +68,12 @@ npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
 npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
+### Dao - proposal - local testing
+npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
+npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
+
+
+
 # Insurances
 npx hardhat run scripts/insurance/buy-insurance.ts --network localhost
 
@@ -75,6 +81,9 @@ npx hardhat run scripts/insurance/buy-insurance.ts --network localhost
 npx hardhat run scripts/view/view-gov-pool-and-burn-prices.ts --network localhost
 npx hardhat run scripts/view/calc-gov-token-cost.ts --network localhost
 npx hardhat run scripts/dao-interact/purchase-gov-tokens.ts --network localhost
+
+
+
 
 ### GraviGov Convert Tokens to Charity Tokens
 npx hardhat run scripts/view/view-charity-exchange-rate.ts --network localhost
@@ -86,6 +95,11 @@ npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
 npx hardhat run scripts/nft/claim-nft.ts --network localhost
 
 ### Dao - proposal - local testing
+npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
+npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
+
+
+
 npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
 npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
 npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost

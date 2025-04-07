@@ -5,6 +5,8 @@ import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext";
 import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
 import GraviChaABI from "../../artifacts/contracts/tokens/GraviCha.sol/GraviCha.json";
+import GraviDAOABI from "../../artifacts/contracts/GraviDAO.sol/GraviDAO.json";
+
 
 const contractAddress = "0xYourContractAddress"; // replace with real one
 const contractABI = [
@@ -34,26 +36,41 @@ export const SwapForm: React.FC = () => {
     if (!walletAddress || !window.ethereum) return;
 
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
+      // const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      // const signer = provider.getSigner();
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
 
       const response = await fetch("/addresses.json");
-      const addresses = await response.json();
+      if (!response.ok) {
+        throw new Error(`Failed to fetch addresses.json: ${response.statusText}`);
+      }
 
-      const govAddr = addresses["GraviGov"];
-      const daoAddr = addresses["GraviDAO"];
+      const deploymentConfig = await response.json();
+      const govAddr = deploymentConfig["GraviGov"];
+      const daoAddr = deploymentConfig["GraviDAO"];
       if (!govAddr || !daoAddr) throw new Error("Missing GOV or DAO address");
 
       setGraviGovAddress(govAddr);
       setGraviDaoAddress(daoAddr);
 
+      const address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
+      // const graviGov = new ethers.Contract(govAddr, GraviGovABI.abi, provider);
+      const graviDAO = new ethers.Contract(daoAddr, GraviDAOABI.abi, provider);
+      // Get the GraviGov contract instance using the full ABI
       const graviGov = new ethers.Contract(govAddr, GraviGovABI.abi, provider);
-      const graviDAO = new ethers.Contract(daoAddr, contractABI, provider);
+
+
+      const govBalance = await graviGov.balanceOf(address);
+      const graviGovTokens = parseFloat(ethers.utils.formatEther(govBalance));
+      console.log("Gov Balance: ", graviGovTokens);
+      setGovPoolBalance(graviGovTokens);
 
       const poolBalance = await graviGov.balanceOf(daoAddr);
-      console.log("GraviDAO Address: ", daoAddr);
-      console.log("Gov Pool Balance: ", govPoolBalance);
-      setGovPoolBalance(parseFloat(ethers.utils.formatEther(poolBalance)));
+      const DAOgraviGovTokens = parseFloat(ethers.utils.formatEther(poolBalance));
+      console.log("Gov Balance: ", DAOgraviGovTokens);
+      console.log("DAO Address: ", daoAddr);
+      // setGovPoolBalance(parseFloat(ethers.utils.formatEther(poolBalance)));
       
 
       const [ethRate, graviChaRate] = await graviDAO.calculatesGovTokenPurchasePrice(1);
