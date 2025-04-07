@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 import { InputField } from "./InputField";
+import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
 export const DonationForm: React.FC = () => {
   const { walletAddress } = useWallet(); // Access wallet state from context
@@ -11,12 +12,69 @@ export const DonationForm: React.FC = () => {
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [charityTokens, setCharityTokens] = useState<number | null>(null); // New state for charity tokens
+  const [charityTokens, setCharityTokens] = useState<number | null>(null); 
+  const [fireAddress, setFireAddress] = useState("");
+  const [floodAddress, setFloodAddress] = useState("");
+  const [earthquakeAddress, setEarthquakeAddress] = useState("");
+  const [donors, setDonors] = useState<Donor[]>([]);
+  type Donor = {
+    address: string;
+    amount: string;
+  };
 
-  const contractAddress = "0xYourContractAddress"; // Replace with your contract address
+  useEffect(() => {
+    const fetchAddressesAndDonors = async () => {
+      try {
+        const response = await fetch("/addresses.json");
+        const deploymentConfig = await response.json();
+  
+        const wildfire = deploymentConfig["GraviInsurance_Wildfire"];
+        const flood = deploymentConfig["GraviInsurance_Flood"];
+        const earthquake = deploymentConfig["GraviInsurance_Earthquake"];
+  
+        setFireAddress(wildfire);
+        setFloodAddress(flood);
+        setEarthquakeAddress(earthquake);
+  
+        // Default to showing Wildfire leaderboard
+        await fetchDonors(wildfire);
+      } catch (err) {
+        console.error("Failed to load addresses or donors:", err);
+      }
+    };
+  
+    fetchAddressesAndDonors();
+  }, []);
+
+
   const contractABI = [
-    "function donate(string poolName) public payable",
-  ];
+    "function donate() public payable",
+  ];  
+
+  const fetchDonors = async (poolAddress: string) => {
+    if (!poolAddress || !window.ethereum) return;
+  
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      const contract = new ethers.Contract(poolAddress, GraviInsuranceABI.abi, provider);
+      const [addresses, amounts]: [string[], ethers.BigNumber[]] = await contract.getAllDonors();
+  
+      const formatted: Donor[] = addresses.map((addr, i) => ({
+        address: addr,
+        amount: ethers.utils.formatEther(amounts[i]),
+      }));
+  
+      // Sort by donation amount (descending), then keep only top 8
+      const topDonors = formatted
+        .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
+        .slice(0, 8);
+  
+      setDonors(topDonors);
+    } catch (err) {
+      console.error("Failed to fetch donors:", err);
+    }
+  };
+  
 
   const handleSubmit = async () => {
     if (!walletAddress) {
@@ -36,12 +94,26 @@ export const DonationForm: React.FC = () => {
         window.ethereum as ethers.providers.ExternalProvider
       );
       const signer = provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      let selectedAddress = "";
 
+      if (selectedPool === "Wildfire") {
+        selectedAddress = fireAddress;
+      } else if (selectedPool === "Flood") {
+        selectedAddress = floodAddress;
+      } else if (selectedPool === "Earthquake") {
+        selectedAddress = earthquakeAddress;
+      } else {
+        alert("Invalid pool selected.");
+        return;
+      }
+      
+      const contract = new ethers.Contract(selectedAddress, GraviInsuranceABI.abi, signer);
+      
       // Call the donate function on the smart contract
-      const tx = await contract.donate(selectedPool, {
-        value: ethers.utils.parseEther(amount), // Convert ETH to Wei
+      const tx = await contract.donate({
+        value: ethers.utils.parseEther(amount),
       });
+      
       await tx.wait();
 
       alert("Donation successful!");
@@ -164,17 +236,23 @@ export const DonationForm: React.FC = () => {
       <section className="flex-1 px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
         <h2 className="font-bold text-lg text-center">Highest Historical Donors</h2>
         <ul className="mt-4 space-y-4">
-          {highestDonorsData.map((entry, index) => (
-            <li
-              key={index}
-              className="flex justify-between border-b pb-2 text-sm sm:text-base"
-            >
-              <span>{entry.name}</span>
-              <span className="text-emerald-700 font-semibold">
-                {entry.amount}
-              </span>
-            </li>
-          ))}
+          {donors.length === 0 ? (
+            <li className="text-center text-gray-500 italic">No donors yet</li>
+          ) : (
+            donors.map((entry, index) => (
+              <li
+                key={index}
+                className="flex justify-between border-b pb-2 text-sm sm:text-base"
+              >
+                <span>
+                  {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
+                </span>
+                <span className="text-emerald-700 font-semibold">
+                  {parseFloat(entry.amount).toFixed(3)} ETH
+                </span>
+              </li>
+            ))
+          )}
         </ul>
       </section>
     </div>
