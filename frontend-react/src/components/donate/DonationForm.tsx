@@ -31,7 +31,14 @@ export const DonationForm: React.FC = () => {
         const wildfire = deploymentConfig["GraviInsurance_Wildfire"];
         const flood = deploymentConfig["GraviInsurance_Flood"];
         const earthquake = deploymentConfig["GraviInsurance_Earthquake"];
-  
+
+
+        // Fetch charity tokens from the backend (Note this should be PER insurance)
+        const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+        const contract = new ethers.Contract(wildfire, GraviInsuranceABI.abi, provider);
+        const exchangeRate = await contract.getDonationRewardRate();
+        setCharityTokens(exchangeRate.toString());
+
         setFireAddress(wildfire);
         setFloodAddress(flood);
         setEarthquakeAddress(earthquake);
@@ -47,9 +54,9 @@ export const DonationForm: React.FC = () => {
   }, []);
 
 
-  const contractABI = [
-    "function donate() public payable",
-  ];  
+  // const contractABI = [
+  //   "function donate() public payable",
+  // ];  
 
   const fetchDonors = async (poolAddress: string) => {
     if (!poolAddress || !window.ethereum) return;
@@ -106,6 +113,8 @@ export const DonationForm: React.FC = () => {
         alert("Invalid pool selected.");
         return;
       }
+
+      console.log("Selected Address:", selectedAddress);
       
       const contract = new ethers.Contract(selectedAddress, GraviInsuranceABI.abi, signer);
       
@@ -118,10 +127,10 @@ export const DonationForm: React.FC = () => {
 
       alert("Donation successful!");
 
-      // Fetch charity tokens from the backend
-      const response = await fetch(`/api/charity-tokens?wallet=${walletAddress}`);
-      const data = await response.json();
-      setCharityTokens(data.tokens); // Update charity tokens state
+      // // Fetch charity tokens from the backend
+      // const response = await fetch(`/api/charity-tokens?wallet=${walletAddress}`);
+      // const data = await response.json();
+      // setCharityTokens(data.tokens); // Update charity tokens state
     } catch (error) {
       console.error("Failed to process donation:", error);
       alert("Donation failed. Please try again.");
@@ -220,12 +229,12 @@ export const DonationForm: React.FC = () => {
         </div>
 
         <div className="mt-4">
-          <p className="font-medium">Amount:</p>
-          <p className="text-sm text-gray-700">{amount || "0 ETH"}</p>
+          <p className="font-medium">Donation Amount:</p>
+          <p className="text-sm text-gray-700">{amount !== "" ? amount + " ETH" : "0 ETH"}</p>
         </div>
 
         <div className="mt-4">
-          <p className="font-medium">Rewarded Charity Tokens:</p>
+          <p className="font-medium">Rewarded Charity Tokens (Per ETH):</p>
           <p className="text-sm text-gray-700">
             {charityTokens !== null ? charityTokens : "Pending..."}
           </p>

@@ -91,6 +91,9 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     ClaimRecord[] public claimRecords;
     uint256 public nextClaimId = 1;
 
+    // Reward rate for donating ETH. (How many GraviCha to mint per ETH) all in wei.
+    uint256 public donationRewardRate = 10000; // 1 ETH = 10000 GraviCha
+
     // ========================================
     // Events
     // ========================================
@@ -218,6 +221,18 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         coverageAmount = premium * ratio;
     }
 
+    /// @notice Gets the donation reward rate.
+    /// @return The donation exchange rate.
+    function getDonationRewardRate() external view returns (uint256) {
+        return donationRewardRate;
+    }
+
+    /// @notice Sets the donation reward rate. (1 ETH to X GraviCha)
+    function setDonationRewardRate(uint256 newRate) external onlyOwner {
+        require(newRate > 0, "Invalid rate");
+        donationRewardRate = newRate;
+    }
+
     /// @notice Donate ETH to the pool and receive tokens/NFT.
     function donate() external payable {
         require(msg.value > 0, "Must send ETH");
@@ -229,7 +244,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         }
         userRecords[msg.sender].donationTotal += msg.value;
 
-        graviCha.mint(msg.sender, msg.value);
+        graviCha.mint(msg.sender, msg.value * donationRewardRate);
         emit FundsDonated(msg.sender, msg.value);
     }
 
