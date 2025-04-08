@@ -26,8 +26,6 @@ interface IGraviInsurance {
         string memory eventId
     ) external;
 
-    /// @notice Gets moderators for a specific claim.
-    function getClaimModerators(uint256 claimId) external view returns (address[] memory);
 
     // ========================================
     // Insurance Policy Management
@@ -92,6 +90,9 @@ interface IGraviInsurance {
         string[] memory statuses,
         string[] memory descriptions
     );
+
+    /// @notice Gets moderators for a specific claim.
+    function getClaimModerators(uint256 claimId) external view returns (address[] memory);
 
     // ========================================
     // Moderator Management
