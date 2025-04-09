@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext";
 import { NavigationHeader } from "../navigation/AppNavigationHeader";
+import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
+
 
 interface InsuranceEntry {
   address: string;
@@ -18,9 +20,10 @@ export const ViewInsurance: React.FC = () => {
   const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state from context
   const [insuranceData, setInsuranceData] = useState<InsuranceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [contractAddresses, setContractAddresses] = useState<{ [key: string]: string }>({});
 
   // Toggle this line to use template data or backend/smart contract data
-  const useTemplateData = true; // Set to `true` to use template data, otherwise backend data is used
+  const useTemplateData = false; // Set to `true` to use template data, otherwise backend data is used
 
   // Function to connect wallet
   const connectWallet = async () => {
@@ -40,6 +43,20 @@ export const ViewInsurance: React.FC = () => {
       alert("Please install MetaMask to connect your wallet.");
     }
   };
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const res = await fetch("/addresses.json");
+        const data = await res.json();
+        setContractAddresses(data); // Stores all addresses like FireInsurance, FloodInsurance, etc.
+      } catch (err) {
+        console.error("Failed to load addresses.json:", err);
+      }
+    };
+  
+    fetchAddresses();
+  }, []);
 
   // Fetch insurance data for the connected wallet
   useEffect(() => {
@@ -79,11 +96,53 @@ export const ViewInsurance: React.FC = () => {
   }, [walletAddress, useTemplateData]);
 
   // Function to fetch insurance data from backend or smart contract
-  const getInsuranceData = async (walletAddress: string): Promise<InsuranceEntry[]> => {
-    // Replace this with actual backend or smart contract call
-    console.log(`Fetching insurance data for wallet: ${walletAddress}`);
-    return []; // Return an empty array if no data is found
+  const getInsuranceData = async (wallet: string): Promise<InsuranceEntry[]> => {
+    try {
+      if (!window.ethereum) throw new Error("No Ethereum provider found");
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+  
+      const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
+      const entries: InsuranceEntry[] = [];
+  
+      for (const type of types) {
+        const address = contractAddresses[type];
+        if (!address) continue;
+  
+        const contract = new ethers.Contract(address, GraviInsuranceABI.abi, signer);
+  
+        let policyIds: string[];
+  
+        try {
+          // 👇 Only fetch the policy IDs for the connected user
+          policyIds = await contract.fetchInsuranceIds(wallet);
+        } catch (err) {
+          console.warn(`Skipping ${type} — failed to fetch policies.`);
+          continue;
+        }
+  
+        if (!policyIds.length) continue;
+  
+        // 👇 Just display the IDs as-is (no other detail)
+        const insurances = policyIds.map((id) => ({
+          type, // Use the type (FireInsurance, etc.) as label
+          id,   // Display raw ID
+        }));
+  
+        // 👇 Group by disaster type, not address anymore
+        entries.push({
+          address: type, // Just using type as the label now
+          insurances,
+        });
+      }
+  
+      return entries;
+    } catch (err) {
+      console.error("getInsuranceData error:", err);
+      return [];
+    }
   };
+  
 
   // Function to fetch additional details for an insurance
   const getInsuranceDetails = async (

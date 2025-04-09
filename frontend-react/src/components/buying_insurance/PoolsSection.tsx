@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext"; // Import WalletContext
+import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
 export const PoolsSection: React.FC = () => {
   const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state and setter from context
@@ -12,6 +13,7 @@ export const PoolsSection: React.FC = () => {
   const [coverCost, setCoverCost] = useState("0.0004 ETH"); // Placeholder for cover cost
   const [homeAddress, setHomeAddress] = useState(""); // State for the user's home address
   const [isLoading, setIsLoading] = useState(false);
+  const [insuranceAddress, setInsuranceAddress] = useState<string | null>(null);  
 
   // Function to connect wallet
   const connectWallet = async () => {
@@ -31,6 +33,36 @@ export const PoolsSection: React.FC = () => {
       alert("Please install MetaMask to connect your wallet.");
     }
   };
+
+  useEffect(() => {
+    const fetchInsuranceAddress = async () => {
+      try {
+        const response = await fetch("/addresses.json");
+        const data = await response.json();
+  
+        let address = null;
+        switch (selectedDisaster) {
+          case "Wildfire":
+            address = data["FireInsurance"];
+            break;
+          case "Flood":
+            address = data["FloodInsurance"];
+            break;
+          case "Earthquake":
+            address = data["EarthquakeInsurance"];
+            break;
+          default:
+            address = null;
+        }
+  
+        setInsuranceAddress(address);
+      } catch (err) {
+        console.error("Failed to load insurance address:", err);
+      }
+    };
+  
+    fetchInsuranceAddress();
+  }, [selectedDisaster]);
 
   // Fetch data from the backend or smart contract
   useEffect(() => {
@@ -79,43 +111,57 @@ export const PoolsSection: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    if (!walletAddress) {
-      alert("Please connect your wallet first.");
-      return;
-    }
-
-    if (!homeAddress.trim()) {
-      alert("Please enter your desired address.");
-      return;
-    }
-
+    if (!walletAddress) return alert("Connect your wallet first.");
+    if (!homeAddress.trim()) return alert("Enter a property address.");
+  
     try {
       setIsLoading(true);
+  
+      const response = await fetch("/addresses.json");
+      const addresses = await response.json();
+  
+      // Mapping disaster label to key in addresses.json
+      const disasterKeyMap: Record<string, string> = {
+        Wildfire: "FireInsurance",
+        Flood: "FloodInsurance",
+        Earthquake: "EarthquakeInsurance",
+      };
 
-      const provider = new ethers.providers.Web3Provider(
-        window.ethereum as ethers.providers.ExternalProvider
-      );
+      const insuranceAddress = addresses[disasterKeyMap[selectedDisaster]];
+
+  
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      const contractAddress = "0xYourContractAddress"; // Replace with your contract address
-      const contractABI = [
-        "function buyInsurance(uint256 coverPeriod) public payable",
-      ];
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-      // Call the buyInsurance function on the smart contract
-      const tx = await contract.buyInsurance(coverPeriod, {
-        value: ethers.utils.parseEther(portfolioValue.toString()), // Convert ETH to Wei
-      });
+      const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, signer);
+  
+      const startTime = Math.floor(Date.now() / 1000);
+      const propertyValueInWei = ethers.utils.parseEther(portfolioValue.toString());
+  
+      // 💸 STEP 1: Calculate correct premium
+      const premium = await contract.calculatePremium(homeAddress, propertyValueInWei, coverPeriod);
+  
+      // 💥 STEP 2: Send transaction with exactly that premium
+      const tx = await contract.buyInsurance(
+        startTime,
+        coverPeriod,
+        homeAddress,
+        propertyValueInWei,
+        {
+          value: premium,
+        }
+      );
+  
       await tx.wait();
-
       alert("Insurance purchased successfully!");
     } catch (error) {
       console.error("Failed to purchase insurance:", error);
-      alert("Purchase failed. Please try again.");
+      alert("Purchase failed. See console for details.");
     } finally {
       setIsLoading(false);
     }
   };
+  
+  
 
   const calculateCoverageDates = () => {
     const startDate = new Date();
