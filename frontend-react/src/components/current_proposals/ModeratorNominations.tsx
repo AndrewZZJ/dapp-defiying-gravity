@@ -1,5 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
+import { useWallet } from "../../context/WalletContext"; // Import WalletContext
+
+const useMockData = true; // toggle as needed
+//NEED TO ADD AN ADD MODERATOR FUNCTION IN SMART CONTRACT GRAVIINSURANCE
 
 const mockModerators = [
   { address: "0x1234...abcd", votes: 12 },
@@ -8,15 +14,62 @@ const mockModerators = [
 ];
 
 export const ModeratorNominations: React.FC = () => {
+  const { walletAddress } = useWallet();
   const [nomineeInput, setNomineeInput] = useState<string>("");
   const [moderators, setModerators] = useState(mockModerators);
-  const [votedFor, setVotedFor] = useState<Set<string>>(new Set()); // tracks which moderators were voted on
+  const [votedFor, setVotedFor] = useState<Set<string>>(new Set());
+  const [insuranceAddresses, setInsuranceAddresses] = useState<string[]>([]);
 
-  const handleNominate = () => {
+  useEffect(() => {
+    const loadAddresses = async () => {
+      try {
+        const res = await fetch("/addresses.json");
+        const data = await res.json();
+        setInsuranceAddresses([
+          data["FireInsurance"],
+          data["FloodInsurance"],
+          data["EarthquakeInsurance"],
+        ]);
+      } catch (err) {
+        console.error("Failed to load insurance contract addresses", err);
+      }
+    };
+
+    loadAddresses();
+  }, []);
+
+  const handleNominate = async () => {
     if (!nomineeInput.trim()) return alert("Enter a valid wallet address.");
-    alert(`(Mock) Nominated ${nomineeInput}`);
-    setNomineeInput("");
+    if (useMockData) {
+      alert(`(Mock) Nominated ${nomineeInput}`);
+      setNomineeInput("");
+      return;
+    }
+  
+    try {
+      const response = await fetch("/addresses.json");
+      const { FireInsurance, FloodInsurance, EarthquakeInsurance } = await response.json();
+      const insuranceAddresses = [FireInsurance, FloodInsurance, EarthquakeInsurance];
+  
+      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      const signer = provider.getSigner();
+  
+      const maxAmount = ethers.utils.parseEther("100"); // 💰 set approval limit here
+  
+      for (const addr of insuranceAddresses) {
+        const contract = new ethers.Contract(addr, GraviInsuranceABI.abi, signer);
+        const tx = await contract.addModeratorToPool(nomineeInput, maxAmount);
+        await tx.wait();
+      }
+  
+      alert(`Successfully nominated ${nomineeInput} as moderator on all pools.`);
+      setNomineeInput("");
+    } catch (err) {
+      console.error("Nomination failed:", err);
+      alert("Nomination failed. See console for details.");
+    }
   };
+  
 
   const handleVote = (address: string) => {
     if (votedFor.has(address)) return;

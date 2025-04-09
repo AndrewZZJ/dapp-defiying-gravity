@@ -6,7 +6,6 @@ import { useWallet } from "../../context/WalletContext";
 import GraviGovernanceABI from "../../artifacts/contracts/GraviGovernance.sol/GraviGovernance.json";
 import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
 
-
 type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed";
 
 interface Proposal {
@@ -18,7 +17,7 @@ interface Proposal {
 }
 
 // Toggle mock mode
-const useMockData = true;
+const useMockData = false;
 
 const mockProposals: Proposal[] = [
   {
@@ -47,6 +46,7 @@ export const ProposalsSection: React.FC = () => {
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
   const [governanceAddress, setGovernanceAddress] = useState<string>("");
   const [graviGovAddress, setGraviGovAddress] = useState("");
+  
 
 
   const contractAddress = "0xYourContractAddress";
@@ -104,7 +104,7 @@ export const ProposalsSection: React.FC = () => {
 
   const fetchProposals = async () => {
     setLoading(true);
-
+  
     if (useMockData) {
       const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
       const sorted = [...mockProposals].sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
@@ -112,18 +112,32 @@ export const ProposalsSection: React.FC = () => {
       setLoading(false);
       return;
     }
-
-    try {
-      const contract = getGovernanceContract();
-      const proposalsData = await contract.getProposals();
   
-      const formatted: Proposal[] = proposalsData.map((p: any) => ({
-        id: Number(p.id),
-        title: p.title,
-        status: p.status as ProposalStatus,
-        startDate: Number(p.startDate),
-        endDate: Number(p.endDate),
-      }));
+    try {
+      const contract = getGovernanceContract(); // already set up
+  
+      const proposalIds: number[] = await contract.getAllProposalIds(); // 🔁 fetch all IDs
+      const rawProposals = await Promise.all(
+        proposalIds.map((id) => contract.getProposalDetail(id))
+      );
+  
+      const formatted: Proposal[] = rawProposals.map((p: any) => {
+        // You may need to determine status separately if it's not in the struct
+        const now = Math.floor(Date.now() / 1000);
+        const votingPeriod = 3 * 24 * 60 * 60; // hardcoded for now
+        let status: ProposalStatus;
+  
+        if (now < p.created + votingPeriod) status = "In Progress";
+        else status = "Approved"; // placeholder — depends on your logic
+  
+        return {
+          id: Number(p.id),
+          title: p.title,
+          status,
+          startDate: Number(p.created),
+          endDate: Number(p.created) + votingPeriod,
+        };
+      });
   
       const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
       formatted.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
@@ -135,6 +149,7 @@ export const ProposalsSection: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
   const checkDelegation = async () => {
     try {
@@ -145,8 +160,7 @@ export const ProposalsSection: React.FC = () => {
       console.error("Delegation check failed:", err);
     }
   };
-  
-  
+   
   const handleDelegate = async () => {
     try {
       const contract = getGraviGovContract(true); // ✅ use GraviGov, not GraviGovernance
@@ -161,25 +175,6 @@ export const ProposalsSection: React.FC = () => {
       alert("Delegation failed. See console.");
     }
   };
-
-  const handleUndelegate = async () => {
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-      const tx = await contract.delegate("0x0000000000000000000000000000000000000000");
-      await tx.wait();
-
-      alert("Undelegated successfully.");
-      checkDelegation();
-    } catch (err) {
-      console.error("Undelegation failed:", err);
-    }
-  };
-
 
   const openVoteModal = (proposalId: number) => {
     if (!hasDelegated) {
@@ -197,21 +192,21 @@ export const ProposalsSection: React.FC = () => {
         setModalOpen(false);
         return;
       }
-
+  
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-      const tx = await contract.vote(proposalId, approve);
+      const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer); // ✅ use governanceAddress + correct ABI
+  
+      const tx = await contract.castVote(proposalId, approve); // ✅ updated to castVote
       await tx.wait();
-
+  
       alert(`Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
       setModalOpen(false);
     } catch (err) {
       console.error("Vote failed:", err);
       alert("Vote failed. See console.");
     }
-  };
+  }; 
 
   return (
     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
