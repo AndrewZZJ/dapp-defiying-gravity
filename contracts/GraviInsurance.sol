@@ -585,39 +585,56 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     ) external view override returns (bytes32[] memory) {
         return userRecords[user].policyIds;
     }
-    /// @notice Returns the insurance (policy) details for the user.
-    /// @return user The caller's address.
-    /// @return policyIds An array of policy IDs held by the user.
-    /// @return propertyAddresses An array of the property addresses.
-    /// @return maxCoverageAmounts An array of coverage amounts (in ETH).
-    /// @return coverageEndDates An array of the policy end times (as Unix timestamps).
-    /// @return insuranceTypes An array of insurance types (e.g., "fire", "flood", "earthquake").
-
+    /// @notice Returns all insurance policies held by the caller (msg.sender).
+    /// @return policyIds Array of policy IDs.
+    /// @return policyHolders Array of policy holder addresses (will all be msg.sender).
+    /// @return maxCoverageAmounts Array of maximum coverage amounts for each policy.
+    /// @return premiums Array of premiums paid for each policy.
+    /// @return startTimes Array of start timestamps for each policy.
+    /// @return endTimes Array of end timestamps for each policy.
+    /// @return isClaimedList Array indicating whether each policy has been claimed.
+    /// @return propertyAddresses Array of property addresses associated with each policy.
+    /// @return propertyValues Array of property values (in ETH) for each policy.
     function getUserPolicies() external view override returns (
-        address user,
         bytes32[] memory policyIds,
-        string[] memory propertyAddresses,
+        address[] memory policyHolders,
         uint256[] memory maxCoverageAmounts,
-        uint256[] memory coverageEndDates,
-        string[] memory insuranceTypes
+        uint256[] memory premiums,
+        uint256[] memory startTimes,
+        uint256[] memory endTimes,
+        bool[] memory isClaimedList,
+        string[] memory propertyAddresses,
+        uint256[] memory propertyValues
     ) {
-        user = msg.sender;
         uint256 count = userRecords[msg.sender].policyIds.length;
+
         policyIds = new bytes32[](count);
-        propertyAddresses = new string[](count);
+        policyHolders = new address[](count);
         maxCoverageAmounts = new uint256[](count);
-        coverageEndDates = new uint256[](count);
+        premiums = new uint256[](count);
+        startTimes = new uint256[](count);
+        endTimes = new uint256[](count);
+        isClaimedList = new bool[](count);
+        propertyAddresses = new string[](count);
+        propertyValues = new uint256[](count);
 
         for (uint256 i = 0; i < count; i++) {
             bytes32 pid = userRecords[msg.sender].policyIds[i];
-            Policy memory policy = policies[pid];
-            policyIds[i] = pid;
-            propertyAddresses[i] = policy.propertyAddress;
-            maxCoverageAmounts[i] = policy.maxCoverageAmount;
-            coverageEndDates[i] = policy.endTime;
-            insuranceTypes[i] = disasterType;
+            Policy memory p = policies[pid];
+
+            policyIds[i] = p.policyId;
+            policyHolders[i] = p.policyHolder;
+            maxCoverageAmounts[i] = p.maxCoverageAmount;
+            premiums[i] = p.premiumPaid;
+            startTimes[i] = p.startTime;
+            endTimes[i] = p.endTime;
+            isClaimedList[i] = p.isClaimed;
+            propertyAddresses[i] = p.propertyAddress;
+            propertyValues[i] = p.propertyValue;
         }
     }
+
+
 
 
     /// @notice Returns the addresses of all moderators assigned to a specific claim.
