@@ -122,4 +122,10 @@ interface IGraviInsurance {
 
     /// @notice Retrieves the top 10 highest donors.
     function getTopDonors() external view returns (address[] memory, uint256[] memory);
+
+    // AJ: a method getting all claims sent by users needed
+    // input: N/A
+    // output: a list of claims
+    // PS. I'm not sure if I have access to this public variable claimRecords from frontend, so I added it here. Method added.
+    // function getAllClaims() external view returns (ClaimRecord[] memory);
 }

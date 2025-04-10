@@ -4,7 +4,8 @@ import { ChevronDownIcon, ChevronUpIcon } from "./Icons";
 
 interface ClaimItemProps {
   title: string;
-  status: "Approved" | "Declined" | "In Progress";
+  // status: "Approved" | "Declined" | "In Progress";
+  status: string;
   information?: string;
   policyId: string;
   onCancel?: () => void;
@@ -99,7 +100,8 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
 
           {/* Right: Status + Expand */}
           <div className="flex items-start sm:justify-end gap-3 mt-2 sm:mt-0">
-            <span className={`text-sm font-semibold ${statusColor[status]}`}>
+            {/* <span className={`text-sm font-semibold ${statusColor[status]}`}> */}
+            <span className={`text-sm font-semibold "text-green-600"`}>
               {status}
             </span>
             <button

@@ -768,4 +768,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         }
     }
 
+    function getAllClaims() external view returns (ClaimRecord[] memory) {
+        return claimRecords;
+    }
+
 }

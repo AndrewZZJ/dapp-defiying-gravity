@@ -3,17 +3,32 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext";
 import { ClaimItem } from "./ClaimItem";
+import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
 type ClaimStatus = "Approved" | "Declined" | "In Progress";
+const claimStatusMap = ["Pending", "Accepted", "Denied"];
 
 interface Claim {
   id: string;
   title: string;
   policyId: string;
-  status: ClaimStatus;
+  // status: ClaimStatus;
+  status: string;
 }
 
-const useMockData = true;
+//   struct ClaimRecord {
+    //     uint256 claimId; // Auto-incremented claim ID.
+    //     bytes32 policyId; // Associated policy.
+    //     string eventId; // Associated disaster event (string ID, e.g., "EVT#1").
+    //     uint256 approvedClaimAmount; // The final approved amount.
+    //     uint256 assessmentStart; // Timestamp when claim assessment starts.
+    //     uint256 assessmentEnd; // Timestamp when claim assessment ends.
+    //     ClaimStatus status; // Current claim status.
+    //     string incidentDescription; // Details about the incident.
+    //     ModeratorInfo[] moderatorTeam; // Array of moderator decisions
+    // }
+
+const useMockData = false;
 
 const mockClaims: Claim[] = [
   {
@@ -53,24 +68,31 @@ export const ClaimsList: React.FC = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const contractAddress = "0xYourContractAddress";
-  const contractABI = [
-    "function getClaims() public view returns (tuple(string id, string title, string policyId, string status)[])",
-  ];
+  // const contractAddress = "0xYourContractAddress";
+  // const contractABI = [
+  //   "function getClaims() public view returns (tuple(string id, string title, string policyId, string status)[])",
+  // ];
 
   const fetchClaims = async () => {
     try {
       setLoading(true);
+
+      const res = await fetch("/addresses.json");
+      const addresses = await res.json();
+      // AJ: default gettign wildfire here
+      const contractAddress = addresses["FireInsurance"];
+
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      const contract = new ethers.Contract(contractAddress,  GraviInsuranceABI.abi, signer);
 
-      const claimsData = await contract.getClaims();
+      const claimsData = await contract.getAllClaims();
       const formattedClaims: Claim[] = claimsData.map((claim: any) => ({
-        id: claim.id,
-        title: claim.title,
-        policyId: claim.policyId,
-        status: claim.status as ClaimStatus,
+        id: claim.claimId.toString(),
+        title: "N/A",
+        policyId: claim.policyId.toString(),
+        // status: claim.status as ClaimStatus,
+        status: claimStatusMap[claim.status.toNumber()],
       }));
 
       setClaims(formattedClaims);
@@ -114,7 +136,9 @@ export const ClaimsList: React.FC = () => {
             <ClaimItem
               key={claim.id}
               title={claim.title}
+              // status={claim.status}
               status={claim.status}
+              // status: claimStatusMap[claim.status.toNumber()],
               policyId={claim.policyId} // Pass policyId to ClaimItem
               onCancel={
                 claim.status === "In Progress" ? () => handleCancel(claim.id) : undefined
