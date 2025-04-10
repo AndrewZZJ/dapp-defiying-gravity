@@ -40,7 +40,7 @@ interface IGraviInsurance {
     ) external payable returns (bytes32);
 
     /// @notice Retrieves the insurance policies of the user.
-    function getUserPolicies() external view override returns (
+    function getUserPolicies() external view returns (
         bytes32[] memory policyIds,
         address[] memory policyHolders,
         uint256[] memory maxCoverageAmounts,
@@ -50,7 +50,7 @@ interface IGraviInsurance {
         bool[] memory isClaimedList,
         string[] memory propertyAddresses,
         uint256[] memory propertyValues
-    )
+    );
 
     /// @notice Gets policy IDs for a given user.
     function fetchInsuranceIds(address user) external view returns (bytes32[] memory);
