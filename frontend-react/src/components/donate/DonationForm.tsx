@@ -13,6 +13,8 @@ export const DonationForm: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [charityTokens, setCharityTokens] = useState<number | null>(null); 
+  const [charityTokens_flood, setCharityTokensFlood] = useState<number | null>(null); 
+  const [charityTokens_earthquake, setCharityTokensEarthquake] = useState<number | null>(null); 
   const [fireAddress, setFireAddress] = useState("");
   const [floodAddress, setFloodAddress] = useState("");
   const [earthquakeAddress, setEarthquakeAddress] = useState("");
@@ -32,12 +34,19 @@ export const DonationForm: React.FC = () => {
         const flood = deploymentConfig["FloodInsurance"];
         const earthquake = deploymentConfig["EarthquakeInsurance"];
 
-
         // Fetch charity tokens from the backend (Note this should be PER insurance)
         const provider = new ethers.providers.Web3Provider(window.ethereum as any);
         const contract = new ethers.Contract(wildfire, GraviInsuranceABI.abi, provider);
         const exchangeRate = await contract.getDonationRewardRate();
         setCharityTokens(exchangeRate.toString());
+
+        const contract_flood = new ethers.Contract(flood, GraviInsuranceABI.abi, provider);
+        const exchangeRate_flood = await contract_flood.getDonationRewardRate();
+        setCharityTokensFlood(exchangeRate_flood.toString());
+
+        const contract_earthquake = new ethers.Contract(wildfire, GraviInsuranceABI.abi, provider);
+        const exchangeRate_earthquake = await contract_earthquake.getDonationRewardRate();
+        setCharityTokensEarthquake(exchangeRate_earthquake.toString());
 
         setFireAddress(wildfire);
         setFloodAddress(flood);
@@ -159,6 +168,12 @@ export const DonationForm: React.FC = () => {
     { name: "0xG7...H89", amount: "1.2 ETH" },
   ];
 
+  const charityTokenMapping: Record <string, number | null> = {
+    "Wildfire": charityTokens,
+    "Flood": charityTokens_flood,
+    "Earthquake": charityTokens_earthquake,
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-8">
       {/* Donation Form Section */}
@@ -236,7 +251,7 @@ export const DonationForm: React.FC = () => {
         <div className="mt-4">
           <p className="font-medium">Rewarded Charity Tokens (Per ETH):</p>
           <p className="text-sm text-gray-700">
-            {charityTokens !== null ? charityTokens : "Pending..."}
+            {selectedPool ? charityTokenMapping[selectedPool] ?? "Pending request..." : "Select a pool first"}
           </p>
         </div>
       </section>
