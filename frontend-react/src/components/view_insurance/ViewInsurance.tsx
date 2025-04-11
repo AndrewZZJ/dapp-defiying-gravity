@@ -99,9 +99,16 @@ export const ViewInsurance: React.FC = () => {
       const groupedInsurances: { [propertyAddress: string]: any[] } = {};
 
       // Loop over each insurance type and fetch policies.
-      for (const type of types) {
+      for (let type of types) {
         const insuranceAddress = contractAddresses[type];
         if (!insuranceAddress) continue;
+
+        // Now get a more human readable type name.
+        // For now hardcode the type name for Wildfire, Flood, and Earthquake.
+        if (type === "FireInsurance") type = "Wildfire";
+        else if (type === "FloodInsurance") type = "Flood";
+        else if (type === "EarthquakeInsurance") type = "Earthquake";
+        else type = type.replace("Insurance", "");
 
         const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, signer);
         let policyIds: string[];
@@ -217,7 +224,13 @@ export const ViewInsurance: React.FC = () => {
                           ID: <span className="text-gray-900">{insurance.id}</span>
                         </p>
                         <p className="text-sm text-gray-600">
+                          Purchase Price: <span className="text-gray-900">{insurance.premium || "N/A"}</span>
+                        </p>
+                        <p className="text-sm text-gray-600">
                           Max Coverage: <span className="text-gray-900">{insurance.maxCoverage || "N/A"}</span>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Coverage Start: <span className="text-gray-900">{insurance.startTime || "N/A"}</span>
                         </p>
                         <p className="text-sm text-gray-600">
                           Coverage Ends: <span className="text-gray-900">{insurance.coverageEndDate || "N/A"}</span>

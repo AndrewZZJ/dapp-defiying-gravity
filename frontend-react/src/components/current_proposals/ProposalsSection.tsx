@@ -6,11 +6,12 @@ import { useWallet } from "../../context/WalletContext";
 import GraviGovernanceABI from "../../artifacts/contracts/GraviGovernance.sol/GraviGovernance.json";
 import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
 
-type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed";
+type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed" | "Unknown";
 
 interface Proposal {
   id: number;
   title: string;
+  description: string;
   status: ProposalStatus;
   startDate: number;
   endDate: number;
@@ -23,6 +24,7 @@ const mockProposals: Proposal[] = [
   {
     id: 1,
     title: "Increase Treasury Allocation",
+    description: "Proposal to increase the treasury allocation for better liquidity.",
     status: "In Progress",
     startDate: Math.floor(Date.now() / 1000) - 86400,
     endDate: Math.floor(Date.now() / 1000) + 86400 * 2,
@@ -30,6 +32,7 @@ const mockProposals: Proposal[] = [
   {
     id: 2,
     title: "Partner with OpenSea",
+    description: "Proposal to partner with OpenSea for better exposure.",
     status: "Approved",
     startDate: Math.floor(Date.now() / 1000) - 604800,
     endDate: Math.floor(Date.now() / 1000) - 432000,
@@ -49,15 +52,15 @@ export const ProposalsSection: React.FC = () => {
   
 
 
-  const contractAddress = "0xYourContractAddress";
+  // const contractAddress = "0xYourContractAddress";
   
-  const contractABI = [
-    "function getProposals() public view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[])",
-    "function delegate(address delegateAddress) public",
-    "function undelegate() public",
-    "function hasDelegate(address user) public view returns (bool)",
-    "function vote(uint proposalId, bool approve) public",
-  ];
+  // const contractABI = [
+  //   "function getProposals() public view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[])",
+  //   "function delegate(address delegateAddress) public",
+  //   "function undelegate() public",
+  //   "function hasDelegate(address user) public view returns (bool)",
+  //   "function vote(uint proposalId, bool approve) public",
+  // ];
 
   
   useEffect(() => {
@@ -102,54 +105,148 @@ export const ProposalsSection: React.FC = () => {
     return new ethers.Contract(graviGovAddress, GraviGovABI.abi, signerOrProvider);
   };  
 
+  // const fetchProposals = async () => {
+  //   setLoading(true);
+  
+  //   if (useMockData) {
+  //     const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
+  //     const sorted = [...mockProposals].sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+  //     setProposals(sorted);
+  //     setLoading(false);
+  //     return;
+  //   }
+  
+  //   try {
+  //     const contract = getGovernanceContract(); // already set up
+  
+  //     const proposalIds: number[] = await contract.getAllProposalIds(); // 🔁 fetch all IDs
+  //     const rawProposals = await Promise.all(
+  //       proposalIds.map((id) => contract.getProposalDetail(id))
+  //     );
+
+  //     // console.log(rawProposals);
+  
+  //     const formatted: Proposal[] = rawProposals.map((p: any) => {
+  //       // You may need to determine status separately if it's not in the struct
+  //       const now = Math.floor(Date.now() / 1000);
+  //       const votingPeriod = 3 * 24 * 60 * 60; // hardcoded for now
+  //       let status: ProposalStatus;
+  
+  //       if (now < p.created + votingPeriod) status = "In Progress";
+  //       else status = "Approved"; 
+  
+  //       return {
+  //         // id: Number(p.id),
+  //         id: p.id.toHexString(),
+  //         title: p.title,
+  //         description: p.description,
+  //         status,
+  //         startDate: Number(p.created),
+  //         endDate: Number(p.created) + votingPeriod,
+  //       };
+  //     });
+  
+  //     const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
+  //     formatted.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+  
+  //     setProposals(formatted);
+  //   } catch (err) {
+  //     console.error("Fetch proposals failed:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  // This function fetches proposals in real time using on-chain data.
   const fetchProposals = async () => {
     setLoading(true);
-  
     if (useMockData) {
-      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
+      // Sort mock proposals by status order.
+      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed", "Unknown"];
       const sorted = [...mockProposals].sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
       setProposals(sorted);
       setLoading(false);
       return;
     }
-  
     try {
-      const contract = getGovernanceContract(); // already set up
-  
-      const proposalIds: number[] = await contract.getAllProposalIds(); // 🔁 fetch all IDs
-      const rawProposals = await Promise.all(
-        proposalIds.map((id) => contract.getProposalDetail(id))
+      const contract = getGovernanceContract();
+      // Fetch the proposal IDs from the contract.
+      const proposalIds: number[] = await contract.getAllProposalIds();
+      // For each proposal, get the details and the on-chain timing info.
+      const proposalsData: Proposal[] = await Promise.all(
+        proposalIds.map(async (id: number) => {
+          // Retrieve basic proposal details.
+          const proposalDetail = await contract.getProposalDetail(id);
+          // Retrieve state, snapshot, and deadline using additional contract functions.
+          const state = await contract.state(id);
+          const snapshot = Number(await contract.proposalSnapshot(id));
+          const deadline = Number(await contract.proposalDeadline(id));
+          const now = Math.floor(Date.now() / 1000);
+
+          // Determine the status.
+          let status: ProposalStatus;
+          // if (now < deadline) {
+          //   status = "In Progress";
+          // } else {
+          //   // Map the proposal state to a human‑readable status.
+          //   // (Adjust the mapping if your contract uses different numeric values.)
+          //   const stateStr = state.toString();
+          //   if (stateStr === "1") {
+          //     status = "In Progress";
+          //     // status = "Approved";
+          //   } else if (stateStr === "7") {
+          //     status = "Approved and Executed";
+          //   } else if (stateStr === "3" || stateStr === "4") {
+          //     status = "Declined";
+          //   } else {
+          //     status = "Unknown"; // Fallback
+          //   }
+          // }
+          const stateStr = state.toString();
+        //   enum ProposalState {
+        //     Pending, -> 0
+        //     Active, -> 1
+        //     Canceled, -> 2
+        //     Defeated, -> 3
+        //     Succeeded, -> 4
+        //     Queued, -> 5
+        //     Expired, -> 6
+        //     Executed -> 7
+        // }
+          if (stateStr === "1") { // Aci
+            status = "In Progress";
+            // status = "Approved";
+          } else if (stateStr === "7") {
+            status = "Approved and Executed";
+          } else if (stateStr === "2" || stateStr === "3") {
+            status = "Declined";
+          } else if (stateStr === "4" || stateStr === "5") {
+            status = "Approved";
+          } else {
+            status = "Unknown"; // Fallback
+          }
+
+          return {
+            id: proposalDetail.id.toHexString(),
+            title: proposalDetail.title,
+            description: proposalDetail.description,
+            status,
+            startDate: snapshot,
+            endDate: deadline,
+          };
+        })
       );
-  
-      const formatted: Proposal[] = rawProposals.map((p: any) => {
-        // You may need to determine status separately if it's not in the struct
-        const now = Math.floor(Date.now() / 1000);
-        const votingPeriod = 3 * 24 * 60 * 60; // hardcoded for now
-        let status: ProposalStatus;
-  
-        if (now < p.created + votingPeriod) status = "In Progress";
-        else status = "Approved"; // placeholder — depends on your logic
-  
-        return {
-          id: Number(p.id),
-          title: p.title,
-          status,
-          startDate: Number(p.created),
-          endDate: Number(p.created) + votingPeriod,
-        };
-      });
-  
-      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
-      formatted.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-  
-      setProposals(formatted);
+
+      // Optionally sort proposals by status.
+      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed" , "Unknown"];
+      proposalsData.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+
+      setProposals(proposalsData);
     } catch (err) {
       console.error("Fetch proposals failed:", err);
     } finally {
       setLoading(false);
     }
   };
-  
 
   const checkDelegation = async () => {
     try {
@@ -246,7 +343,7 @@ export const ProposalsSection: React.FC = () => {
   
             return (
               <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
-                <ProposalItem title={proposal.title} status={proposal.status}>
+                <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
                   <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
                   <p className="text-sm text-gray-600">
                     Start: {new Date(proposal.startDate * 1000).toLocaleString()}
