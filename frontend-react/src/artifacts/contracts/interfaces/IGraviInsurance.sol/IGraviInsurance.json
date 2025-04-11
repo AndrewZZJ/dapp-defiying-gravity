@@ -7,24 +7,6 @@
       "inputs": [
         {
           "internalType": "string",
-          "name": "eventId",
-          "type": "string"
-        },
-        {
-          "internalType": "address",
-          "name": "moderator",
-          "type": "address"
-        }
-      ],
-      "name": "addClaimModerator",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
           "name": "eventName",
           "type": "string"
         },
@@ -37,14 +19,50 @@
           "internalType": "uint256",
           "name": "disasterDate",
           "type": "uint256"
-        },
-        {
-          "internalType": "address[]",
-          "name": "initialModerators",
-          "type": "address[]"
         }
       ],
       "name": "addDisasterEvent",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "moderator",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "addModeratorToPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "claimId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isApproved",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "assessClaim",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -95,7 +113,7 @@
       "outputs": [
         {
           "internalType": "uint256",
-          "name": "coverageAmount",
+          "name": "",
           "type": "uint256"
         }
       ],
@@ -134,7 +152,13 @@
     {
       "inputs": [],
       "name": "donate",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokensReceived",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "payable",
       "type": "function"
     },
@@ -159,27 +183,17 @@
     },
     {
       "inputs": [],
-      "name": "getAllClaims",
+      "name": "getAllDonors",
       "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        },
         {
           "internalType": "uint256[]",
           "name": "",
           "type": "uint256[]"
-        },
-        {
-          "internalType": "string[]",
-          "name": "",
-          "type": "string[]"
-        },
-        {
-          "internalType": "string[]",
-          "name": "",
-          "type": "string[]"
-        },
-        {
-          "internalType": "string[]",
-          "name": "",
-          "type": "string[]"
         }
       ],
       "stateMutability": "view",
@@ -188,9 +202,9 @@
     {
       "inputs": [
         {
-          "internalType": "string",
-          "name": "eventId",
-          "type": "string"
+          "internalType": "uint256",
+          "name": "claimId",
+          "type": "uint256"
         }
       ],
       "name": "getClaimModerators",
@@ -206,17 +220,93 @@
     },
     {
       "inputs": [],
-      "name": "getUserPolicies",
+      "name": "getTopDonors",
       "outputs": [
         {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getUserClaims",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "claimIds",
+          "type": "uint256[]"
         },
         {
           "internalType": "bytes32[]",
           "name": "policyIds",
           "type": "bytes32[]"
+        },
+        {
+          "internalType": "address[][]",
+          "name": "moderators",
+          "type": "address[][]"
+        },
+        {
+          "internalType": "string[]",
+          "name": "statuses",
+          "type": "string[]"
+        },
+        {
+          "internalType": "string[]",
+          "name": "descriptions",
+          "type": "string[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getUserPolicies",
+      "outputs": [
+        {
+          "internalType": "bytes32[]",
+          "name": "policyIds",
+          "type": "bytes32[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "policyHolders",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "maxCoverageAmounts",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "premiums",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "startTimes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "endTimes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bool[]",
+          "name": "isClaimedList",
+          "type": "bool[]"
         },
         {
           "internalType": "string[]",
@@ -225,18 +315,67 @@
         },
         {
           "internalType": "uint256[]",
-          "name": "coverageAmounts",
+          "name": "propertyValues",
           "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "policyId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getUserPolicy",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_policyId",
+          "type": "bytes32"
         },
         {
-          "internalType": "uint256[]",
-          "name": "coverageEndDates",
-          "type": "uint256[]"
+          "internalType": "address",
+          "name": "_policyHolder",
+          "type": "address"
         },
         {
-          "internalType": "string[]",
-          "name": "insuranceTypes",
-          "type": "string[]"
+          "internalType": "uint256",
+          "name": "_maxCoverageAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_premiumPaid",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_startTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_endTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "_isClaimed",
+          "type": "bool"
+        },
+        {
+          "internalType": "string",
+          "name": "_propertyAddress",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_propertyValue",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -273,17 +412,25 @@
     {
       "inputs": [
         {
-          "internalType": "string",
-          "name": "eventId",
-          "type": "string"
-        },
-        {
-          "internalType": "address",
-          "name": "moderator",
-          "type": "address"
+          "internalType": "uint256",
+          "name": "claimId",
+          "type": "uint256"
         }
       ],
-      "name": "removeClaimModerator",
+      "name": "payoutClaim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "claimId",
+          "type": "uint256"
+        }
+      ],
+      "name": "processClaim",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -304,13 +451,31 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "moderator",
+          "type": "address"
+        }
+      ],
+      "name": "removeModeratorFromPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "string",
-          "name": "incidentDescription",
+          "name": "eventId",
           "type": "string"
         },
         {
+          "internalType": "bytes32",
+          "name": "policyId",
+          "type": "bytes32"
+        },
+        {
           "internalType": "string",
-          "name": "disasterType",
+          "name": "incidentDescription",
           "type": "string"
         }
       ],

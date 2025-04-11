@@ -634,7 +634,31 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         }
     }
 
-
+    function getUserPolicy(bytes32 policyId) external view returns (
+        bytes32 _policyId,
+        address _policyHolder,
+        uint256 _maxCoverageAmount,
+        uint256 _premiumPaid,
+        uint256 _startTime,
+        uint256 _endTime,
+        bool _isClaimed,
+        string memory _propertyAddress,
+        uint256 _propertyValue
+    ) {
+        Policy memory p = policies[policyId];
+        require(p.policyHolder == msg.sender, "Caller is not policy holder");
+        return (
+            p.policyId,
+            p.policyHolder,
+            p.maxCoverageAmount,
+            p.premiumPaid,
+            p.startTime,
+            p.endTime,
+            p.isClaimed,
+            p.propertyAddress,
+            p.propertyValue
+        );
+    }
 
 
     /// @notice Returns the addresses of all moderators assigned to a specific claim.

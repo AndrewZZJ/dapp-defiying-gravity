@@ -136,6 +136,9 @@ export const DonationForm: React.FC = () => {
 
       alert("Donation successful!");
 
+      // Now set the amount to donate to 0
+      setAmount("");
+
       // // Fetch charity tokens from the backend
       // const response = await fetch(`/api/charity-tokens?wallet=${walletAddress}`);
       // const data = await response.json();

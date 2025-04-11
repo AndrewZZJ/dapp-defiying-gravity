@@ -79,6 +79,8 @@ npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
 
 # Insurances
 npx hardhat run scripts/insurance/buy-insurance.ts --network localhost
+npx hardhat run scripts/insurance/view-insurance.ts --network localhost
+
 
 ### DAO - Buy Governance Tokens
 npx hardhat run scripts/view/view-gov-pool-and-burn-prices.ts --network localhost

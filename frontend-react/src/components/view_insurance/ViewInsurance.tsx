@@ -5,27 +5,33 @@ import { useWallet } from "../../context/WalletContext";
 import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
-
 interface InsuranceEntry {
   address: string;
   insurances: {
     type: string;
     id: string;
-    maxCoverage?: string; // Maximum coverage amount
-    coverageEndDate?: string; // Coverage end date
+    contractAddress?: string;
+    policyHolder?: string;
+    maxCoverage?: string;
+    premium?: string;
+    startTime?: string;
+    coverageEndDate?: string;
+    isClaimed?: boolean;
+    propertyAddress?: string;
+    propertyValue?: string;
   }[];
 }
 
 export const ViewInsurance: React.FC = () => {
-  const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state from context
+  const { walletAddress, setWalletAddress } = useWallet();
   const [insuranceData, setInsuranceData] = useState<InsuranceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [contractAddresses, setContractAddresses] = useState<{ [key: string]: string }>({});
 
   // Toggle this line to use template data or backend/smart contract data
-  const useTemplateData = false; // Set to `true` to use template data, otherwise backend data is used
+  const useTemplateData = false;
 
-  // Function to connect wallet
+  // Connect wallet if not already connected
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
@@ -35,7 +41,7 @@ export const ViewInsurance: React.FC = () => {
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
-        setWalletAddress(address); // Update global wallet state
+        setWalletAddress(address);
       } catch (error) {
         console.error("Wallet connection failed:", error);
       }
@@ -44,125 +50,110 @@ export const ViewInsurance: React.FC = () => {
     }
   };
 
+  // Load contract addresses from addresses.json
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
         const res = await fetch("/addresses.json");
         const data = await res.json();
-        setContractAddresses(data); // Stores all addresses like FireInsurance, FloodInsurance, etc.
+        setContractAddresses(data);
       } catch (err) {
         console.error("Failed to load addresses.json:", err);
       }
     };
-  
     fetchAddresses();
   }, []);
 
-  // Fetch insurance data for the connected wallet
+  // Function to fetch insurance data
+  const refreshInsuranceData = async () => {
+    if (!walletAddress) return;
+    setIsLoading(true);
+    try {
+      const fetchedData = useTemplateData
+        ? getTemplateInsuranceData()
+        : await getInsuranceData(walletAddress);
+      setInsuranceData(fetchedData);
+    } catch (error) {
+      console.error("Failed to refresh insurance data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch insurance data when walletAddress changes
   useEffect(() => {
-    const fetchInsuranceData = async () => {
-      if (!walletAddress) return;
-
-      try {
-        setIsLoading(true);
-
-        // Fetch data from backend or use template data
-        const fetchedData = useTemplateData
-          ? getTemplateInsuranceData()
-          : await getInsuranceData(walletAddress);
-
-        // Fetch additional details for each insurance
-        const detailedData = await Promise.all(
-          fetchedData.map(async (entry) => ({
-            ...entry,
-            insurances: await Promise.all(
-              entry.insurances.map(async (insurance) => ({
-                ...insurance,
-                ...(await getInsuranceDetails(insurance.id, useTemplateData)), // Fetch additional details
-              }))
-            ),
-          }))
-        );
-
-        setInsuranceData(detailedData);
-      } catch (error) {
-        console.error("Failed to fetch insurance data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInsuranceData();
+    refreshInsuranceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress, useTemplateData]);
 
-  // Function to fetch insurance data from backend or smart contract
+  // Revised function to fetch and group insurance policies by property address.
   const getInsuranceData = async (wallet: string): Promise<InsuranceEntry[]> => {
     try {
       if (!window.ethereum) throw new Error("No Ethereum provider found");
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-  
+
+      // Define the types of insurance contracts.
       const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
-      const entries: InsuranceEntry[] = [];
-  
+      // Object to group policies by property address.
+      const groupedInsurances: { [propertyAddress: string]: any[] } = {};
+
+      // Loop over each insurance type and fetch policies.
       for (const type of types) {
-        const address = contractAddresses[type];
-        if (!address) continue;
-  
-        const contract = new ethers.Contract(address, GraviInsuranceABI.abi, signer);
-  
+        const insuranceAddress = contractAddresses[type];
+        if (!insuranceAddress) continue;
+
+        const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, signer);
         let policyIds: string[];
-  
         try {
-          // 👇 Only fetch the policy IDs for the connected user
           policyIds = await contract.fetchInsuranceIds(wallet);
+          console.log(`${type} Policy IDs:`, policyIds);
         } catch (err) {
-          console.warn(`Skipping ${type} — failed to fetch policies.`);
+          console.warn(`Skipping ${type} due to error:`, err);
           continue;
         }
-  
         if (!policyIds.length) continue;
-  
-        // 👇 Just display the IDs as-is (no other detail)
-        const insurances = policyIds.map((id) => ({
-          type, // Use the type (FireInsurance, etc.) as label
-          id,   // Display raw ID
-        }));
-  
-        // 👇 Group by disaster type, not address anymore
-        entries.push({
-          address: type, // Just using type as the label now
-          insurances,
+
+        // Retrieve full details for each policy.
+        const insurances = await Promise.all(
+          policyIds.map(async (id: string) => {
+            const policyDetail = await contract.getUserPolicy(id);
+            console.log(`${type} Policy Detail for ${id}:`, policyDetail);
+            return {
+              type,
+              id,
+              contractAddress: insuranceAddress,
+              policyHolder: policyDetail._policyHolder,
+              maxCoverage: ethers.utils.formatEther(policyDetail._maxCoverageAmount) + " ETH",
+              premium: ethers.utils.formatEther(policyDetail._premiumPaid) + " ETH",
+              startTime: new Date(policyDetail._startTime.toNumber() * 1000).toISOString(),
+              coverageEndDate: new Date(policyDetail._endTime.toNumber() * 1000).toISOString(),
+              isClaimed: policyDetail._isClaimed,
+              propertyAddress: policyDetail._propertyAddress,
+              propertyValue: ethers.utils.formatEther(policyDetail._propertyValue) + " ETH",
+            };
+          })
+        );
+
+        // Group policies by their property address.
+        insurances.forEach((insurance) => {
+          const propertyAddress = insurance.propertyAddress;
+          if (groupedInsurances[propertyAddress]) {
+            groupedInsurances[propertyAddress].push(insurance);
+          } else {
+            groupedInsurances[propertyAddress] = [insurance];
+          }
         });
       }
-  
-      return entries;
+
+      // Convert grouped object into an array of InsuranceEntry.
+      return Object.keys(groupedInsurances).map((propertyAddress) => ({
+        address: propertyAddress,
+        insurances: groupedInsurances[propertyAddress],
+      }));
     } catch (err) {
       console.error("getInsuranceData error:", err);
       return [];
-    }
-  };
-  
-
-  // Function to fetch additional details for an insurance
-  const getInsuranceDetails = async (
-    id: string,
-    useTemplateData: boolean
-  ): Promise<{ maxCoverage: string; coverageEndDate: string }> => {
-    if (useTemplateData) {
-      // Return template data
-      return {
-        maxCoverage: "100 ETH", // Example value
-        coverageEndDate: "2025-12-31", // Example value
-      };
-    } else {
-      // Replace this with actual backend or smart contract call
-      console.log(`Fetching details for insurance with id: ${id}`);
-      // Simulate backend response
-      return {
-        maxCoverage: "Fetched from backend", // Replace with actual backend value
-        coverageEndDate: "Fetched from backend", // Replace with actual backend value
-      };
     }
   };
 
@@ -172,14 +163,14 @@ export const ViewInsurance: React.FC = () => {
       {
         address: "123 Main St, City, State, Country",
         insurances: [
-          { type: "Wildfire", id: "0xabc123" },
-          { type: "Flood", id: "0xdef456" },
+          { type: "Wildfire", id: "0xabc123", maxCoverage: "100 ETH", coverageEndDate: "2025-12-31" },
+          { type: "Flood", id: "0xdef456", maxCoverage: "50 ETH", coverageEndDate: "2024-06-30" },
         ],
       },
       {
         address: "456 Business Ave, City, State, Country",
         insurances: [
-          { type: "Earthquake", id: "0xghi789" },
+          { type: "Earthquake", id: "0xghi789", maxCoverage: "75 ETH", coverageEndDate: "2025-05-15" },
         ],
       },
     ];
@@ -189,10 +180,17 @@ export const ViewInsurance: React.FC = () => {
     <>
       <NavigationHeader />
       <main className="relative px-8 py-12 bg-white min-h-screen">
-        <h1 className="mb-12 text-4xl font-bold text-center text-gray-900">
-          View Insurance
-        </h1>
-
+        <h1 className="mb-8 text-4xl font-bold text-center text-gray-900">View Insurance</h1>
+        {walletAddress && (
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={refreshInsuranceData}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Refresh Data
+            </button>
+          </div>
+        )}
         {walletAddress ? (
           isLoading ? (
             <p className="text-center text-lg text-gray-700">Loading insurance data...</p>
@@ -232,12 +230,14 @@ export const ViewInsurance: React.FC = () => {
             </div>
           ) : (
             <p className="text-center text-lg text-gray-700">
-              No insurance data found for this wallet address.
+              Not refreshed or no insurance data found for this wallet address.
             </p>
           )
         ) : (
           <div className="text-center">
-            <p className="text-lg font-medium">Please connect your wallet to view insurance data.</p>
+            <p className="text-lg font-medium">
+              Please connect your wallet to view insurance data.
+            </p>
             <button
               onClick={connectWallet}
               className="mt-4 px-4 py-2 bg-black text-white rounded-lg"

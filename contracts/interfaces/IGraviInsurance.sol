@@ -128,4 +128,15 @@ interface IGraviInsurance {
     // output: a list of claims
     // PS. I'm not sure if I have access to this public variable claimRecords from frontend, so I added it here. Method added.
     // function getAllClaims() external view returns (ClaimRecord[] memory);
+    function getUserPolicy(bytes32 policyId) external view returns (
+            bytes32 _policyId,
+            address _policyHolder,
+            uint256 _maxCoverageAmount,
+            uint256 _premiumPaid,
+            uint256 _startTime,
+            uint256 _endTime,
+            bool _isClaimed,
+            string memory _propertyAddress,
+            uint256 _propertyValue
+    );
 }
