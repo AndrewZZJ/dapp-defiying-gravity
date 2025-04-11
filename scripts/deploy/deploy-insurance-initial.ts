@@ -24,9 +24,9 @@ async function main() {
 
   // Define the three insurances.
   const insurances = [
-    { name: "Fire Insurance", disaster: "fire", premium: 5 },
+    { name: "Fire Insurance", disaster: "fire", premium: 4 },
     { name: "Flood Insurance", disaster: "flood", premium: 5 },
-    { name: "Earthquake Insurance", disaster: "earthquake", premium: 5 },
+    { name: "Earthquake Insurance", disaster: "earthquake", premium: 6 },
   ];
 
   // To hold deployed insurance data.

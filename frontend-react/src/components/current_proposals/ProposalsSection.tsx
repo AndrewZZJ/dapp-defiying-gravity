@@ -178,9 +178,37 @@ export const ProposalsSection: React.FC = () => {
           const proposalDetail = await contract.getProposalDetail(id);
           // Retrieve state, snapshot, and deadline using additional contract functions.
           const state = await contract.state(id);
-          const snapshot = Number(await contract.proposalSnapshot(id));
-          const deadline = Number(await contract.proposalDeadline(id));
-          const now = Math.floor(Date.now() / 1000);
+            const snapshot = Number(await contract.proposalSnapshot(id));
+            const deadline = Number(await contract.proposalDeadline(id));
+
+            // Fetch the latest block to get the current block number and timestamp
+            const latestBlock = await contract.provider.getBlock("latest");
+
+            // Ensure we work with numbers
+            const currentBlockNumber = Number(latestBlock.number);
+            const currentTimestamp = Number(latestBlock.timestamp);
+
+            // Determine snapshot date
+            let snapshotDate: number;
+            if (snapshot <= currentBlockNumber) {
+            const snapshotBlock = await contract.provider.getBlock(snapshot);
+            snapshotDate = Number(snapshotBlock.timestamp);
+            } else {
+            const snapshotBlocksToWait = snapshot - currentBlockNumber;
+            const snapshotEstimatedSeconds = snapshotBlocksToWait * 12; // 12 seconds per block
+            snapshotDate = currentTimestamp + snapshotEstimatedSeconds;
+            }
+
+            // Determine deadline date
+            let deadlineDate: number;
+            if (deadline <= currentBlockNumber) {
+            const deadlineBlock = await contract.provider.getBlock(deadline);
+            deadlineDate = Number(deadlineBlock.timestamp);
+            } else {
+            const deadlineBlocksToWait = deadline - currentBlockNumber;
+            const deadlineEstimatedSeconds = deadlineBlocksToWait * 12; // 12 seconds per block
+            deadlineDate = currentTimestamp + deadlineEstimatedSeconds;
+            }
 
           // Determine the status.
           let status: ProposalStatus;
@@ -230,8 +258,8 @@ export const ProposalsSection: React.FC = () => {
             title: proposalDetail.title,
             description: proposalDetail.description,
             status,
-            startDate: snapshot,
-            endDate: deadline,
+            startDate: snapshotDate,
+            endDate: deadlineDate,
           };
         })
       );

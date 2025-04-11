@@ -27,10 +27,10 @@ async function main() {
   // Get contract instances.
   const fireInsurance = await ethers.getContractAt("GraviInsurance", fireInsuranceAddress);
   
-  // // Get the premium rate (public state variable) from the contract.
-  // const premiumRate = await fireInsurance.premiumRate();
-  // console.log("Premium Rate:", premiumRate.toString(), "%");
-  // console.log("Premium Rate (ETH):", ethers.formatEther(premiumRate));
+  // Get the premium rate (public state variable) from the contract.
+  const premiumRate = await fireInsurance.premiumRate();
+  console.log("Premium Rate:", premiumRate.toString(), "%");
+  console.log("Premium Rate (ETH):", ethers.formatEther(premiumRate));
 
   // return;
 

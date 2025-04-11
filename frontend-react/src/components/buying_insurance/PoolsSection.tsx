@@ -345,6 +345,7 @@ export const PoolsSection: React.FC = () => {
                 value={selectedDisaster}
                 onChange={(e) => {
                   setSelectedDisaster(e.target.value);
+                  fetchAnnualFee();
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white"
               >
