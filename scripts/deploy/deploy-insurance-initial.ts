@@ -50,6 +50,18 @@ async function main() {
     const graviInsuranceAddress = await graviInsurance.getAddress();
     console.log(`${insurance.name} - GraviInsurance deployed at: ${graviInsuranceAddress}`);
 
+    // Add an generic Disaster event to the GraviInsurance contract.
+    const genericEventName = `${insurance.disaster.charAt(0).toUpperCase() + insurance.disaster.slice(1)} Generic Event`;
+    const genericEventDescription = `A generic ${insurance.disaster} event occurred.`;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const tranx = await graviInsurance.addDisasterEvent(
+      genericEventName,
+      genericEventDescription,
+      currentTimestamp,
+    );
+    await tranx.wait();
+    console.log(`${insurance.name} - Generic event added.`);
+
     // // Add an new treasury address to the GraviPoolNFT contract.
     // await graviPoolNFT.addTreasuryAddress(graviInsuranceAddress);
     // console.log(`${insurance.name} - NFT treasury added.`);

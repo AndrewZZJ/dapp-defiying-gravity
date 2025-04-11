@@ -6,8 +6,8 @@ import { Block } from "ethers";
 async function main() {
   // Example property details.
   const propertyAddress = "382 Main St, Springfield, USA";
-  const propertyValue = ethers.parseEther("1000000"); // 1 million USD
-  const coveragePeriod = 365 * 24 * 60 * 60; // 1 year in seconds
+  const propertyValue = ethers.parseEther("1000"); // 1,564,885.55 USD
+  const coveragePeriod = 365; // 1 year in days
 
   // Accept token amount as a command-line argument; default to 100.
   const tokenAmount = process.argv[2] ? parseInt(process.argv[2]) : 100;
@@ -25,8 +25,15 @@ async function main() {
   }
 
   // Get contract instances.
-  const fireInsurance = await ethers.getContractAt("IGraviInsurance", fireInsuranceAddress);
+  const fireInsurance = await ethers.getContractAt("GraviInsurance", fireInsuranceAddress);
   
+  // // Get the premium rate (public state variable) from the contract.
+  // const premiumRate = await fireInsurance.premiumRate();
+  // console.log("Premium Rate:", premiumRate.toString(), "%");
+  // console.log("Premium Rate (ETH):", ethers.formatEther(premiumRate));
+
+  // return;
+
   // Record pre-purchase balances.
   const ethBalanceBefore = await provider.getBalance(deployerAddress);
   console.log("Before Purchase:");
