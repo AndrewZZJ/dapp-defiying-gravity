@@ -21,7 +21,7 @@ const distributions: Distribution[] = [
   },
   {
     name: "Early Investor",
-    address: "0x65ef71Aa063cEcEB6569b9fdcd632952B2F141D9", // Replace with actual address
+    address: "0x2887fc3E61232f6c14541397C68e74863E0cBfa0", // Replace with actual address
     description: "Allocation for early investors.",
     percentage: 15,
   },
@@ -45,9 +45,9 @@ async function main() {
     throw new Error("GraviGov address not found in deployment config.");
   }
 
-  // Debug send 5 ETH to the early investor address.
+  // Debug send 50 ETH to the early investor address.
   const earlyInvestorAddress = distributions[1].address;
-  const earlyInvestorAmount = ethers.parseEther("5");
+  const earlyInvestorAmount = ethers.parseEther("50");
   console.log(`Sending 5 ETH to early investor address: ${earlyInvestorAddress}`);
   const tx = await deployer.sendTransaction({
     to: earlyInvestorAddress,
@@ -55,7 +55,7 @@ async function main() {
   });
   await tx.wait();
   console.log(`Transaction hash: ${tx.hash}`);
-  console.log(`5 ETH sent to ${earlyInvestorAddress}`);
+  console.log(`50 ETH sent to ${earlyInvestorAddress}`);
   
   // Get the GraviGov contract instance.
   const graviGov = await ethers.getContractAt("GraviGov", graviGovAddress);
