@@ -142,4 +142,20 @@ interface IGraviInsurance {
 
     function getDisasterEvent(string memory eventId) external view returns (string memory eventName, string memory eventDescription, uint256 disasterDate);
     function getAllDisasterEvents() external view returns (string[] memory eventIds);
+
+    function fetchClaimIds(address user) external view returns (uint256[] memory);
+    function getClaimDetails(uint256 claimId) external view returns (
+        uint256 _claimId,
+        bytes32 _policyId,
+        string memory _eventId,
+        uint256 _approvedClaimAmount,
+        uint256 _assessmentStart,
+        uint256 _assessmentEnd,
+        string memory _status,
+        string memory _incidentDescription,
+        address[] memory moderatorAddresses,
+        bool[] memory hasDecidedList,
+        bool[] memory isApprovedList,
+        uint256[] memory approvedAmounts
+    );
 }

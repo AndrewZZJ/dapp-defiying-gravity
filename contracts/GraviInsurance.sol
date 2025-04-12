@@ -702,6 +702,62 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         return moderatorAddresses;
     }
 
+    /// @notice Returns the claim IDs for a given user.
+    /// @param user The address of the user to fetch claims for.
+    /// @return claimIds An array of claim IDs.
+    function fetchClaimIds(address user) external view returns (uint256[] memory) {
+        return userRecords[user].claimIds;
+    }
+
+    /// @notice Return the details of a specific claim.
+    /// @param claimId The ID of the claim to retrieve.
+    function getClaimDetails(uint256 claimId) external view returns (
+        uint256 _claimId,
+        bytes32 _policyId,
+        string memory _eventId,
+        uint256 _approvedClaimAmount,
+        uint256 _assessmentStart,
+        uint256 _assessmentEnd,
+        string memory _status,
+        string memory _incidentDescription,
+        address[] memory moderatorAddresses,
+        bool[] memory hasDecidedList,
+        bool[] memory isApprovedList,
+        uint256[] memory approvedAmounts
+    ) {
+        require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+        ClaimRecord storage claim = claimRecords[claimId - 1];
+
+        uint256 moderatorCount = claim.moderatorTeam.length;
+        moderatorAddresses = new address[](moderatorCount);
+        hasDecidedList = new bool[](moderatorCount);
+        isApprovedList = new bool[](moderatorCount);
+        approvedAmounts = new uint256[](moderatorCount);
+
+        for (uint256 i = 0; i < moderatorCount; i++) {
+            ModeratorInfo memory modInfo = claim.moderatorTeam[i];
+            moderatorAddresses[i] = modInfo.moderator.moderatorAddress;
+            hasDecidedList[i] = modInfo.hasDecided;
+            isApprovedList[i] = modInfo.isApproved;
+            approvedAmounts[i] = modInfo.approvedAmount;
+        }
+
+        return (
+            claim.claimId,
+            claim.policyId,
+            claim.eventId,
+            claim.approvedClaimAmount,
+            claim.assessmentStart,
+            claim.assessmentEnd,
+            getStatusString(claim.status),
+            claim.incidentDescription,
+            moderatorAddresses,
+            hasDecidedList,
+            isApprovedList,
+            approvedAmounts
+        );
+    }
+
     /// @notice Returns the claims associated with the user.
     /// @return claimIds An array of claim IDs held by the user.
     /// @return policyIds An array of policy IDs associated with the claims.
