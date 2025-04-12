@@ -105,7 +105,15 @@ export default function NFTMarketplace() {
 
       // Fetch withdrawable amount for the current user.
       if (walletAddress) {
-        const pending = await graviPoolNFT.withdrawableAmount();
+        // Need the signer to call withdrawableAmount.
+        const signer = provider.getSigner();
+        const userGraviPoolNFT = new ethers.Contract(
+          graviPoolNFTAddress,
+          GraviPoolNFTABI.abi,
+          signer
+        );
+        // Fetch the withdrawable amount.
+        const pending = await userGraviPoolNFT.withdrawableAmount();
         const pendingFormatted = ethers.utils.formatUnits(pending, 18);
 
         // // For not set pending amount, set it to 0.
