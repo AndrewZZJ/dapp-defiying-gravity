@@ -298,6 +298,11 @@ contract GraviPoolNFT is
         graviCha.transfer(msg.sender, amount);
     }
 
+    /// @notice Function to see how much a bidder can withdraw.
+    function withdrawableAmount() external view returns (uint256) {
+        return pendingReturns[msg.sender];
+    }
+
     /// @notice Highest bidder claims the NFT after the auction ends.
     /// The winning bid tokens are burned (as the charity donation).
     function claimNFT(

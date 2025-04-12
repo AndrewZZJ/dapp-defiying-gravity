@@ -99,6 +99,10 @@ npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
 npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
 npx hardhat run scripts/nft/claim-nft.ts --network localhost
 
+npx hardhat run scripts/dao-propose/time-skip.ts --network localhost
+
+
+
 ### Dao - proposal - local testing
 npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
 npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost

@@ -65,6 +65,8 @@ interface IGraviPoolNFT {
     function addTreasuryAddress(address treasury) external;
     function getTreasuryAddresses() external view returns (address[] memory);
 
+    function withdrawableAmount() external view returns (uint256);
+
     // function getTreasuryAddress(uint8 index) external view returns (address);
     // function getTreasuryIndex(uint256 tokenId) external view returns (uint8);
     

@@ -8,11 +8,18 @@ interface NFTCardProps {
   category: string;
   description: string;
   altText: string;
-  endDate: string; // Auction end date
-  isWinner: boolean; // Whether the user is the winner
-  hasBid: boolean; // Whether the user placed a bid
-  onClaimNFT?: () => void; // Callback for claiming the NFT
-  onReclaimTokens?: () => void; // Callback for reclaiming tokens
+  endDate: string; // Full ISO string with time.
+  auctionEnded: boolean; // True if NFT is in past bids (auction time expired)
+  auctionClaimed: boolean; // True if on-chain "ended" flag is true (already claimed)
+  isWinner: boolean;
+  hasBid: boolean;
+  highestBid?: string; // Formatted on-chain bid (in GraviCha units)
+  highestBidder?: string;
+  onClaimNFT?: () => Promise<void>;
+  onReclaimTokens?: () => Promise<void>;
+  onBid?: (bid: string) => Promise<void>; // Bid value as string (e.g., "1.23")
+  currentUserAddress: string; // Connected wallet address.
+  withdrawable?: string; // Formatted withdrawable amount (e.g., "0.0")
 }
 
 export function NFTCard({
@@ -22,45 +29,60 @@ export function NFTCard({
   description,
   altText,
   endDate,
+  auctionEnded,
+  auctionClaimed,
   isWinner,
   hasBid,
+  highestBid,
+  highestBidder,
   onClaimNFT,
   onReclaimTokens,
+  onBid,
+  currentUserAddress,
+  withdrawable = "0",
 }: NFTCardProps) {
   const [showBidForm, setShowBidForm] = useState(false);
   const [bid, setBid] = useState("");
   const [submittedBid, setSubmittedBid] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    if (bid.trim() !== "") {
-      // AJ: a backend method for joining the bidding.
-      setSubmittedBid(bid);
+  // Lowercase addresses for safe comparison.
+  const currentUserAddressLC = currentUserAddress.toLowerCase();
+  const highestBidderLC = highestBidder ? highestBidder.toLowerCase() : "";
+
+  const handleSubmit = async () => {
+    if (bid.trim() !== "" && onBid) {
+      await onBid(bid);
+    //   setSubmittedBid(bid);
       setShowBidForm(false);
     }
   };
 
-  // Check if the auction has ended
-  const hasAuctionEnded = new Date(endDate) < new Date();
+  // Prefer the on-chain highestBid over any locally submitted bid.
+  const currentBid = highestBid || submittedBid || bid;
 
   return (
-    <article className="flex gap-16 items-start max-md:flex-col max-sm:gap-6 relative">
+    <article className="max-w-7xl mx-auto flex gap-16 items-center max-md:flex-col max-sm:gap-6 relative">
+      {/* Left Column: NFT Image */}
       <div className="relative flex-1 w-full">
         <img
           src={image}
-          className="object-cover w-full h-auto rounded-md"
           alt={altText}
+          className="object-cover w-full h-auto rounded-md"
         />
-        {submittedBid && (
-          <div className="absolute top-2 left-2 flex flex-col items-start">
-            <span className="text-green-600 text-xl">✅</span>
-            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-              {bid} ETH
-            </span>
-          </div>
-        )}
+        {hasBid &&
+          currentUserAddressLC === highestBidderLC &&
+          (submittedBid || highestBid) && (
+            <div className="absolute top-2 left-2 flex flex-col items-start">
+              <span className="text-green-600 text-xl">✅</span>
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                {submittedBid || highestBid} GraviCha
+              </span>
+            </div>
+          )}
       </div>
 
-      <div className="flex flex-col flex-1 gap-6 max-md:w-full">
+      {/* Right Column: Text Content */}
+      <div className="flex flex-col flex-1 gap-6 max-md:w-full justify-center">
         <div className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold text-stone-900">{title}</h2>
           <div className="flex flex-col gap-1">
@@ -71,35 +93,48 @@ export function NFTCard({
         </div>
         <p className="text-base leading-6 text-neutral-500">{description}</p>
 
-        {/* Display the auction end date */}
+        {/* Auction End Date Label */}
         <div className="text-sm text-neutral-600">
-          <strong>Auction Ends:</strong> {endDate}
+          <strong>{auctionEnded ? "Auction Ended:" : "Auction Ends:"}</strong>{" "}
+          {new Date(endDate).toLocaleString()}
         </div>
 
-        {!hasAuctionEnded ? (
-          <>
-            {submittedBid || bid ? (
-              <div className="text-sm text-neutral-600">
-                Current highest bid: {submittedBid || bid} ETH
-              </div>
+        {/* Bid and Bidder Information */}
+        <div className="text-sm text-neutral-600">
+          {currentBid && parseFloat(currentBid) > 0 ? (
+            currentUserAddressLC === highestBidderLC ? (
+              <div><strong>{auctionEnded ? "Your Victorious Bid:" : "Your current bid:"} </strong>{currentBid} GraviCha</div>
             ) : (
-              <div className="text-sm text-neutral-400 italic">No bids yet</div>
-            )}
+              <>
+                <div><strong>Highest bid: </strong>{currentBid} GraviCha</div>
+                {highestBidderLC &&
+                  currentUserAddressLC !== highestBidderLC && (
+                    <div><strong>Highest bidder: </strong>{highestBidder}</div>
+                  )}
+              </>
+            )
+          ) : (
+            <span className="italic text-neutral-400">{auctionEnded ? "No Bids Made" : "No Bids Yet!"}</span>
+          )}
+        </div>
 
+        {/* Auction Controls */}
+        {!auctionEnded ? (
+          // Active auctions: show bid form and Bid button.
+          <>
             <button
-              className="p-3 w-full text-base rounded-lg bg-black text-white"
+              className="p-3 w-full text-base rounded-lg bg-black text-white hover:bg-gray-800"
               onClick={() => setShowBidForm(!showBidForm)}
             >
               {showBidForm ? "Cancel" : "Bid"}
             </button>
-
             {showBidForm && (
               <div className="flex flex-col gap-2 mt-2">
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="Price to bid (ETH)"
+                  placeholder="Price to bid (GraviCha)"
                   value={bid}
                   onChange={(e) => setBid(e.target.value)}
                   className="p-2 border border-zinc-300 rounded"
@@ -114,30 +149,24 @@ export function NFTCard({
             )}
           </>
         ) : (
+          // Past auctions.
           <div className="flex flex-col gap-4">
-            {/* Buttons for after the auction ends */}
-            <button
-              className={`p-3 w-full text-base rounded-lg ${
-                !isWinner && hasBid
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-400 text-gray-700 cursor-not-allowed"
-              }`}
-              onClick={() => !isWinner && hasBid && onReclaimTokens && onReclaimTokens()}
-              disabled={isWinner || !hasBid}
-            >
-              Retrieve Bid Money
-            </button>
-            <button
-              className={`p-3 w-full text-base rounded-lg ${
-                isWinner
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-gray-400 text-gray-700 cursor-not-allowed"
-              }`}
-              onClick={() => isWinner && onClaimNFT && onClaimNFT()}
-              disabled={!isWinner}
-            >
-              Claim NFT
-            </button>
+            {isWinner && !auctionClaimed && (
+              <button
+                className="p-3 w-full text-base rounded-lg bg-green-600 text-white hover:bg-green-700"
+                onClick={() => onClaimNFT && onClaimNFT()}
+              >
+                Claim NFT
+              </button>
+            )}
+            {!isWinner && parseFloat(withdrawable) > 0 && (
+              <button
+                className="p-3 w-full text-base rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => onReclaimTokens && onReclaimTokens()}
+              >
+                Retrieve Bid Money
+              </button>
+            )}
           </div>
         )}
       </div>

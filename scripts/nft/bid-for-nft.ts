@@ -17,7 +17,10 @@ async function main() {
   const tokenId: string = "0";
 
   // Bid amount in charity tokens.
-  const bidAmount = 1000n;
+  const bidAmount = 1300n;
+
+  // Parse ETH the bid amount to the correct format.
+  const parsedBidAmount = ethers.parseUnits(bidAmount.toString(), 18);
 
   // Show the current highest bid.
   let auctionDetails = await graviPoolNFT.getAuctionDetails(tokenId);
@@ -26,13 +29,13 @@ async function main() {
   // APPROVAL STEP:
   // Approve the GraviDAO contract to spend (burn) the required charity tokens.
   console.log("Approving charity token spending...");
-  const approveTx = await graviCha.approve(graviPoolNFTAddress, bidAmount);
+  const approveTx = await graviCha.approve(graviPoolNFTAddress, parsedBidAmount);
   await approveTx.wait();
   console.log("Approval successful. Transaction hash:", approveTx.hash);
 
   // Bid for the NFT.
   console.log(`Placing a bid of ${bidAmount.toString()} tokens for NFT ${tokenId}...`);
-  const tx = await graviPoolNFT.bid(tokenId, bidAmount);
+  const tx = await graviPoolNFT.bid(tokenId, parsedBidAmount);
   await tx.wait();
   console.log("Bid placed successfully. Transaction hash:", tx.hash);
   
