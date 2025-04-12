@@ -27,6 +27,17 @@ async function main() {
   for (const poolName of insurancePoolNames) {
     const poolAddress = await graviDAO.getInsurancePoolAddresses(poolName);
     console.log(`Pool ${poolName} address:`, poolAddress);
+
+    // Get the contract instance for the pool.
+    const poolContract = await ethers.getContractAt("GraviInsurance", poolAddress[0]);
+
+    // Get all the disaster events IDs for the pool.
+    const disasterEvents = await poolContract.getAllDisasterEvents();
+    console.log(`Disaster Events for pool ${poolName}:`, disasterEvents);
+    for (const eventId of disasterEvents) {
+      const disasterEvent = await poolContract.getDisasterEvent(eventId);
+      console.log(`Disaster Event ${eventId}:`, disasterEvent);
+    }
   }
 }
 

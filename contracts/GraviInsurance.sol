@@ -297,6 +297,26 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         emit DisasterEventAdded(autoEventId);
     }
 
+    /// @notice Returns the details of a disaster event.
+    /// @param eventId The ID of the disaster event.
+    /// @return eventName The name of the disaster event.
+    /// @return eventDescription The description of the disaster event.
+    /// @return disasterDate The date of the disaster event.
+    function getDisasterEvent(string memory eventId) external view returns (string memory eventName, string memory eventDescription, uint256 disasterDate) {
+        require(bytes(disasterEvents[eventId].eventId).length != 0, "Event does not exist");
+        DisasterEvent storage de = disasterEvents[eventId];
+        return (de.name, de.eventDescription, de.disasterDate);
+    }
+
+    /// @notice Returns a list of all disaster events by their IDs.
+    /// @return eventIds An array of disaster event IDs.
+    function getAllDisasterEvents() external view returns (string[] memory eventIds) {
+        uint256 count = nextEventId - 1; // Adjust for 0-based index
+        eventIds = new string[](count);
+        for (uint256 i = 0; i < count; i++) {
+            eventIds[i] = string(abi.encodePacked("EVT#", (i + 1).toString()));
+        }
+    }
 
     /// @notice Modifies an existing disaster event.
     /// Updates the event name and event description.

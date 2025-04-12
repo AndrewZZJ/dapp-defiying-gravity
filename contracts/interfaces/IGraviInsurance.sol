@@ -139,4 +139,7 @@ interface IGraviInsurance {
             string memory _propertyAddress,
             uint256 _propertyValue
     );
+
+    function getDisasterEvent(string memory eventId) external view returns (string memory eventName, string memory eventDescription, uint256 disasterDate);
+    function getAllDisasterEvents() external view returns (string[] memory eventIds);
 }

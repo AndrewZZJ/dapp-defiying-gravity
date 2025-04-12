@@ -183,6 +183,19 @@
     },
     {
       "inputs": [],
+      "name": "getAllDisasterEvents",
+      "outputs": [
+        {
+          "internalType": "string[]",
+          "name": "eventIds",
+          "type": "string[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "getAllDonors",
       "outputs": [
         {
@@ -213,6 +226,35 @@
           "internalType": "address[]",
           "name": "",
           "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "eventId",
+          "type": "string"
+        }
+      ],
+      "name": "getDisasterEvent",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "eventName",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "eventDescription",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "disasterDate",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
