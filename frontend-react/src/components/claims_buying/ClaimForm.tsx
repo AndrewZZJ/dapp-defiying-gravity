@@ -37,60 +37,46 @@ export const ClaimForm: React.FC = () => {
       setSelectedEvent(null); // Reset when changing disaster
     }
   }, [selectedDisaster]);
-  
-  // useEffect(() => {
-  //   if (selectedDisaster) {
-  //     if (useMockEvents) {
-  //       setEventOptions(mockEventData[selectedDisaster] || []);
-  //     } else {
-  //       // Future: Replace with API fetch for real-time events
-  //       setEventOptions([]);
-  //     }
-  //     setSelectedEvent(null); // Reset selected event when disaster changes
-  //   }
-  // }, [selectedDisaster]);
 
   // Fetch insurance IDs from all contract addresses
-useEffect(() => {
-  const fetchInsuranceIds = async () => {
-    if (!walletAddress) return;
+  useEffect(() => {
+    const fetchInsuranceIds = async () => {
+      if (!walletAddress) return;
 
-    try {
-      const res = await fetch("/addresses.json");
-      const addresses = await res.json();
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
+      try {
+        const res = await fetch("/addresses.json");
+        const addresses = await res.json();
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
 
-      const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
-      let allInsuranceIds: string[] = [];
+        const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
+        let allInsuranceIds: string[] = [];
 
-      for (const type of types) {
-        const contractAddress = addresses[type];
-        if (!contractAddress) continue;
+        for (const type of types) {
+          const contractAddress = addresses[type];
+          if (!contractAddress) continue;
 
-        const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
+          const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
 
-        try {
-          const ids: string[] = await contract.fetchInsuranceIds(walletAddress);
-          if (ids.length > 0) {
-            allInsuranceIds = allInsuranceIds.concat(ids.map((id) => id.toString()));
+          try {
+            const ids: string[] = await contract.fetchInsuranceIds(walletAddress);
+            if (ids.length > 0) {
+              allInsuranceIds = allInsuranceIds.concat(ids.map((id) => id.toString()));
+            }
+          } catch (err) {
+            console.warn(`Skipping ${type} — no insurance found or fetch failed.`);
           }
-        } catch (err) {
-          console.warn(`Skipping ${type} — no insurance found or fetch failed.`);
         }
+
+        setInsuranceOptions(allInsuranceIds);
+      } catch (error) {
+        console.error("Failed to fetch insurance IDs from contracts:", error);
       }
+    };
 
-      setInsuranceOptions(allInsuranceIds);
-    } catch (error) {
-      console.error("Failed to fetch insurance IDs from contracts:", error);
-    }
-  };
+    fetchInsuranceIds();
+  }, [walletAddress]);
 
-  fetchInsuranceIds();
-}, [walletAddress]);
-
-  
-  
   const mockFetchInsuranceIds = async (wallet: string): Promise<string[]> => {
     console.log(`Fetching insurance IDs for wallet: ${wallet}`);
     // Mock response
@@ -113,14 +99,19 @@ useEffect(() => {
     e.preventDefault();
   
     if (!walletAddress) return alert("Please connect your wallet first.");
-    if (!selectedDisaster || !selectedEvent || !description || !incidentDate || !insuranceId)
+    // if (!selectedDisaster || !selectedEvent || !description || !incidentDate || !insuranceId)
+    //   return alert("Please fill out all fields.");
+    // since we have a generic event being deployed
+    if (!selectedDisaster || !description || !incidentDate || !insuranceId)
       return alert("Please fill out all fields.");
   
     try {
+      const eventName = `${selectedDisaster} Generic Event`;
+      // const eventName = "Wildfire Generic Event";
       const claimHash = generateClaimHash(
         walletAddress,
         selectedDisaster,
-        selectedEvent,
+        eventName,
         description,
         incidentDate,
         insuranceId
@@ -137,10 +128,20 @@ useEffect(() => {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
+      const eventDetails = await contract.disasterEvents(eventName);
   
       // Submit the claim
-      const tx = await contract.startAClaim(selectedEvent, description);
+      const eventId = "EVT#1"; // Since each pool only has one event
+      const tx = await contract.startAClaim(eventId, insuranceId, description);
+      
       await tx.wait();
+      // const tx = await contract.startAClaim(
+      //   eventName,
+      //   ethers.utils.hexZeroPad(insuranceId as string, 32), // cast to bytes32
+      //   description
+      // );
+
+      // await tx.wait();
   
       console.log("Generated Claim Hash:", claimHash);
       setGeneratedHash(claimHash);
@@ -284,7 +285,7 @@ useEffect(() => {
             type="submit"
             className="w-full p-3 text-base rounded-md bg-black text-white hover:bg-gray-800"
           >
-            Generate Claim Hash
+            Submit Claim
           </button>
         </form>
       </section>
