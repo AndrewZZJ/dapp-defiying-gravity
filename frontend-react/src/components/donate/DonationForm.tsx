@@ -92,64 +92,62 @@ export const DonationForm: React.FC = () => {
   };
   
 
-  const handleSubmit = async () => {
-    if (!walletAddress) {
-      alert("Please connect your wallet to donate.");
+const handleSubmit = async () => {
+  if (!walletAddress) {
+    alert("Please connect your wallet to donate.");
+    return;
+  }
+
+  if (!selectedPool || !amount) {
+    alert("Please select a pool and enter an amount to donate.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const provider = new ethers.providers.Web3Provider(
+      window.ethereum as ethers.providers.ExternalProvider
+    );
+    const signer = provider.getSigner();
+    let selectedAddress = "";
+
+    if (selectedPool === "Wildfire") {
+      selectedAddress = fireAddress;
+    } else if (selectedPool === "Flood") {
+      selectedAddress = floodAddress;
+    } else if (selectedPool === "Earthquake") {
+      selectedAddress = earthquakeAddress;
+    } else {
+      alert("Invalid pool selected.");
       return;
     }
 
-    if (!selectedPool || !amount) {
-      alert("Please select a pool and enter an amount to donate.");
-      return;
-    }
+    console.log("Selected Address:", selectedAddress);
 
-    try {
-      setLoading(true);
+    const contract = new ethers.Contract(selectedAddress, GraviInsuranceABI.abi, signer);
 
-      const provider = new ethers.providers.Web3Provider(
-        window.ethereum as ethers.providers.ExternalProvider
-      );
-      const signer = provider.getSigner();
-      let selectedAddress = "";
+    // Call the donate function on the smart contract
+    const tx = await contract.donate({
+      value: ethers.utils.parseEther(amount),
+    });
 
-      if (selectedPool === "Wildfire") {
-        selectedAddress = fireAddress;
-      } else if (selectedPool === "Flood") {
-        selectedAddress = floodAddress;
-      } else if (selectedPool === "Earthquake") {
-        selectedAddress = earthquakeAddress;
-      } else {
-        alert("Invalid pool selected.");
-        return;
-      }
+    await tx.wait();
 
-      console.log("Selected Address:", selectedAddress);
-      
-      const contract = new ethers.Contract(selectedAddress, GraviInsuranceABI.abi, signer);
-      
-      // Call the donate function on the smart contract
-      const tx = await contract.donate({
-        value: ethers.utils.parseEther(amount),
-      });
-      
-      await tx.wait();
+    alert("Donation successful!");
 
-      alert("Donation successful!");
+    // Clear the donation amount
+    setAmount("");
 
-      // Now set the amount to donate to 0
-      setAmount("");
-
-      // // Fetch charity tokens from the backend
-      // const response = await fetch(`/api/charity-tokens?wallet=${walletAddress}`);
-      // const data = await response.json();
-      // setCharityTokens(data.tokens); // Update charity tokens state
-    } catch (error) {
-      console.error("Failed to process donation:", error);
-      alert("Donation failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Refresh the donors list for the selected pool
+    await fetchDonors(selectedAddress);
+  } catch (error) {
+    console.error("Failed to process donation:", error);
+    alert("Donation failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const poolOptions = [
     { title: "Wildfire", color: "bg-orange-500" }, // Sunset orange
