@@ -68,7 +68,28 @@ npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
 npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
 
+npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
+
+
+npx hardhat run scripts/nft/bid-for-nft2.ts --network localhost
+npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
+npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
+npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
+
+7 Emberthorn Way, Dragonsreach, Kingdom of Eldoria, The Realm of Mythoria
+
+<!-- npx hardhat run scripts/dao-propose/time-skip.ts --network localhost -->
+
+
+
+
+nvm use 20
+
+
 npx hardhat run scripts/deploy/debug-auto-mine.ts --network localhost
+
+# Claims
+npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
 
 
 ### Dao - proposal - local testing

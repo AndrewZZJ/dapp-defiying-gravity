@@ -14,10 +14,10 @@ async function main() {
   const graviPoolNFT = await ethers.getContractAt("GraviPoolNFT", graviPoolNFTAddress);
 
   // NFT token ID to place a bid on.
-  const tokenId: string = "0";
+  const tokenId: string = "1";
 
   // Bid amount in charity tokens.
-  const bidAmount = 150n;
+  const bidAmount = 100n;
 
   // Parse ETH the bid amount to the correct format.
   const parsedBidAmount = ethers.parseUnits(bidAmount.toString(), 18);

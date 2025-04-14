@@ -81,72 +81,72 @@ async function main() {
   // Simulate the timelock delay. - To when you can vote.
   await simulateTimeSkip(7200 * 12);
 
-  // Print proposal info (state, snapshot, deadline, current block).
-  console.log("Proposal status, after waiting until voting time:");
-  await printProposalInfo(graviGoverance, proposalId);
+  // // Print proposal info (state, snapshot, deadline, current block).
+  // console.log("Proposal status, after waiting until voting time:");
+  // await printProposalInfo(graviGoverance, proposalId);
 
-  // Vote in favor.
-  await voteOnProposal(graviGoverance, proposalId, 1);
+  // // Vote in favor.
+  // await voteOnProposal(graviGoverance, proposalId, 1);
 
-  // Simulate the end of the voting period.
-  await simulateTimeSkip(50400 * 12); // Advance until after the voting period ends.
+  // // Simulate the end of the voting period.
+  // await simulateTimeSkip(50400 * 12); // Advance until after the voting period ends.
 
-  // Print proposal info (state, snapshot, deadline, current block).
-  console.log("Proposal status, after end of voting period:");
-  await printProposalInfo(graviGoverance, proposalId);
+  // // Print proposal info (state, snapshot, deadline, current block).
+  // console.log("Proposal status, after end of voting period:");
+  // await printProposalInfo(graviGoverance, proposalId);
 
-  // Queue the proposal.
-  const descriptionHash = await queueProposal(
-    graviGoverance,
-    [graviDAOAddress],
-    [0],
-    [encodedFunctionCall],
-    proposalDescription
-  ); 
+  // // Queue the proposal.
+  // const descriptionHash = await queueProposal(
+  //   graviGoverance,
+  //   [graviDAOAddress],
+  //   [0],
+  //   [encodedFunctionCall],
+  //   proposalDescription
+  // ); 
 
-  // Simulate the timelock delay. 12 second and 1 block.
-  await simulateTimeSkip(1 * 12);
+  // // Simulate the timelock delay. 12 second and 1 block.
+  // await simulateTimeSkip(1 * 12);
   
-  // Print proposal info (state, snapshot, deadline, current block).
-  console.log("Proposal status, after queuing:");
-  await printProposalInfo(graviGoverance, proposalId);
+  // // Print proposal info (state, snapshot, deadline, current block).
+  // console.log("Proposal status, after queuing:");
+  // await printProposalInfo(graviGoverance, proposalId);
 
-  // Execute the proposal.
-  await executeProposal(graviGoverance, [graviDAOAddress], [0], [encodedFunctionCall], descriptionHash);
+  // // Execute the proposal.
+  // await executeProposal(graviGoverance, [graviDAOAddress], [0], [encodedFunctionCall], descriptionHash);
 
-  // Print proposal info (state, snapshot, deadline, current block).
-  console.log("Proposal status, after execution:");
-  await printProposalInfo(graviGoverance, proposalId);
+  // // Print proposal info (state, snapshot, deadline, current block).
+  // console.log("Proposal status, after execution:");
+  // await printProposalInfo(graviGoverance, proposalId);
 
-  console.log("New insurance added via governance.");
+  // console.log("New insurance added via governance.");
 
-  // Save the new insurance addresses to the deployment config.
-  const insurancesPath = path.join(__dirname, "..", "metadata", "insurances.json");
-  // let deployedInsurances: Record<string, { nftAddress: string; insuranceAddress: string }> = {};
-  let deployedInsurances: Record<string, { insuranceAddress: string }> = {};
-  if (fs.existsSync(insurancesPath)) {
-    const fileData = fs.readFileSync(insurancesPath, "utf8");
-    deployedInsurances = JSON.parse(fileData);
-  }
-  // Append the new insurance.
-  deployedInsurances[newInsuranceName] = {
-    // nftAddress: nftPoolAddress,
-    insuranceAddress: insurancePoolAddress,
-  };
-  // Write the merged data back to insurances.json.
-  writeMetadata("insurances.json", deployedInsurances);
-  console.log("Updated insurances metadata saved to insurances.json.");
+  // // Save the new insurance addresses to the deployment config.
+  // const insurancesPath = path.join(__dirname, "..", "metadata", "insurances.json");
+  // // let deployedInsurances: Record<string, { nftAddress: string; insuranceAddress: string }> = {};
+  // let deployedInsurances: Record<string, { insuranceAddress: string }> = {};
+  // if (fs.existsSync(insurancesPath)) {
+  //   const fileData = fs.readFileSync(insurancesPath, "utf8");
+  //   deployedInsurances = JSON.parse(fileData);
+  // }
+  // // Append the new insurance.
+  // deployedInsurances[newInsuranceName] = {
+  //   // nftAddress: nftPoolAddress,
+  //   insuranceAddress: insurancePoolAddress,
+  // };
+  // // Write the merged data back to insurances.json.
+  // writeMetadata("insurances.json", deployedInsurances);
+  // console.log("Updated insurances metadata saved to insurances.json.");
 
-  // Optionally update the global deployment config with insurance addresses.
-  writeDeploymentConfig({
-    ...deploymentConfig,
-    ...Object.fromEntries(
-      Object.entries(deployedInsurances).map(([name, addrs]) => [
-        name.replace(/\s+/g, ""), // e.g. "HurricaneInsurance"
-        addrs.insuranceAddress,
-      ])
-    ),
-  });
+  // // Optionally update the global deployment config with insurance addresses.
+  // writeDeploymentConfig({
+  //   ...deploymentConfig,
+  //   ...Object.fromEntries(
+  //     Object.entries(deployedInsurances).map(([name, addrs]) => [
+  //       name.replace(/\s+/g, ""), // e.g. "HurricaneInsurance"
+  //       addrs.insuranceAddress,
+  //     ])
+  //   ),
+  // });
 }
 
 main().catch((error) => {
