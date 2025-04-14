@@ -5,25 +5,24 @@ import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 import { ethers } from "ethers";
 
-
 export const ClaimForm: React.FC = () => {
   const [description, setDescription] = useState("");
   const [selectedDisaster, setSelectedDisaster] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [eventOptions, setEventOptions] = useState<string[]>([]);
-  const [insuranceOptions, setInsuranceOptions] = useState<string[]>([]); // Insurance IDs
+  const [insuranceOptions, setInsuranceOptions] = useState<
+    { id: string; type: string }[]
+  >([]); // Insurance IDs with their types
+  const [filteredInsuranceOptions, setFilteredInsuranceOptions] = useState<
+    { id: string; type: string }[]
+  >([]);
   const [insuranceId, setInsuranceId] = useState<string | null>(null);
   const [incidentDate, setIncidentDate] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [generatedHash, setGeneratedHash] = useState<string | null>(null);
-  const [fireAddress, setFireAddress] = useState("");
-  const [floodAddress, setFloodAddress] = useState("");
-  const [earthquakeAddress, setEarthquakeAddress] = useState("");
 
   const { walletAddress } = useWallet();
-
-  const useMockEvents = false;
 
   const mockEventData: Record<string, string[]> = {
     Wildfire: ["Palisades Wildfire 2024", "Big Bear Blaze 2024"],
@@ -33,7 +32,7 @@ export const ClaimForm: React.FC = () => {
 
   useEffect(() => {
     if (selectedDisaster) {
-      setEventOptions(mockEventData[selectedDisaster] || []);     
+      setEventOptions(mockEventData[selectedDisaster] || []);
       setSelectedEvent(null); // Reset when changing disaster
     }
   }, [selectedDisaster]);
@@ -50,7 +49,7 @@ export const ClaimForm: React.FC = () => {
         const signer = provider.getSigner();
 
         const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
-        let allInsuranceIds: string[] = [];
+        let allInsuranceIds: { id: string; type: string }[] = [];
 
         for (const type of types) {
           const contractAddress = addresses[type];
@@ -61,7 +60,9 @@ export const ClaimForm: React.FC = () => {
           try {
             const ids: string[] = await contract.fetchInsuranceIds(walletAddress);
             if (ids.length > 0) {
-              allInsuranceIds = allInsuranceIds.concat(ids.map((id) => id.toString()));
+              allInsuranceIds = allInsuranceIds.concat(
+                ids.map((id) => ({ id: id.toString(), type }))
+              );
             }
           } catch (err) {
             console.warn(`Skipping ${type} — no insurance found or fetch failed.`);
@@ -69,6 +70,7 @@ export const ClaimForm: React.FC = () => {
         }
 
         setInsuranceOptions(allInsuranceIds);
+        setFilteredInsuranceOptions(allInsuranceIds); // Initially show all IDs
       } catch (error) {
         console.error("Failed to fetch insurance IDs from contracts:", error);
       }
@@ -77,10 +79,40 @@ export const ClaimForm: React.FC = () => {
     fetchInsuranceIds();
   }, [walletAddress]);
 
-  const mockFetchInsuranceIds = async (wallet: string): Promise<string[]> => {
-    console.log(`Fetching insurance IDs for wallet: ${wallet}`);
-    // Mock response
-    return ["InsuranceID1", "InsuranceID2", "InsuranceID3"];
+  // Filter insurance options based on selected disaster type
+  useEffect(() => {
+    if (selectedDisaster) {
+      const typeKey =
+        selectedDisaster === "Wildfire"
+          ? "FireInsurance"
+          : selectedDisaster === "Flood"
+          ? "FloodInsurance"
+          : "EarthquakeInsurance";
+
+      setFilteredInsuranceOptions(
+        insuranceOptions.filter((option) => option.type === typeKey)
+      );
+    } else {
+      setFilteredInsuranceOptions(insuranceOptions); // Show all IDs if no disaster type is selected
+    }
+  }, [selectedDisaster, insuranceOptions]);
+
+  const handleInsuranceIdChange = (id: string) => {
+    setInsuranceId(id);
+
+    // Auto-select disaster type if not already selected
+    if (!selectedDisaster) {
+      const selectedInsurance = insuranceOptions.find((option) => option.id === id);
+      if (selectedInsurance) {
+        const disasterType =
+          selectedInsurance.type === "FireInsurance"
+            ? "Wildfire"
+            : selectedInsurance.type === "FloodInsurance"
+            ? "Flood"
+            : "Earthquake";
+        setSelectedDisaster(disasterType);
+      }
+    }
   };
 
   const generateClaimHash = (
@@ -97,17 +129,13 @@ export const ClaimForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (!walletAddress) return alert("Please connect your wallet first.");
-    // if (!selectedDisaster || !selectedEvent || !description || !incidentDate || !insuranceId)
-    //   return alert("Please fill out all fields.");
-    // since we have a generic event being deployed
     if (!selectedDisaster || !description || !incidentDate || !insuranceId)
       return alert("Please fill out all fields.");
-  
+
     try {
       const eventName = `${selectedDisaster} Generic Event`;
-      // const eventName = "Wildfire Generic Event";
       const claimHash = generateClaimHash(
         walletAddress,
         selectedDisaster,
@@ -116,33 +144,26 @@ export const ClaimForm: React.FC = () => {
         incidentDate,
         insuranceId
       );
-  
+
       const res = await fetch("/addresses.json");
       const addresses = await res.json();
-      const contractAddress = addresses[selectedDisaster === "Wildfire"
-        ? "FireInsurance"
-        : selectedDisaster === "Flood"
-        ? "FloodInsurance"
-        : "EarthquakeInsurance"];
-  
+      const contractAddress =
+        selectedDisaster === "Wildfire"
+          ? addresses["FireInsurance"]
+          : selectedDisaster === "Flood"
+          ? addresses["FloodInsurance"]
+          : addresses["EarthquakeInsurance"];
+
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
-      const eventDetails = await contract.disasterEvents(eventName);
-  
+
       // Submit the claim
       const eventId = "EVT#1"; // Since each pool only has one event
       const tx = await contract.startAClaim(eventId, insuranceId, description);
-      
-      await tx.wait();
-      // const tx = await contract.startAClaim(
-      //   eventName,
-      //   ethers.utils.hexZeroPad(insuranceId as string, 32), // cast to bytes32
-      //   description
-      // );
 
-      // await tx.wait();
-  
+      await tx.wait();
+
       console.log("Generated Claim Hash:", claimHash);
       setGeneratedHash(claimHash);
       setShowPopup(true);
@@ -151,7 +172,6 @@ export const ClaimForm: React.FC = () => {
       alert("Something went wrong while submitting the claim.");
     }
   };
-  
 
   const handlePopupOk = () => {
     setShowPopup(false);
@@ -177,7 +197,6 @@ export const ClaimForm: React.FC = () => {
     <div className="w-full bg-gray-50 flex justify-center py-6 px-4">
       <section className="w-full max-w-2xl bg-white p-8 rounded-lg border border-zinc-300 shadow-sm">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-
           {/* Disaster Type Dropdown */}
           <div>
             <label className="block text-lg font-semibold text-gray-700 mb-2">
@@ -224,15 +243,38 @@ export const ClaimForm: React.FC = () => {
                 value={selectedEvent || ""}
                 onChange={(e) => setSelectedEvent(e.target.value)}
               >
-                <option value="" disabled>Select an event</option>
-                {eventOptions.map((eventName, index) => (
-                  <option key={index} value={eventName}>
-                    {eventName}
+                <option value="" disabled>
+                  Select an event
+                </option>
+                {eventOptions.map((event, index) => (
+                  <option key={index} value={event}>
+                    {event}
                   </option>
                 ))}
               </select>
             </div>
           )}
+
+          {/* Insurance ID Dropdown */}
+          <div>
+            <label className="block text-lg font-semibold text-gray-700 mb-2">
+              Select Insurance ID
+            </label>
+            <select
+              className="w-full p-2 border border-zinc-300 rounded-md"
+              value={insuranceId || ""}
+              onChange={(e) => handleInsuranceIdChange(e.target.value)}
+            >
+              <option value="" disabled>
+                Select an insurance ID
+              </option>
+              {filteredInsuranceOptions.map((option, index) => (
+                <option key={index} value={option.id}>
+                  {option.id}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Incident Date */}
           <div>
@@ -245,25 +287,6 @@ export const ClaimForm: React.FC = () => {
               onChange={(e) => setIncidentDate(e.target.value)}
               className="w-full p-2 border border-zinc-300 rounded-md"
             />
-          </div>
-
-          {/* Insurance ID Dropdown */}
-          <div>
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Select Insurance ID
-            </label>
-            <select
-              className="w-full p-2 border border-zinc-300 rounded-md"
-              value={insuranceId || ""}
-              onChange={(e) => setInsuranceId(e.target.value)}
-            >
-              <option value="" disabled>Select an insurance ID</option>
-              {insuranceOptions.map((id, index) => (
-                <option key={index} value={id}>
-                  {id}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Description */}
