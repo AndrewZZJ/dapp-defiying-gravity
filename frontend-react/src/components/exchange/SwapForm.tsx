@@ -32,6 +32,8 @@ export const SwapForm: React.FC = () => {
   const [graviGovAddress, setGraviGovAddress] = useState<string>("");
   const [graviDaoAddress, setGraviDaoAddress] = useState<string>("");
   const [graviChaAddress, setGraviChaAddress] = useState<string>("");
+  const [showPopup, setShowPopup] = useState(false); // State for success popup
+  const [popupMessage, setPopupMessage] = useState(""); // State for popup message
 
 
   const fetchPoolData = async () => {
@@ -118,42 +120,40 @@ export const SwapForm: React.FC = () => {
   
     try {
       console.log("Gov Amount: ", govAmount);
-
+  
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
       const graviDAO = new ethers.Contract(graviDaoAddress, GraviDAOABI.abi, signer);
       const graviCha = new ethers.Contract(graviChaAddress, GraviChaABI.abi, signer);
-      
+  
       const [ethPrice, graviChaBurn] = await graviDAO.calculatesGovTokenPurchasePrice(amount);
       console.log("ETH Price:", ethPrice.toString());
       console.log("GraviCha Burn:", graviChaBurn.toString());
-
-
+  
       const currentAllowance = await graviCha.allowance(walletAddress, graviDaoAddress);
-
-      // Print the current allowance
-      console.log("Current allowance:", ethers.utils.formatEther(currentAllowance));
-      console.log("GraviCha burn amount:", ethers.utils.formatEther(graviChaBurn));
-      console.log("Wallet Address:", walletAddress);
-
+  
       if (currentAllowance.lt(graviChaBurn)) {
         console.log("Allowance is less than burn amount. Approving...");
         const approveTx = await graviCha.approve(graviDaoAddress, graviChaBurn);
         await approveTx.wait();
       }
-
+  
       console.log("Allowance is sufficient or approved.");
       console.log("Purchasing tokens...");
-
+  
       const purchaseTx = await graviDAO.purchaseGovTokens(ethers.utils.parseEther(govAmount), { value: ethPrice.toString() });
       await purchaseTx.wait();
   
-      alert("Swap successful!");
+      // Show success popup
+      setPopupMessage("Swap successful!");
+      setShowPopup(true);
+  
       setGovAmount("");
       fetchPoolData();
     } catch (err) {
       console.error("Swap failed:", err);
-      alert("Swap failed. Check console.");
+      setPopupMessage("Swap failed. Please try again.");
+      setShowPopup(true);
     }
   };
   
@@ -185,18 +185,21 @@ export const SwapForm: React.FC = () => {
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
-      // const dao = new ethers.Contract(graviDaoAddress, contractABI, signer);
       const graviGov = new ethers.Contract(graviGovAddress, GraviGovABI.abi, signer);
   
       const tx = await graviGov.convertToCharityTokens(ethers.utils.parseEther(burnAmount));
       await tx.wait();
   
-      alert("Return to pool successful!");
+      // Show success popup
+      setPopupMessage("Return to pool successful!");
+      setShowPopup(true);
+  
       setBurnAmount("");
       fetchPoolData();
     } catch (err) {
       console.error("Return to pool failed:", err);
-      alert("Return to pool failed. Check console.");
+      setPopupMessage("Return to pool failed. Please try again.");
+      setShowPopup(true);
     }
   };  
 
@@ -293,6 +296,26 @@ export const SwapForm: React.FC = () => {
           </>
         )}
       </div>
+      {/* Success Popup */}
+        {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-50"></div>
+            <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+            >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <p className="text-3xl font-bold text-center">{popupMessage}</p>
+                <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                >
+                OK
+                </button>
+            </div>
+            </div>
+        </div>
+        )}
     </div>
   );
 };

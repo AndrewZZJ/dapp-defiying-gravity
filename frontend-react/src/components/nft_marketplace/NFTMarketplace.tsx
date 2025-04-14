@@ -223,7 +223,7 @@ export default function NFTMarketplace() {
       console.log(`Placing a bid of ${bidValue} tokens for NFT ${nftId}...`);
       const bidTx = await graviPoolNFT.bid(nftId, parsedBidAmount);
       await bidTx.wait();
-      alert("Bid submitted successfully!");
+    //   alert("Bid submitted successfully!");
       getNFTAuctionStatus();
     } catch (error) {
       console.error("Error placing bid:", error);
@@ -248,7 +248,7 @@ export default function NFTMarketplace() {
       console.log(`Claiming NFT (tokenId: ${nftId})...`);
       const claimTx = await graviPoolNFT.claimNFT(nftId);
       await claimTx.wait();
-      alert("NFT claimed successfully!");
+    //   alert("NFT claimed successfully!");
       getNFTAuctionStatus();
     } catch (error) {
       console.error("Error claiming NFT:", error);
@@ -271,7 +271,7 @@ export default function NFTMarketplace() {
       );
       const tx = await graviPoolNFT.withdraw();
       await tx.wait();
-      alert("Tokens reclaimed successfully!");
+    //   alert("Tokens reclaimed successfully!");
       getNFTAuctionStatus();
     } catch (error) {
       console.error("Error withdrawing tokens:", error);

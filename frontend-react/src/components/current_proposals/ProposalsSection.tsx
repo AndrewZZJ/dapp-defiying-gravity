@@ -49,6 +49,8 @@ export const ProposalsSection: React.FC = () => {
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
   const [governanceAddress, setGovernanceAddress] = useState<string>("");
   const [graviGovAddress, setGraviGovAddress] = useState("");
+  const [showPopup, setShowPopup] = useState(false); // State for success popup
+  const [popupMessage, setPopupMessage] = useState(""); // State for popup message
   
 
 
@@ -292,12 +294,16 @@ export const ProposalsSection: React.FC = () => {
       const tx = await contract.delegate(delegateInput); // ✅ this will now work
       await tx.wait();
   
-      alert("Delegation successful.");
+      // Show success popup
+      setPopupMessage("Delegation successful!");
+      setShowPopup(true);
+  
       setDelegateInput("");
       checkDelegation();
     } catch (err) {
       console.error("Delegation failed:", err);
-      alert("Delegation failed. See console.");
+      setPopupMessage("Delegation failed. Please try again.");
+      setShowPopup(true);
     }
   };
 
@@ -313,7 +319,8 @@ export const ProposalsSection: React.FC = () => {
   const submitVote = async (proposalId: number, approve: boolean) => {
     try {
       if (useMockData) {
-        alert(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+        setPopupMessage(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+        setShowPopup(true);
         setModalOpen(false);
         return;
       }
@@ -325,11 +332,15 @@ export const ProposalsSection: React.FC = () => {
       const tx = await contract.castVote(proposalId, approve); // ✅ updated to castVote
       await tx.wait();
   
-      alert(`Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+      // Show success popup
+      setPopupMessage(`Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+      setShowPopup(true);
+  
       setModalOpen(false);
     } catch (err) {
       console.error("Vote failed:", err);
-      alert("Vote failed. See console.");
+      setPopupMessage("Vote failed. Please try again.");
+      setShowPopup(true);
     }
   }; 
 
@@ -430,6 +441,26 @@ export const ProposalsSection: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Success Popup */}
+        {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-50"></div>
+            <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+            >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <p className="text-3xl font-bold text-center">{popupMessage}</p>
+                <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                >
+                OK
+                </button>
+            </div>
+            </div>
+        </div>
+        )}
     </main>
   );
   

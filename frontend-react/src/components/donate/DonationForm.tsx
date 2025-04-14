@@ -12,13 +12,15 @@ export const DonationForm: React.FC = () => {
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [charityTokens, setCharityTokens] = useState<number | null>(null); 
-  const [charityTokens_flood, setCharityTokensFlood] = useState<number | null>(null); 
-  const [charityTokens_earthquake, setCharityTokensEarthquake] = useState<number | null>(null); 
+  const [charityTokens, setCharityTokens] = useState<number | null>(null);
+  const [charityTokens_flood, setCharityTokensFlood] = useState<number | null>(null);
+  const [charityTokens_earthquake, setCharityTokensEarthquake] = useState<number | null>(null);
   const [fireAddress, setFireAddress] = useState("");
   const [floodAddress, setFloodAddress] = useState("");
   const [earthquakeAddress, setEarthquakeAddress] = useState("");
   const [donors, setDonors] = useState<Donor[]>([]);
+  const [showPopup, setShowPopup] = useState(false); // State for success popup
+
   type Donor = {
     address: string;
     amount: string;
@@ -29,7 +31,7 @@ export const DonationForm: React.FC = () => {
       try {
         const response = await fetch("/addresses.json");
         const deploymentConfig = await response.json();
-  
+
         const wildfire = deploymentConfig["FireInsurance"];
         const flood = deploymentConfig["FloodInsurance"];
         const earthquake = deploymentConfig["EarthquakeInsurance"];
@@ -44,110 +46,105 @@ export const DonationForm: React.FC = () => {
         const exchangeRate_flood = await contract_flood.getDonationRewardRate();
         setCharityTokensFlood(exchangeRate_flood.toString());
 
-        const contract_earthquake = new ethers.Contract(wildfire, GraviInsuranceABI.abi, provider);
+        const contract_earthquake = new ethers.Contract(earthquake, GraviInsuranceABI.abi, provider);
         const exchangeRate_earthquake = await contract_earthquake.getDonationRewardRate();
         setCharityTokensEarthquake(exchangeRate_earthquake.toString());
 
         setFireAddress(wildfire);
         setFloodAddress(flood);
         setEarthquakeAddress(earthquake);
-  
+
         // Default to showing Wildfire leaderboard
         await fetchDonors(wildfire);
       } catch (err) {
         console.error("Failed to load addresses or donors:", err);
       }
     };
-  
+
     fetchAddressesAndDonors();
   }, []);
 
-
-  // const contractABI = [
-  //   "function donate() public payable",
-  // ];  
-
   const fetchDonors = async (poolAddress: string) => {
     if (!poolAddress || !window.ethereum) return;
-  
+
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const contract = new ethers.Contract(poolAddress, GraviInsuranceABI.abi, provider);
       const [addresses, amounts]: [string[], ethers.BigNumber[]] = await contract.getAllDonors();
-  
+
       const formatted: Donor[] = addresses.map((addr, i) => ({
         address: addr,
         amount: ethers.utils.formatEther(amounts[i]),
       }));
-  
+
       // Sort by donation amount (descending), then keep only top 8
       const topDonors = formatted
         .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
         .slice(0, 8);
-  
+
       setDonors(topDonors);
     } catch (err) {
       console.error("Failed to fetch donors:", err);
     }
   };
-  
 
-const handleSubmit = async () => {
-  if (!walletAddress) {
-    alert("Please connect your wallet to donate.");
-    return;
-  }
-
-  if (!selectedPool || !amount) {
-    alert("Please select a pool and enter an amount to donate.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const provider = new ethers.providers.Web3Provider(
-      window.ethereum as ethers.providers.ExternalProvider
-    );
-    const signer = provider.getSigner();
-    let selectedAddress = "";
-
-    if (selectedPool === "Wildfire") {
-      selectedAddress = fireAddress;
-    } else if (selectedPool === "Flood") {
-      selectedAddress = floodAddress;
-    } else if (selectedPool === "Earthquake") {
-      selectedAddress = earthquakeAddress;
-    } else {
-      alert("Invalid pool selected.");
+  const handleSubmit = async () => {
+    if (!walletAddress) {
+      alert("Please connect your wallet to donate.");
       return;
     }
 
-    console.log("Selected Address:", selectedAddress);
+    if (!selectedPool || !amount) {
+      alert("Please select a pool and enter an amount to donate.");
+      return;
+    }
 
-    const contract = new ethers.Contract(selectedAddress, GraviInsuranceABI.abi, signer);
+    try {
+      setLoading(true);
 
-    // Call the donate function on the smart contract
-    const tx = await contract.donate({
-      value: ethers.utils.parseEther(amount),
-    });
+      const provider = new ethers.providers.Web3Provider(
+        window.ethereum as ethers.providers.ExternalProvider
+      );
+      const signer = provider.getSigner();
+      let selectedAddress = "";
 
-    await tx.wait();
+      if (selectedPool === "Wildfire") {
+        selectedAddress = fireAddress;
+      } else if (selectedPool === "Flood") {
+        selectedAddress = floodAddress;
+      } else if (selectedPool === "Earthquake") {
+        selectedAddress = earthquakeAddress;
+      } else {
+        alert("Invalid pool selected.");
+        return;
+      }
 
-    alert("Donation successful!");
+      console.log("Selected Address:", selectedAddress);
 
-    // Clear the donation amount
-    setAmount("");
+      const contract = new ethers.Contract(selectedAddress, GraviInsuranceABI.abi, signer);
 
-    // Refresh the donors list for the selected pool
-    await fetchDonors(selectedAddress);
-  } catch (error) {
-    console.error("Failed to process donation:", error);
-    alert("Donation failed. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+      // Call the donate function on the smart contract
+      const tx = await contract.donate({
+        value: ethers.utils.parseEther(amount),
+      });
+
+      await tx.wait();
+
+      // Clear the donation amount
+      setAmount("");
+
+      // Refresh the donors list for the selected pool
+      await fetchDonors(selectedAddress);
+
+      // Show the success popup
+      setShowPopup(true);
+    } catch (error) {
+      console.error("Failed to process donation:", error);
+      alert("Donation failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const poolOptions = [
     { title: "Wildfire", color: "bg-orange-500" }, // Sunset orange
@@ -157,22 +154,10 @@ const handleSubmit = async () => {
 
   const selectedColor = poolOptions.find((pool) => pool.title === selectedPool)?.color || "bg-white";
 
-  // AJ: a method here getting the highest donors
-  const highestDonorsData = [
-    { name: "0xA4...B21", amount: "5.0 ETH" },
-    { name: "🌟 generous.eth", amount: "3.2 ETH" },
-    { name: "donorhero.eth", amount: "2.8 ETH" },
-    { name: "0xC3...D45", amount: "2.5 ETH" },
-    { name: "kindheart.eth", amount: "2.0 ETH" },
-    { name: "0xE5...F67", amount: "1.8 ETH" },
-    { name: "charitychamp.eth", amount: "1.5 ETH" },
-    { name: "0xG7...H89", amount: "1.2 ETH" },
-  ];
-
-  const charityTokenMapping: Record <string, number | null> = {
-    "Wildfire": charityTokens,
-    "Flood": charityTokens_flood,
-    "Earthquake": charityTokens_earthquake,
+  const charityTokenMapping: Record<string, number | null> = {
+    Wildfire: charityTokens,
+    Flood: charityTokens_flood,
+    Earthquake: charityTokens_earthquake,
   };
 
   return (
@@ -280,6 +265,32 @@ const handleSubmit = async () => {
           )}
         </ul>
       </section>
+
+      {/* Success Popup */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+          >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+              <p className="text-3xl font-bold text-center">
+                Donation Successful!
+              </p>
+              <p className="text-sm text-center">
+                Thank you for your generosity. Your donation has been processed.
+              </p>
+              <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

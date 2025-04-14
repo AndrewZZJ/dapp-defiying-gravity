@@ -15,6 +15,7 @@ export const PoolsSection: React.FC = () => {
   const [homeAddress, setHomeAddress] = useState(""); // State for the user's home address
   const [isLoading, setIsLoading] = useState(false);
   const [insuranceAddress, setInsuranceAddress] = useState<string | null>(null);
+  const [showPopup, setShowPopup] = useState(false); // State for success popup
 
   // Function to connect wallet
   const connectWallet = async () => {
@@ -115,66 +116,61 @@ export const PoolsSection: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    if (!walletAddress) return alert("Connect your wallet first.");
-    if (!homeAddress.trim()) return alert("Enter a property address.");
+  if (!walletAddress) return alert("Connect your wallet first.");
+  if (!homeAddress.trim()) return alert("Enter a property address.");
 
-    try {
-      setIsLoading(true);
+  try {
+    setIsLoading(true);
 
-      const response = await fetch("/addresses.json");
-      const addresses = await response.json();
+    const response = await fetch("/addresses.json");
+    const addresses = await response.json();
 
-      // Mapping disaster label to key in addresses.json
-      const disasterKeyMap: Record<string, string> = {
-        Wildfire: "FireInsurance",
-        Flood: "FloodInsurance",
-        Earthquake: "EarthquakeInsurance",
-      };
+    const disasterKeyMap: Record<string, string> = {
+      Wildfire: "FireInsurance",
+      Flood: "FloodInsurance",
+      Earthquake: "EarthquakeInsurance",
+    };
 
-      const insuranceAddress = addresses[disasterKeyMap[selectedDisaster]];
+    const insuranceAddress = addresses[disasterKeyMap[selectedDisaster]];
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, signer);
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, signer);
 
-      const startTime = Math.floor(Date.now() / 1000);
-      const propertyValueInWei = ethers.utils.parseEther(portfolioValue.toString());
+    const startTime = Math.floor(Date.now() / 1000);
+    const propertyValueInWei = ethers.utils.parseEther(portfolioValue.toString());
 
-      // STEP 1: Calculate correct premium
-      const premium = await contract.calculatePremium(homeAddress, propertyValueInWei, coverPeriod);
+    const premium = await contract.calculatePremium(homeAddress, propertyValueInWei, coverPeriod);
 
-      // STEP 2: Send transaction with exactly that premium
-      const tx = await contract.buyInsurance(
-        startTime,
-        coverPeriod,
-        homeAddress,
-        propertyValueInWei,
-        {
-          value: premium,
-        }
-      );
+    const tx = await contract.buyInsurance(
+      startTime,
+      coverPeriod,
+      homeAddress,
+      propertyValueInWei,
+      {
+        value: premium,
+      }
+    );
 
-      await tx.wait();
-      alert("Insurance purchased successfully!");
+    await tx.wait();
 
+    // Show the success popup
+    setShowPopup(true);
 
-      // STEP 3: Update the UI and clear the Desired Address, Portfolio Value, and Cover Period fields
-      setHomeAddress("");
-      setPortfolioValue(1);
-      setCoverPeriod(30);
-      
+    // Clear input fields
+    setHomeAddress("");
+    setPortfolioValue(1);
+    setCoverPeriod(30);
 
-      // Set Coverage cost and Max Coverage to "N/A" after purchase
-      setCoverCost("N/A");
-      setMaxCoverage("N/A");
-
-    } catch (error) {
-      console.error("Failed to purchase insurance:", error);
-      alert("Purchase failed. See console for details.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setCoverCost("N/A");
+    setMaxCoverage("N/A");
+  } catch (error) {
+    console.error("Failed to purchase insurance:", error);
+    alert("Purchase failed. See console for details.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // A plain async function to calculate coverage cost without internal debounce logic
   const calculateCoverageCost = async () => {
@@ -413,6 +409,31 @@ export const PoolsSection: React.FC = () => {
           </button>
         </div>
       )}
+      {/* Success Popup */}
+        {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-50"></div>
+            <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+            >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <p className="text-3xl font-bold text-center">
+                Insurance Purchased Successfully!
+                </p>
+                <p className="text-sm text-center">
+                Your insurance has been successfully purchased. Thank you!
+                </p>
+                <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                >
+                OK
+                </button>
+            </div>
+            </div>
+        </div>
+        )}
     </main>
   );
 };
