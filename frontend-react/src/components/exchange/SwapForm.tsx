@@ -255,7 +255,7 @@ export const SwapForm: React.FC = () => {
 
       <hr className="my-8" />
 
-      <h2 className="text-2xl font-semibold mb-4">Return GraviGov to pool for GraviCha</h2>
+      {/* <h2 className="text-2xl font-semibold mb-4">Return GraviGov to pool for GraviCha</h2>
 
       <label className="block mb-2 font-medium">Amount to return to pool:</label>
       <input
@@ -275,7 +275,7 @@ export const SwapForm: React.FC = () => {
         className="w-full py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700"
       >
         Return GOV to pool for GraviCha
-      </button>
+      </button> */}
 
       <div className="mt-8 text-sm text-gray-700">
         {loading ? (
