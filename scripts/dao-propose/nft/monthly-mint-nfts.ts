@@ -40,7 +40,7 @@ async function main() {
   const calldatas: string[] = [];
   for (const insuranceName of insuranceNames) {
     // For demonstration, mint one NFT per pool with a placeholder token URI.
-    const tokenURIs = [`https://yellow-generous-goldfish-728.mypinata.cloud/ipfs/bafkreifsxfxpfvs4ax42hrzb6npjmklrdee6l6v4livsyoiybcluiakf4m`];
+    const tokenURIs = [`https://yellow-generous-goldfish-728.mypinata.cloud/ipfs/bafkreihkl7mrdnuxsrm2jatwhqikfvvkt2u3f5dgs4c22toorluef23xce`];
     const encodedCall = graviDAO.interface.encodeFunctionData("monthlyMintNFTForPool", [insuranceName, tokenURIs]);
     targets.push(graviDAOAddress);
     values.push(0);
