@@ -50,6 +50,14 @@ export const ViewInsurance: React.FC = () => {
     }
   };
 
+  // Fetch insurance data when walletAddress changes (for the initial fetch)
+  useEffect(() => {
+    // Only refresh if we have both the wallet address and contract addresses
+    if (walletAddress && Object.keys(contractAddresses).length > 0) {
+      refreshInsuranceData();
+    }
+  }, [walletAddress, useTemplateData, contractAddresses]);
+
   // Load contract addresses from addresses.json
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -80,13 +88,12 @@ export const ViewInsurance: React.FC = () => {
     }
   };
 
-  // Fetch insurance data when walletAddress changes
+  // Fetch insurance data when walletAddress changes (for the initial fetch)
   useEffect(() => {
     refreshInsuranceData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress, useTemplateData]);
 
-  // Revised function to fetch and group insurance policies by property address.
+  // Function to fetch and group insurance policies by property address.
   const getInsuranceData = async (wallet: string): Promise<InsuranceEntry[]> => {
     try {
       if (!window.ethereum) throw new Error("No Ethereum provider found");
@@ -103,8 +110,7 @@ export const ViewInsurance: React.FC = () => {
         const insuranceAddress = contractAddresses[type];
         if (!insuranceAddress) continue;
 
-        // Now get a more human readable type name.
-        // For now hardcode the type name for Wildfire, Flood, and Earthquake.
+        // Get a more human readable type name.
         if (type === "FireInsurance") type = "Wildfire";
         else if (type === "FloodInsurance") type = "Flood";
         else if (type === "EarthquakeInsurance") type = "Earthquake";
@@ -188,16 +194,6 @@ export const ViewInsurance: React.FC = () => {
       <NavigationHeader />
       <main className="relative px-8 py-12 bg-white min-h-screen">
         <h1 className="mb-8 text-4xl font-bold text-center text-gray-900">View Insurance</h1>
-        {walletAddress && (
-          <div className="flex justify-center mb-4">
-            <button
-              onClick={refreshInsuranceData}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Refresh Data
-            </button>
-          </div>
-        )}
         {walletAddress ? (
           isLoading ? (
             <p className="text-center text-lg text-gray-700">Loading insurance data...</p>
