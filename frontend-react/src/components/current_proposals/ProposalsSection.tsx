@@ -50,7 +50,8 @@ export const ProposalsSection: React.FC = () => {
   const [governanceAddress, setGovernanceAddress] = useState<string>("");
   const [graviGovAddress, setGraviGovAddress] = useState("");
   const [showPopup, setShowPopup] = useState(false); // State for success popup
-  const [popupMessage, setPopupMessage] = useState(""); // State for popup message
+  const [popupTitle, setPopupTitle] = useState(""); // State for popup message
+  const [popupMsg, setPopupMsg] = useState("");
   
 
 
@@ -295,14 +296,16 @@ export const ProposalsSection: React.FC = () => {
       await tx.wait();
   
       // Show success popup
-      setPopupMessage("Delegation successful!");
+      setPopupTitle("Delegation successful!");
+      setPopupMsg(`You have delegated your voting power to ${delegateInput}`);
       setShowPopup(true);
   
       setDelegateInput("");
       checkDelegation();
     } catch (err) {
       console.error("Delegation failed:", err);
-      setPopupMessage("Delegation failed. Please try again.");
+      setPopupTitle("Delegation failed.");
+      setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
       setShowPopup(true);
     }
   };
@@ -319,7 +322,8 @@ export const ProposalsSection: React.FC = () => {
   const submitVote = async (proposalId: number, approve: boolean) => {
     try {
       if (useMockData) {
-        setPopupMessage(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+        setPopupTitle(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+        setPopupMsg("This is a mock vote. No on-chain action taken.");
         setShowPopup(true);
         setModalOpen(false);
         return;
@@ -328,18 +332,22 @@ export const ProposalsSection: React.FC = () => {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const signer = provider.getSigner();
       const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer); // ✅ use governanceAddress + correct ABI
-  
-      const tx = await contract.castVote(proposalId, approve); // ✅ updated to castVote
+
+      // Convert approve to 1 or 0
+      const voteValue = approve ? 1 : 0;
+      const tx = await contract.castVote(proposalId, voteValue); // ✅ updated to castVote
       await tx.wait();
   
       // Show success popup
-      setPopupMessage(`Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+      setPopupTitle(`Voted ${approve ? "Approve" : "Decline"}`);
+      setPopupMsg(`Your vote has been successfully submitted  on Proposal #${proposalId}`);
       setShowPopup(true);
   
       setModalOpen(false);
     } catch (err) {
       console.error("Vote failed:", err);
-      setPopupMessage("Vote failed. Please try again.");
+      setPopupTitle(`Vote failed.`);
+      setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
       setShowPopup(true);
     }
   }; 
@@ -414,7 +422,7 @@ export const ProposalsSection: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              Vote on Proposal #{selectedProposalId}
+              Vote on Proposal 
             </h2>
             <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
   
@@ -450,7 +458,10 @@ export const ProposalsSection: React.FC = () => {
             style={{ width: "600px", height: "300px" }}
             >
             <div className="flex flex-col items-center justify-center h-full space-y-4">
-                <p className="text-3xl font-bold text-center">{popupMessage}</p>
+                <p className="text-3xl font-bold text-center">{popupTitle}</p>
+                <pre className="text-sm text-center break-all whitespace-pre-wrap">
+                  {popupMsg}
+                </pre>
                 <button
                 onClick={() => setShowPopup(false)}
                 className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
