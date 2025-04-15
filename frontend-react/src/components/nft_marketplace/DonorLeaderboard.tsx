@@ -20,16 +20,16 @@ export const DonorLeaderboard: React.FC = () => {
 
   // AJ: a backend method getting highest bid from each pool 
   const highestBidsData = [
-    { name: "0xA4...B21", amount: "1.2 GraviGov", nft: "Solar Flame" },
-    { name: "🌊 water.eth", amount: "0.9 GraviGov", nft: "Water Spirit" },
-    { name: "earthguardian.eth", amount: "0.75 GraviGov", nft: "Earth Warden" },
+    { name: "0xA4...B21", amount: "1.2 GraviCha", nft: "Solar Flame" },
+    { name: "0xV5...H15", amount: "0.9 GraviCha", nft: "Water Spirit" },
+    { name: "0xL9...N87", amount: "0.75 GraviCha", nft: "Earth Warden" },
   ];
 
   // AJ: a backend method getting most recent bid from each pool (not sure the purpose of it)
   const recentBidsData = [
-    { name: "0xB3...C12", amount: "0.5 GraviGov", nft: "Earth Warden" },
-    { name: "firestarter.eth", amount: "0.3 GraviGov", nft: "Solar Flame" },
-    { name: "0xD1...E34", amount: "0.2 GraviGov", nft: "Water Spirit" },
+    { name: "0xB3...C12", amount: "0.5 GraviCha", nft: "Earth Warden" },
+    { name: "0xW2...P17", amount: "0.3 GraviCha", nft: "Solar Flame" },
+    { name: "0xD1...E34", amount: "0.2 GraviCha", nft: "Water Spirit" },
   ];
 
   return (

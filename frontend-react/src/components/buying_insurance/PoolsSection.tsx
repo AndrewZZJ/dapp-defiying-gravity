@@ -4,6 +4,25 @@ import { ethers } from "ethers";
 import { useWallet } from "../../context/WalletContext"; // Import WalletContext
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
+const LoginIcon = () => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-[32px] h-[32px] flex-shrink-0"
+  >
+    <path
+      d="M20 4H25.3333C26.0406 4 26.7189 4.28095 27.219 4.78105C27.719 5.28115 28 5.95942 28 6.66667V25.3333C28 26.0406 27.719 26.7189 27.219 27.219C26.7189 27.719 26.0406 28 25.3333 28H20M13.3333 22.6667L20 16M20 16L13.3333 9.33333M20 16H4"
+      stroke="#1E1E1E"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const PoolsSection: React.FC = () => {
   const { walletAddress, setWalletAddress } = useWallet(); // Access wallet state and setter from context
   const [coverPeriod, setCoverPeriod] = useState(30); // Default cover period in days
@@ -21,13 +40,18 @@ export const PoolsSection: React.FC = () => {
   const [popupTitle, setPopupTitle] = useState("");
   const [popupMsg, setPopupMsg] = useState("");
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const disasterOptions = [
+    { title: "Wildfire", color: "bg-orange-500", iconColor: "text-orange-500", icon: "🔥" },
+    { title: "Flood", color: "bg-blue-300", iconColor: "text-blue-500", icon: "💧" },
+    { title: "Earthquake", color: "bg-yellow-600", iconColor: "text-amber-500", icon: "🌋" },
+  ];  
+  
   // Function to connect wallet
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
-        const provider = new ethers.providers.Web3Provider(
-          window.ethereum as ethers.providers.ExternalProvider
-        );
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
@@ -366,21 +390,56 @@ export const PoolsSection: React.FC = () => {
 
             {/* Disaster Type Dropdown */}
             <div className="mb-6 p-4 rounded-lg border border-gray-300">
-              <label className="block text-lg font-semibold text-gray-700 mb-2">
+            <label className="block text-lg font-semibold text-gray-700 mb-2">
                 Disaster Type
-              </label>
-              <select
-                value={selectedDisaster}
-                onChange={(e) => {
-                  setSelectedDisaster(e.target.value);
-                  fetchAnnualFee();
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white"
-              >
-                <option value="Wildfire">Wildfire</option>
-                <option value="Flood">Flood</option>
-                <option value="Earthquake">Earthquake</option>
-              </select>
+            </label>
+            <div className="relative">
+                <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className={`relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                    selectedDisaster ? "text-gray-900" : "text-gray-500"
+                }`}
+                >
+                <div className="flex items-center">
+                    {selectedDisaster && (
+                    <span className={`w-3 h-3 rounded-full mr-2 ${
+                        selectedDisaster === "Wildfire" ? "bg-orange-500" :
+                        selectedDisaster === "Flood" ? "bg-blue-300" :
+                        "bg-yellow-600"
+                    }`}></span>
+                    )}
+                    <span>{selectedDisaster || "Select a Disaster Type"}</span>
+                </div>
+                <span className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                </span>
+                </button>
+                
+                {isDropdownOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1">
+                    {disasterOptions.map((option) => (
+                    <button
+                        key={option.title}
+                        onClick={() => {
+                        setSelectedDisaster(option.title);
+                        setIsDropdownOpen(false);
+                        fetchAnnualFee();
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                        <span className={`w-3 h-3 rounded-full mr-2 ${
+                        option.title === "Wildfire" ? "bg-orange-500" :
+                        option.title === "Flood" ? "bg-blue-300" :
+                        option.title === "Earthquake" ? "bg-yellow-600" : ""
+                        }`}></span>
+                        {option.title}
+                    </button>
+                    ))}
+                </div>
+                )}
+            </div>
             </div>
 
             {/* Purchase Button */}
@@ -431,14 +490,28 @@ export const PoolsSection: React.FC = () => {
           </section>
         </div>
       ) : (
-        <div className="text-center">
-          <p className="text-lg font-medium">Please connect your wallet to proceed.</p>
-          <button
-            onClick={connectWallet}
-            className="mt-4 px-4 py-2 bg-black text-white rounded-lg"
-          >
-            Connect Wallet
-          </button>
+        <div className="flex justify-center items-center">
+          <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
+            <LoginIcon />
+            <div className="flex flex-col flex-1 gap-4 items-start">
+              <div className="flex flex-col gap-2 items-start w-full">
+                <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
+                  Crowd-sourced Insurance
+                </h2>
+                <p className="w-full text-base leading-6 text-center text-neutral-500">
+                  Please connect your wallet to continue.
+                </p>
+              </div>
+              <div className="flex gap-4 items-center w-full">
+                <button
+                  onClick={connectWallet}
+                  className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
+                >
+                  Connect your wallet
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
       )}
     </main>

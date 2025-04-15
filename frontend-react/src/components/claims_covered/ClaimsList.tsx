@@ -23,6 +23,12 @@ export const ClaimsList: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchClaims = async () => {
+    if (!walletAddress) {
+      setClaims([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch("/addresses.json");
@@ -72,9 +78,14 @@ export const ClaimsList: React.FC = () => {
   };
 
   useEffect(() => {
-    if (walletAddress) {
-      fetchClaims();
+    // Clear claims when wallet disconnects
+    if (!walletAddress) {
+      setClaims([]);
+      setLoading(false);
+      return;
     }
+    
+    fetchClaims();
   }, [walletAddress]);
 
   const handleCancel = (id: string) => {

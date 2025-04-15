@@ -35,8 +35,10 @@ export const ModeratorNominations: React.FC = () => {
       }
     };
 
-    loadAddresses();
-  }, []);
+    if (walletAddress) {
+      loadAddresses();
+    }
+  }, [walletAddress]);
 
   const handleNominate = async () => {
     if (!nomineeInput.trim()) return alert("Enter a valid wallet address.");
@@ -70,7 +72,6 @@ export const ModeratorNominations: React.FC = () => {
     }
   };
   
-
   const handleVote = (address: string) => {
     if (votedFor.has(address)) return;
 
@@ -82,6 +83,11 @@ export const ModeratorNominations: React.FC = () => {
     );
     setVotedFor((prev) => new Set(prev).add(address));
   };
+
+  // Only render the component content if wallet is connected
+  if (!walletAddress) {
+    return null; // Don't render anything when wallet is not connected
+  }
 
   return (
     <section className="bg-white p-8 rounded-lg shadow mx-auto max-w-screen-sm my-10">

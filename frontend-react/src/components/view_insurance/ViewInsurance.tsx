@@ -5,6 +5,25 @@ import { useWallet } from "../../context/WalletContext";
 import { NavigationHeader } from "../navigation/AppNavigationHeader";
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
+const LoginIcon = () => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-[32px] h-[32px] flex-shrink-0"
+  >
+    <path
+      d="M20 4H25.3333C26.0406 4 26.7189 4.28095 27.219 4.78105C27.719 5.28115 28 5.95942 28 6.66667V25.3333C28 26.0406 27.719 26.7189 27.219 27.219C26.7189 27.719 26.0406 28 25.3333 28H20M13.3333 22.6667L20 16M20 16L13.3333 9.33333M20 16H4"
+      stroke="#1E1E1E"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 interface InsuranceEntry {
   address: string;
   insurances: {
@@ -194,66 +213,82 @@ export const ViewInsurance: React.FC = () => {
       <NavigationHeader />
       <main className="relative px-8 py-12 bg-white min-h-screen">
         <h1 className="mb-8 text-4xl font-bold text-center text-gray-900">View Insurance</h1>
+        
         {walletAddress ? (
-          isLoading ? (
-            <p className="text-center text-lg text-gray-700">Loading insurance data...</p>
-          ) : insuranceData.length > 0 ? (
-            <div className="flex flex-col gap-8 max-w-6xl mx-auto">
-              {insuranceData.map((entry, index) => (
-                <div
-                  key={index}
-                  className="p-6 bg-white rounded-lg shadow-md border border-gray-300"
-                >
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                    Address: {entry.address}
-                  </h2>
-                  <div className="flex flex-col gap-4">
-                    {entry.insurances.map((insurance, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 bg-gray-50 rounded-lg border border-gray-300"
-                      >
-                        <p className="text-lg font-semibold text-gray-700">
-                          Insurance Type: {insurance.type}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          ID: <span className="text-gray-900">{insurance.id}</span>
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Purchase Price: <span className="text-gray-900">{insurance.premium || "N/A"}</span>
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Max Coverage: <span className="text-gray-900">{insurance.maxCoverage || "N/A"}</span>
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Coverage Start: <span className="text-gray-900">{insurance.startTime || "N/A"}</span>
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Coverage Ends: <span className="text-gray-900">{insurance.coverageEndDate || "N/A"}</span>
-                        </p>
-                      </div>
-                    ))}
+          <>
+            {isLoading ? (
+              <p className="text-center text-lg text-gray-700">Loading insurance data...</p>
+            ) : insuranceData.length > 0 ? (
+              <div className="flex flex-col gap-8 max-w-6xl mx-auto">
+                {insuranceData.map((entry, index) => (
+                  <div
+                    key={index}
+                    className="p-6 bg-white rounded-lg shadow-md border border-gray-300"
+                  >
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                      Address: {entry.address}
+                    </h2>
+                    <div className="flex flex-col gap-4">
+                      {entry.insurances.map((insurance, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 bg-gray-50 rounded-lg border border-gray-300"
+                        >
+                          <p className="text-lg font-semibold text-gray-700">
+                            Insurance Type: {insurance.type}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            ID: <span className="text-gray-900">{insurance.id}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Purchase Price: <span className="text-gray-900">{insurance.premium || "N/A"}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Max Coverage: <span className="text-gray-900">{insurance.maxCoverage || "N/A"}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Coverage Start: <span className="text-gray-900">{insurance.startTime || "N/A"}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Coverage Ends: <span className="text-gray-900">{insurance.coverageEndDate || "N/A"}</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-lg text-gray-700">
-              Not refreshed or no insurance data found for this wallet address.
-            </p>
-          )
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-lg text-gray-700">
+                No insurance data found for this wallet address.
+              </p>
+            )}
+          </>
         ) : (
-          <div className="text-center">
-            <p className="text-lg font-medium">
-              Please connect your wallet to view insurance data.
-            </p>
-            <button
-              onClick={connectWallet}
-              className="mt-4 px-4 py-2 bg-black text-white rounded-lg"
-            >
-              Connect Wallet
-            </button>
-          </div>
+          // Updated wallet connection UI to match the Dashboard style
+          <div className="flex justify-center items-center">
+          <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
+            <LoginIcon />
+            <div className="flex flex-col flex-1 gap-4 items-start">
+              <div className="flex flex-col gap-2 items-start w-full">
+                <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
+                  Crowd-sourced Insurance
+                </h2>
+                <p className="w-full text-base leading-6 text-center text-neutral-500">
+                  Please connect your wallet to continue.
+                </p>
+              </div>
+              <div className="flex gap-4 items-center w-full">
+                <button
+                  onClick={connectWallet}
+                  className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
+                >
+                  Connect your wallet
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
         )}
       </main>
     </>

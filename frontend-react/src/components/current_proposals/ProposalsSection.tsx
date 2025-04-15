@@ -6,6 +6,25 @@ import { useWallet } from "../../context/WalletContext";
 import GraviGovernanceABI from "../../artifacts/contracts/GraviGovernance.sol/GraviGovernance.json";
 import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.json";
 
+const LoginIcon = () => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-[32px] h-[32px] flex-shrink-0"
+  >
+    <path
+      d="M20 4H25.3333C26.0406 4 26.7189 4.28095 27.219 4.78105C27.719 5.28115 28 5.95942 28 6.66667V25.3333C28 26.0406 27.719 26.7189 27.219 27.219C26.7189 27.719 26.0406 28 25.3333 28H20M13.3333 22.6667L20 16M20 16L13.3333 9.33333M20 16H4"
+      stroke="#1E1E1E"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed" | "Unknown";
 
 interface Proposal {
@@ -40,7 +59,7 @@ const mockProposals: Proposal[] = [
 ];
 
 export const ProposalsSection: React.FC = () => {
-  const { walletAddress } = useWallet();
+  const { walletAddress, setWalletAddress } = useWallet();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [delegateInput, setDelegateInput] = useState<string>("");
@@ -53,18 +72,27 @@ export const ProposalsSection: React.FC = () => {
   const [popupTitle, setPopupTitle] = useState(""); // State for popup message
   const [popupMsg, setPopupMsg] = useState("");
   
-
-
-  // const contractAddress = "0xYourContractAddress";
-  
-  // const contractABI = [
-  //   "function getProposals() public view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[])",
-  //   "function delegate(address delegateAddress) public",
-  //   "function undelegate() public",
-  //   "function hasDelegate(address user) public view returns (bool)",
-  //   "function vote(uint proposalId, bool approve) public",
-  // ];
-
+  // Function to connect wallet
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address); // Update global wallet state
+      } catch (error) {
+        console.error("Wallet connection failed:", error);
+        setPopupTitle("Connection Failed");
+        setPopupMsg((error as any)?.message || "Unable to connect wallet.");
+        setShowPopup(true);
+      }
+    } else {
+      setPopupTitle("MetaMask Required");
+      setPopupMsg("Please install MetaMask to connect your wallet.");
+      setShowPopup(true);
+    }
+  };
   
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -106,7 +134,7 @@ export const ProposalsSection: React.FC = () => {
     const provider = new ethers.providers.Web3Provider(window.ethereum as any);
     const signerOrProvider = withSigner ? provider.getSigner() : provider;
     return new ethers.Contract(graviGovAddress, GraviGovABI.abi, signerOrProvider);
-  };  
+  };
 
   // const fetchProposals = async () => {
   //   setLoading(true);
@@ -159,6 +187,7 @@ export const ProposalsSection: React.FC = () => {
   //     setLoading(false);
   //   }
   // };
+  // This function fetches proposals in real time using on-chain data.
   // This function fetches proposals in real time using on-chain data.
   const fetchProposals = async () => {
     setLoading(true);
@@ -214,7 +243,6 @@ export const ProposalsSection: React.FC = () => {
             }
 
           // Determine the status.
-          let status: ProposalStatus;
           // if (now < deadline) {
           //   status = "In Progress";
           // } else {
@@ -232,7 +260,6 @@ export const ProposalsSection: React.FC = () => {
           //     status = "Unknown"; // Fallback
           //   }
           // }
-          const stateStr = state.toString();
         //   enum ProposalState {
         //     Pending, -> 0
         //     Active, -> 1
@@ -243,238 +270,265 @@ export const ProposalsSection: React.FC = () => {
         //     Expired, -> 6
         //     Executed -> 7
         // }
-          if (stateStr === "1") { // Aci
-            status = "In Progress";
-            // status = "Approved";
-          } else if (stateStr === "7") {
-            status = "Approved and Executed";
-          } else if (stateStr === "2" || stateStr === "3") {
-            status = "Declined";
-          } else if (stateStr === "4" || stateStr === "5") {
-            status = "Approved";
-          } else {
-            status = "Unknown"; // Fallback
-          }
+        const stateStr = state.toString();
+        let status: ProposalStatus;
+        if (stateStr === "1") { 
+          status = "In Progress";
+        } else if (stateStr === "7") {
+          status = "Approved and Executed";
+        } else if (stateStr === "2" || stateStr === "3") {
+          status = "Declined";
+        } else if (stateStr === "4" || stateStr === "5") {
+          status = "Approved";
+        } else {
+          status = "Unknown"; // Fallback
+        }
 
-          return {
-            id: proposalDetail.id.toHexString(),
-            title: proposalDetail.title,
-            description: proposalDetail.description,
-            status,
-            startDate: snapshotDate,
-            endDate: deadlineDate,
-          };
-        })
-      );
+        return {
+          id: proposalDetail.id.toHexString(),
+          title: proposalDetail.title,
+          description: proposalDetail.description,
+          status,
+          startDate: snapshotDate,
+          endDate: deadlineDate,
+        };
+      })
+    );
 
-      // Optionally sort proposals by status.
-      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed" , "Unknown"];
-      proposalsData.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+    // Optionally sort proposals by status.
+    const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed" , "Unknown"];
+    proposalsData.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
 
-      setProposals(proposalsData);
-    } catch (err) {
-      console.error("Fetch proposals failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setProposals(proposalsData);
+  } catch (err) {
+    console.error("Fetch proposals failed:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const checkDelegation = async () => {
-    try {
-      const contract = getGraviGovContract(); // Don't need signer for view
-      const delegatee = await contract.delegates(walletAddress);
-      setHasDelegated(delegatee !== ethers.constants.AddressZero);
-    } catch (err) {
-      console.error("Delegation check failed:", err);
-    }
-  };
-   
-  const handleDelegate = async () => {
-    try {
-      const contract = getGraviGovContract(true); // ✅ use GraviGov, not GraviGovernance
-      const tx = await contract.delegate(delegateInput); // ✅ this will now work
-      await tx.wait();
-  
-      // Show success popup
-      setPopupTitle("Delegation successful!");
-      setPopupMsg(`You have delegated your voting power to ${delegateInput}`);
+const checkDelegation = async () => {
+  try {
+    const contract = getGraviGovContract(); 
+    const delegatee = await contract.delegates(walletAddress);
+    setHasDelegated(delegatee !== ethers.constants.AddressZero);
+  } catch (err) {
+    console.error("Delegation check failed:", err);
+  }
+};
+ 
+const handleDelegate = async () => {
+  try {
+    const contract = getGraviGovContract(true);
+    const tx = await contract.delegate(delegateInput);
+    await tx.wait();
+
+    setPopupTitle("Delegation successful!");
+    setPopupMsg(`You have delegated your voting power to ${delegateInput}`);
+    setShowPopup(true);
+
+    setDelegateInput("");
+    checkDelegation();
+  } catch (err) {
+    console.error("Delegation failed:", err);
+    setPopupTitle("Delegation failed.");
+    setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
+    setShowPopup(true);
+  }
+};
+
+const openVoteModal = (proposalId: number) => {
+  if (!hasDelegated) {
+    alert("You must delegate your voting power before voting.");
+    return;
+  }
+  setSelectedProposalId(proposalId);
+  setModalOpen(true);
+};
+
+const submitVote = async (proposalId: number, approve: boolean) => {
+  try {
+    if (useMockData) {
+      setPopupTitle(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+      setPopupMsg("This is a mock vote. No on-chain action taken.");
       setShowPopup(true);
-  
-      setDelegateInput("");
-      checkDelegation();
-    } catch (err) {
-      console.error("Delegation failed:", err);
-      setPopupTitle("Delegation failed.");
-      setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
-      setShowPopup(true);
-    }
-  };
-
-  const openVoteModal = (proposalId: number) => {
-    if (!hasDelegated) {
-      alert("You must delegate your voting power before voting.");
+      setModalOpen(false);
       return;
     }
-    setSelectedProposalId(proposalId);
-    setModalOpen(true);
-  };
 
-  const submitVote = async (proposalId: number, approve: boolean) => {
-    try {
-      if (useMockData) {
-        setPopupTitle(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
-        setPopupMsg("This is a mock vote. No on-chain action taken.");
-        setShowPopup(true);
-        setModalOpen(false);
-        return;
-      }
-  
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer); // ✅ use governanceAddress + correct ABI
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer);
 
-      // Convert approve to 1 or 0
-      const voteValue = approve ? 1 : 0;
-      const tx = await contract.castVote(proposalId, voteValue); // ✅ updated to castVote
-      await tx.wait();
-  
-      // Show success popup
-      setPopupTitle(`Voted ${approve ? "Approve" : "Decline"}`);
-      setPopupMsg(`Your vote has been successfully submitted  on Proposal #${proposalId}`);
-      setShowPopup(true);
-  
-      setModalOpen(false);
-    } catch (err) {
-      console.error("Vote failed:", err);
-      setPopupTitle(`Vote failed.`);
-      setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
-      setShowPopup(true);
-    }
-  }; 
+    const voteValue = approve ? 1 : 0;
+    const tx = await contract.castVote(proposalId, voteValue);
+    await tx.wait();
 
-  return (
-    <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
-      <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl">
-        Current Proposals
-      </h1>
-  
-      {/* Delegation Controls */}
-      <div className="flex flex-col items-center mb-10">
-        <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            value={delegateInput}
-            onChange={(e) => setDelegateInput(e.target.value)}
-            placeholder="Enter delegate wallet address"
-            className="p-2 border border-gray-300 rounded w-72"
-          />
-          <button
-            onClick={handleDelegate}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+    setPopupTitle(`Voted ${approve ? "Approve" : "Decline"}`);
+    setPopupMsg(`Your vote has been successfully submitted on Proposal #${proposalId}`);
+    setShowPopup(true);
+
+    setModalOpen(false);
+  } catch (err) {
+    console.error("Vote failed:", err);
+    setPopupTitle(`Vote failed.`);
+    setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
+    setShowPopup(true);
+  }
+}; 
+
+return (
+  <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
+    <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl">
+      Current Proposals
+    </h1>
+
+    {/* Success Popup */}
+    {showPopup && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div
+          className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+          style={{ width: "600px", height: "300px" }}
           >
-            Submit Delegation
-          </button>
-        </div>
+          <div className="flex flex-col items-center justify-center h-full space-y-4">
+              <p className="text-3xl font-bold text-center">{popupTitle}</p>
+              <pre className="text-sm text-center break-all whitespace-pre-wrap">
+                {popupMsg}
+              </pre>
+              <button
+              onClick={() => setShowPopup(false)}
+              className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+              >
+              OK
+              </button>
+          </div>
+          </div>
       </div>
-  
-      <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
-        {loading ? (
-          <p className="text-center text-lg font-medium">Loading proposals...</p>
-        ) : proposals.length > 0 ? (
-          proposals.map((proposal) => {
-            const now = Date.now();
-            const isInProgress = proposal.status === "In Progress";
-            const beforeEnd = now < proposal.endDate * 1000;
-            const canVote = isInProgress && beforeEnd && hasDelegated;
-  
-            return (
-              <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
-                <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
-                  <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
-                  <p className="text-sm text-gray-600">
-                    Start: {new Date(proposal.startDate * 1000).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    End: {new Date(proposal.endDate * 1000).toLocaleString()}
-                  </p>
-  
-                  <button
-                    onClick={() => openVoteModal(proposal.id)}
-                    disabled={!canVote}
-                    className={`mt-3 px-4 py-2 rounded text-white ${
-                      canVote ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    Vote
-                  </button>
-                </ProposalItem>
-              </div>
-            );
-          })
-        ) : (
-          <p className="text-center text-lg font-medium">No proposals found. Please check back later.</p>
-        )}
-      </section>
-  
-      {/* Vote Modal */}
-      {modalOpen && selectedProposalId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              Vote on Proposal 
-            </h2>
-            <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
-  
-            <div className="flex justify-end gap-4">
+    )}
+
+    {walletAddress ? (
+      <>
+        {/* Delegation Controls */}
+        <div className="flex flex-col items-center mb-10">
+          <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={delegateInput}
+              onChange={(e) => setDelegateInput(e.target.value)}
+              placeholder="Enter delegate wallet address"
+              className="p-2 border border-gray-300 rounded w-72"
+            />
+            <button
+              onClick={handleDelegate}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Submit Delegation
+            </button>
+          </div>
+        </div>
+    
+        <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
+          {loading ? (
+            <p className="text-center text-lg font-medium">Loading proposals...</p>
+          ) : proposals.length > 0 ? (
+            proposals.map((proposal) => {
+              const now = Date.now();
+              const isInProgress = proposal.status === "In Progress";
+              const beforeEnd = now < proposal.endDate * 1000;
+              const canVote = isInProgress && beforeEnd && hasDelegated;
+    
+              return (
+                <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
+                  <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
+                    <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
+                    <p className="text-sm text-gray-600">
+                      Start: {new Date(proposal.startDate * 1000).toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      End: {new Date(proposal.endDate * 1000).toLocaleString()}
+                    </p>
+    
+                    <button
+                      onClick={() => openVoteModal(proposal.id)}
+                      disabled={!canVote}
+                      className={`mt-3 px-4 py-2 rounded text-white ${
+                        canVote ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      Vote
+                    </button>
+                  </ProposalItem>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-center text-lg font-medium">No proposals found. Please check back later.</p>
+          )}
+        </section>
+      </>
+    ) : (
+      // When wallet is not connected, show login card
+      <div className="flex justify-center items-center pt-8">
+        <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
+          <LoginIcon />
+          <div className="flex flex-col flex-1 gap-4 items-start">
+            <div className="flex flex-col gap-2 items-start w-full">
+              <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
+                Crowd-sourced Insurance
+              </h2>
+              <p className="w-full text-base leading-6 text-center text-neutral-500">
+                Please connect your wallet to continue.
+              </p>
+            </div>
+            <div className="flex gap-4 items-center w-full">
               <button
-                onClick={() => submitVote(selectedProposalId, true)}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                onClick={connectWallet}
+                className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
               >
-                Approve
-              </button>
-              <button
-                onClick={() => submitVote(selectedProposalId, false)}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-              >
-                Decline
-              </button>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-gray-500 hover:underline"
-              >
-                Cancel
+                Connect your wallet
               </button>
             </div>
           </div>
-        </div>
-      )}
-      {/* Success Popup */}
-        {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-50"></div>
-            <div
-            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-            style={{ width: "600px", height: "300px" }}
+        </article>
+      </div>
+    )}
+
+    {/* Vote Modal */}
+    {modalOpen && selectedProposalId !== null && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">
+            Vote on Proposal 
+          </h2>
+          <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
+
+          <div className="flex justify-end gap-4">
+            <button
+              onClick={() => submitVote(selectedProposalId, true)}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
-            <div className="flex flex-col items-center justify-center h-full space-y-4">
-                <p className="text-3xl font-bold text-center">{popupTitle}</p>
-                <pre className="text-sm text-center break-all whitespace-pre-wrap">
-                  {popupMsg}
-                </pre>
-                <button
-                onClick={() => setShowPopup(false)}
-                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-                >
-                OK
-                </button>
-            </div>
-            </div>
+              Approve
+            </button>
+            <button
+              onClick={() => submitVote(selectedProposalId, false)}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Decline
+            </button>
+            <button
+              onClick={() => setModalOpen(false)}
+              className="text-gray-500 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-        )}
-    </main>
-  );
-  
+      </div>
+    )}
+  </main>
+);
 };
 
 // "use client";
