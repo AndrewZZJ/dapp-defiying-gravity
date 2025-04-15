@@ -105,9 +105,9 @@ export const NavigationHeader: React.FC = () => {
               </button>
             </p>
             <div className="flex gap-1 justify-end text-[10px] text-gray-500 mt-0.5">
-              {ethBalance && <Token label="ETH" value={ethBalance} />}
+              {/* {ethBalance && <Token label="ETH" value={ethBalance} />}
               {govBalance !== null && <Token label="GGov" value={govBalance.toFixed(1)} />}
-              {chaBalance !== null && <Token label="GCha" value={chaBalance.toFixed(1)} />}
+              {chaBalance !== null && <Token label="GCha" value={chaBalance.toFixed(1)} />} */}
             </div>
           </div>
         ) : (

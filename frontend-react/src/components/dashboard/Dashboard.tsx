@@ -160,13 +160,14 @@ export const Dashboard: React.FC = () => {
   // };
 
   /* --------------------------------- render -------------------------------- */
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4">
+/* --------------------------------- render -------------------------------- */
+return (
+    <div className="bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-extrabold tracking-tight text-gray-800 mb-4">
           Dashboard
         </h1>
-
+  
         {/* No wallet connected */}
         {!walletAddress && (
           <div className="max-w-lg bg-white rounded-lg shadow p-6 text-center mx-auto">
@@ -175,7 +176,7 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
         )}
-
+  
         {/* Wallet connected */}
         {walletAddress && (
           <div className="space-y-6">
@@ -187,12 +188,6 @@ export const Dashboard: React.FC = () => {
                   <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded truncate max-w-[50vw]">
                     {walletAddress}
                   </span>
-                  {/* <button
-                    onClick={handleLogout}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Logout
-                  </button> */}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -200,7 +195,7 @@ export const Dashboard: React.FC = () => {
                 <Stat label="GraviCha Tokens" value={walletInfo?.graviChaTokens} />
               </div>
             </div>
-
+  
             {/* NFTs */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Owned NFTs</h2>
@@ -234,7 +229,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
-
+  
         {/* Global loader when wallet info is fetching */}
         {!walletInfo && walletAddress && (
           <div className="mt-6 flex items-center gap-2 text-gray-500 justify-center">
