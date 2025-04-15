@@ -24,9 +24,9 @@ async function main() {
 
   // Define the three insurances.
   const insurances = [
-    { name: "Fire Insurance", disaster: "fire", premium: 4 },
-    { name: "Flood Insurance", disaster: "flood", premium: 5 },
-    { name: "Earthquake Insurance", disaster: "earthquake", premium: 6 },
+    { name: "Fire Insurance", disaster: "fire", premium: 4, donationRewardRate: 10000},
+    { name: "Flood Insurance", disaster: "flood", premium: 5, donationRewardRate: 5000},
+    { name: "Earthquake Insurance", disaster: "earthquake", premium: 6, donationRewardRate: 2000},
   ];
 
   // To hold deployed insurance data.
@@ -49,6 +49,12 @@ async function main() {
     await graviInsurance.waitForDeployment();
     const graviInsuranceAddress = await graviInsurance.getAddress();
     console.log(`${insurance.name} - GraviInsurance deployed at: ${graviInsuranceAddress}`);
+
+    // Set the setDonationRewardRate based on donationRewardRate
+    const donationRewardRate = insurance.donationRewardRate;
+    const tranx1 = await graviInsurance.setDonationRewardRate(donationRewardRate);
+    await tranx1.wait();
+    console.log(`${insurance.name} - Donation reward rate set to: ${donationRewardRate}`);
 
     // Add an generic Disaster event to the GraviInsurance contract.
     const genericEventName = `${insurance.disaster.charAt(0).toUpperCase() + insurance.disaster.slice(1)} Generic Event`;
