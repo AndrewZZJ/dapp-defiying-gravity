@@ -265,13 +265,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
         graviCha.mint(msg.sender, msg.value * donationRewardRate);
         emit FundsDonated(msg.sender, msg.value);
-
-        graviCha.mint(msg.sender, msg.value * donationRewardRate);
-
-        emit FundsDonated(msg.sender, tokensReceived);
         return msg.value * donationRewardRate;
     }
-
 
     // Allow receiving ETH directly.
     receive() external payable {
