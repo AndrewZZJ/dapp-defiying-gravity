@@ -1,7 +1,14 @@
 import * as React from "react";
 import { Button } from "../navigation/Button";
+import { useNavigate } from "react-router-dom";
 
 export const Hero: React.FC = () => {
+    const navigate = useNavigate();
+
+    const handleLearnMore = () => {
+    navigate("/dashboard"); // Replace "/dashboard" with the actual route for your dashboard page
+    };
+
   return (
     <section
       className="flex relative flex-col items-center px-6 py-40 w-full min-h-[562px] text-stone-900 max-md:px-5 max-md:py-24 max-md:max-w-full"
@@ -23,8 +30,8 @@ export const Hero: React.FC = () => {
         </h2>
       </div>
       <div className="flex relative gap-4 items-center mt-8 w-60 max-w-full text-base leading-none">
-        <Button variant="secondary" className="flex-1">
-          Learn More
+        <Button variant="secondary" className="flex-1" onClick={handleLearnMore}>
+            Learn More
         </Button>
       </div>
     </section>

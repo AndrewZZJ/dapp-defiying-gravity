@@ -15,7 +15,7 @@ function HomePage() {
         alt="Decorative section divider"
         className="object-contain w-full aspect-[3] max-md:max-w-full"
       />
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> */}
     </main>
   );
 }

@@ -13,17 +13,17 @@ export const TeamSection: React.FC = () => {
         <TeamMemberCard
           imageSrc="/img/Andrew.jpg"
           name="Andrew Jiang"
-          description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
+          description="Hi, I'm Andrew, a first year MEng student in ECE at UBC. I'm excited to be involved in the world of decentralized blockchain with this team!"
         />
         <TeamMemberCard
           imageSrc="/img/Daniel.jpg"
           name="Pin Hong Long"
-          description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
+          description="Hi, I'm Pin Hong Long. I am a second year ECE MASc. student at UBC, I've always been interested in computers, programming, and technology-related areas such as video games, apps, and websites."
         />
         <TeamMemberCard
           imageSrc="/img/Parsa.jpg"
           name="Parsa Moheban"
-          description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
+          description="Hi, I'm Parsa. I am a first year ECE MASc. student at UBC. Although my background is in Biomedical Engineering, I'm excited to be developing a platform that can quantitatively improve the lives of its users."
         />
       </div>
       <div className="mt-12 max-w-full w-[699px] max-md:mt-10">
@@ -32,14 +32,14 @@ export const TeamSection: React.FC = () => {
             <TeamMemberCard
               imageSrc="/img/Maharshi.jpg"
               name="Maharshi Panchal"
-              description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
+              description="First year MASc student in ECE at UBC. Specializes in areas of software, medicine, and artificial intelligence."
             />
           </div>
           <div className="ml-5 w-6/12 max-md:ml-0 max-md:w-full">
             <TeamMemberCard
               imageSrc="/img/Lily.jpg"
               name="Yangrui Zhu"
-              description="Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story."
+              description="I'm Lily (Yangrui), a software engineer and first-year part-time MEng student in ECE, with interests in telecom software, distributed systems and AI."
             />
           </div>
         </div>
