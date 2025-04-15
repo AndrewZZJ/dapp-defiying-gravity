@@ -10,7 +10,8 @@ export const Header: React.FC = () => {
       {/* Logo now acts as a Home button */}
       <Link to="/" className="w-10 h-10 flex items-center">
         <img
-          src="https://cdn.builder.io/api/v1/image/assets/TEMP/c3269c5f16841bf5a3c6727a71bcaf8ce9deaaf9?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+          src="/img/Logo.png"
+          // src="https://cdn.builder.io/api/v1/image/assets/TEMP/c3269c5f16841bf5a3c6727a71bcaf8ce9deaaf9?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
           alt="Logo"
           className="object-contain w-full h-full"
         />

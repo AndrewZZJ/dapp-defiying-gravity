@@ -6,6 +6,7 @@ import GraviGovABI from "../../artifacts/contracts/tokens/GraviGov.sol/GraviGov.
 import GraviChaABI from "../../artifacts/contracts/tokens/GraviCha.sol/GraviCha.json";
 import { NavigationPill } from "./NavigationPill";
 
+
 export const NavigationHeader: React.FC = () => {
   const location = useLocation();
   const { walletAddress, setWalletAddress } = useWallet();
@@ -73,11 +74,18 @@ export const NavigationHeader: React.FC = () => {
       {/* Logo */}
       <Link to="/" className="w-10 h-10 flex items-center">
         <img
-          src="https://cdn.builder.io/api/v1/image/assets/TEMP/c3269c5f16841bf5a3c6727a71bcaf8ce9deaaf9?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+          src="/img/Logo.png"
           alt="Logo"
           className="object-contain w-full h-full"
         />
       </Link>
+      {/* <Link to="/" className="w-10 h-10 flex items-center">
+        <img
+          src="https://cdn.builder.io/api/v1/image/assets/TEMP/c3269c5f16841bf5a3c6727a71bcaf8ce9deaaf9?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
+          alt="Logo"
+          className="object-contain w-full h-full"
+        />
+      </Link> */}
 
       {/* NAV links */}
       <nav className="flex gap-4 text-base leading-none text-stone-900 ml-auto">
