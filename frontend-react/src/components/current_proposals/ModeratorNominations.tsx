@@ -8,9 +8,9 @@ const useMockData = true; // toggle as needed
 //NEED TO ADD AN ADD MODERATOR FUNCTION IN SMART CONTRACT GRAVIINSURANCE
 
 const mockModerators = [
-  { address: "0x1234...abcd", votes: 12 },
-  { address: "0x5678...efgh", votes: 8 },
-  { address: "0x9abc...ijkl", votes: 5 },
+  { address: "0x1234f71Aa063cEcEB6569b9fdcd632952f32abcd", votes: 12 },
+  { address: "0x567863cEcEB6569b9fdcd63s2952B2F141Dfefgh", votes: 8 },
+  { address: "0x9abc569b9fdcd63s2952B2F141Dfefghs2dbijkl", votes: 5 },
 ];
 
 export const ModeratorNominations: React.FC = () => {
@@ -19,6 +19,18 @@ export const ModeratorNominations: React.FC = () => {
   const [moderators, setModerators] = useState(mockModerators);
   const [votedFor, setVotedFor] = useState<Set<string>>(new Set());
   const [insuranceAddresses, setInsuranceAddresses] = useState<string[]>([]);
+  
+  // Popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMsg, setPopupMsg] = useState("");
+
+  // Function to show popup
+  const showMessage = (title: string, message: string) => {
+    setPopupTitle(title);
+    setPopupMsg(message);
+    setShowPopup(true);
+  };
 
   useEffect(() => {
     const loadAddresses = async () => {
@@ -41,10 +53,21 @@ export const ModeratorNominations: React.FC = () => {
   }, [walletAddress]);
 
   const handleNominate = async () => {
-    if (!nomineeInput.trim()) return alert("Enter a valid wallet address.");
+    if (!nomineeInput.trim()) {
+      return showMessage("Input Error", "Enter a valid wallet address.");
+    }
+    
     if (useMockData) {
-      alert(`(Mock) Nominated ${nomineeInput}`);
+      showMessage("Nomination Submitted", `Nominated ${nomineeInput}`);
       setNomineeInput("");
+
+      // Add mock data to moderators
+      setModerators((prev) => [
+        ...prev,
+        { address: nomineeInput, votes: 1 },
+      ]);
+      setVotedFor((prev) => new Set(prev).add(nomineeInput));
+
       return;
     }
   
@@ -64,18 +87,18 @@ export const ModeratorNominations: React.FC = () => {
         await tx.wait();
       }
   
-      alert(`Successfully nominated ${nomineeInput} as moderator on all pools.`);
+      showMessage("Nomination Successful", `Successfully nominated ${nomineeInput} as moderator on all pools.`);
       setNomineeInput("");
     } catch (err) {
       console.error("Nomination failed:", err);
-      alert("Nomination failed. See console for details.");
+      showMessage("Nomination Failed", "Nomination failed. See console for details.");
     }
   };
   
   const handleVote = (address: string) => {
     if (votedFor.has(address)) return;
 
-    alert(`(Mock) Voted for moderator ${address}`);
+    showMessage("Vote Recorded", `Voted for moderator ${address}`);
     setModerators((prev) =>
       prev.map((mod) =>
         mod.address === address ? { ...mod, votes: mod.votes + 1 } : mod
@@ -143,6 +166,29 @@ export const ModeratorNominations: React.FC = () => {
           );
         })}
       </ul>
+
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-50"></div>
+            <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+            >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <p className="text-3xl font-bold text-center">{popupTitle}</p>
+                <pre className="text-sm text-center break-all whitespace-pre-wrap">
+                  {popupMsg}
+                </pre>
+                <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                >
+                OK
+                </button>
+            </div>
+            </div>
+        </div>
+      )}
     </section>
   );
 };
