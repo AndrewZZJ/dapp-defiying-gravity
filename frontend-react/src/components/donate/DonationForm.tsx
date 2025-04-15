@@ -166,12 +166,15 @@ export const DonationForm: React.FC = () => {
   };
 
   const poolOptions = [
-    { title: "Wildfire", color: "bg-orange-500" },
-    { title: "Flood", color: "bg-blue-300" },
-    { title: "Earthquake", color: "bg-tan-500" },
+    { title: "Wildfire", color: "bg-orange-100", iconColor: "text-orange-500", icon: "🔥" },
+    { title: "Flood", color: "bg-blue-100", iconColor: "text-blue-500", icon: "💧" },
+    { title: "Earthquake", color: "bg-amber-100", iconColor: "text-amber-500", icon: "🌋" },
   ];
 
-  const selectedColor = poolOptions.find((pool) => pool.title === selectedPool)?.color || "bg-white";
+  const selectedPoolOption = poolOptions.find((pool) => pool.title === selectedPool);
+  const selectedColor = selectedPoolOption?.color || "bg-gray-50";
+  const selectedIconColor = selectedPoolOption?.iconColor || "text-gray-400";
+  const selectedIcon = selectedPoolOption?.icon || "🏦";
 
   const charityTokenMapping: Record<string, number | null> = {
     Wildfire: charityTokens,
@@ -179,135 +182,263 @@ export const DonationForm: React.FC = () => {
     Earthquake: charityTokens_earthquake,
   };
 
+  
+
   return (
-    <>
-      {/* Popup Modal */}
-      {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-50" />
-          <div
-            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-            style={{ width: "600px", height: "300px" }}
-          >
-            <div className="flex flex-col items-center justify-center h-full space-y-4">
-              <p className="text-3xl font-bold text-center">{popupTitle}</p>
-              <pre className="text-sm text-center break-all whitespace-pre-wrap">{popupMsg}</pre>
-              <button
-                onClick={() => setShowPopup(false)}
-                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-              >
-                OK
-              </button>
+    <div className="bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-extrabold tracking-tight text-gray-800 mb-6">
+          Donate to Insurance Pools
+        </h1>
+        
+        {/* Popup Modal */}
+        {showPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-50" />
+            <div
+              className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+              style={{ width: "600px", height: "300px" }}
+            >
+              <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <p className="text-3xl font-bold text-center">{popupTitle}</p>
+                <pre className="text-sm text-center break-all whitespace-pre-wrap">{popupMsg}</pre>
+                <button
+                  onClick={() => setShowPopup(false)}
+                  className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                >
+                  OK
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Donation Form Section */}
-        <section className="flex-1 px-4 pt-4 pb-1 bg-white rounded-lg border border-solid border-zinc-300 max-md:px-4">
-          <InputField
-            label="Amount to Donate"
-            placeholder="Enter amount in ETH"
-            value={amount}
-            onChange={setAmount}
-          />
-
-          <div className="mt-3">
-            <div
-              className={`relative border border-zinc-300 rounded-md shadow-sm ${selectedColor} text-black`}
-            >
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between w-full px-3 py-2 text-left"
-              >
-                <div className="text-sm font-medium">
-                  {selectedPool || "Select a Pool to Donate Toward"}
+        )}
+  
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Donation Form Section */}
+          <section className="bg-white rounded-lg shadow-md overflow-hidden h-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">Make a Donation</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount to Donate
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="Enter amount in ETH"
+                      className="block w-full pl-3 pr-12 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <span className="text-gray-500 sm:text-sm">ETH</span>
+                    </div>
+                  </div>
                 </div>
-              </button>
-              {isDropdownOpen && (
-                <div className="absolute left-0 right-0 bg-white border border-zinc-300 rounded-md shadow-md z-10">
-                  {poolOptions.map((pool) => (
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Insurance Pool
+                  </label>
+                  <div className="relative">
                     <button
-                      key={pool.title}
-                      onClick={() => {
-                        setSelectedPool(pool.title);
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-100"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className={`relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                        selectedPool ? "text-gray-900" : "text-gray-500"
+                      }`}
                     >
-                      {pool.title}
+                      <div className="flex items-center">
+                        {selectedPool && (
+                          <span className={`w-3 h-3 rounded-full mr-2 ${
+                            selectedPool === "Wildfire" ? "bg-orange-500" :
+                            selectedPool === "Flood" ? "bg-blue-300" :
+                            "bg-yellow-600"
+                          }`}></span>
+                        )}
+                        <span>{selectedPool || "Select a Pool"}</span>
+                      </div>
+                      <span className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </span>
                     </button>
-                  ))}
+                    
+                    {isDropdownOpen && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1">
+                        {poolOptions.map((pool) => (
+                          <button
+                            key={pool.title}
+                            onClick={() => {
+                              setSelectedPool(pool.title);
+                              setIsDropdownOpen(false);
+                            }}
+                            className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <span className={`w-3 h-3 rounded-full mr-2 ${
+                              pool.title === "Wildfire" ? "bg-orange-500" :
+                              pool.title === "Flood" ? "bg-blue-300" :
+                              "bg-yellow-600"
+                            }`}></span>
+                            {pool.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50">
+              <button
+                onClick={handleSubmit}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                }`}
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </div>
+                ) : (
+                  "Donate Now"
+                )}
+              </button>
+            </div>
+          </section>
+  
+          {/* Overview Panel Section */}
+          <section className="bg-white rounded-lg shadow-md overflow-hidden h-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">Donation Overview</h2>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Wallet Address</span>
+                    <span className="text-sm font-medium text-gray-900 truncate max-w-[170px]">
+                      {walletAddress || "Not connected"}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Selected Pool</span>
+                    <div className="flex items-center">
+                      {selectedPool && (
+                        <span className={`w-2 h-2 rounded-full mr-2 ${
+                          selectedPool === "Wildfire" ? "bg-orange-500" :
+                          selectedPool === "Flood" ? "bg-blue-300" :
+                          "bg-yellow-600"
+                        }`}></span>
+                      )}
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedPool || "None"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Donation Amount</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {amount !== "" ? `${amount} ETH` : "0 ETH"}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Rewarded Tokens</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedPool ? charityTokenMapping[selectedPool] ?? "Calculating..." : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+  
+          {/* Leaderboard Section */}
+          <section className="bg-white rounded-lg shadow-md overflow-hidden h-full min-h-[400px]">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">
+                Donor Leaderboard
+              </h2>
+              
+              {donors.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">No donors yet</p>
+                </div>
+              ) : (
+                <div className="rounded-lg overflow-hidden h-full">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Rank
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Address
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Amount
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {donors.map((entry, index) => (
+                        <tr key={index} className={index < 3 ? "bg-blue-50" : ""}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              {index < 3 ? (
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                                  index === 0 ? "bg-yellow-400" : 
+                                  index === 1 ? "bg-gray-400" : 
+                                  "bg-amber-700"
+                                }`}>
+                                  {index + 1}
+                                </div>
+                              ) : (
+                                <span className="text-gray-500">{index + 1}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-mono text-gray-900">
+                              {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <span className={`text-sm font-medium ${
+                              index < 3 ? "text-blue-600" : "text-gray-900"
+                            }`}>
+                              {parseFloat(entry.amount).toFixed(3)} ETH
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="flex gap-4 items-center mt-3 leading-none whitespace-nowrap text-neutral-100">
-            <button
-              onClick={handleSubmit}
-              className={`overflow-hidden flex-1 shrink gap-2 self-stretch p-3 w-full rounded-md border border-solid ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 hover:text-gray-200"
-              }`}
-              disabled={loading}
-            >
-              {loading ? "Processing..." : "Donate"}
-            </button>
-          </div>
-        </section>
-
-        {/* Overview Panel Section */}
-        <section className="flex-1 self-start px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
-          <h2 className="font-bold text-lg">Overview</h2>
-
-          <div className="mt-4">
-            <p className="font-medium">Wallet Address:</p>
-            <p className="text-sm text-gray-700">{walletAddress || "Not connected"}</p>
-          </div>
-
-          <div className="mt-4">
-            <p className="font-medium">Selected Pool:</p>
-            <p className="text-sm text-gray-700">{selectedPool || "None"}</p>
-          </div>
-
-          <div className="mt-4">
-            <p className="font-medium">Donation Amount:</p>
-            <p className="text-sm text-gray-700">{amount !== "" ? `${amount} ETH` : "0 ETH"}</p>
-          </div>
-
-          <div className="mt-4">
-            <p className="font-medium">Rewarded Charity Tokens (Per ETH):</p>
-            <p className="text-sm text-gray-700">
-              {selectedPool ? charityTokenMapping[selectedPool] ?? "Pending request..." : "Select a pool first"}
-            </p>
-          </div>
-        </section>
-
-        {/* Leaderboard Section */}
-        <section className="flex-1 px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
-          <h2 className="font-bold text-lg text-center">Highest Historical Donors</h2>
-          <ul className="mt-4 space-y-4">
-            {donors.length === 0 ? (
-              <li className="text-center text-gray-500 italic">No donors yet</li>
-            ) : (
-              donors.map((entry, index) => (
-                <li
-                  key={index}
-                  className="flex justify-between border-b pb-2 text-sm sm:text-base"
-                >
-                  <span>
-                    {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
-                  </span>
-                  <span className="text-emerald-700 font-semibold">
-                    {parseFloat(entry.amount).toFixed(3)} ETH
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
+          </section>
+        </div>
       </div>
-    </>
+    </div>
   );
 };

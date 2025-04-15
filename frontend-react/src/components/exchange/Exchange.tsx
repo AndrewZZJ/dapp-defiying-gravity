@@ -5,21 +5,15 @@ import { SwapForm } from "./SwapForm";
 
 const Exchange = () => {
   return (
-    <main className="overflow-hidden bg-zinc-800 min-h-screen relative">
+    <main className="overflow-hidden bg-zinc-800">
       <NavigationHeader />
 
-      <section className="relative flex flex-col items-center justify-center px-6 pt-20 pb-40 w-full min-h-[782px] max-md:px-4">
-        <img
-          src="https://cdn.builder.io/api/v1/image/assets/TEMP/1616a3702a56422d49c62b0640e3906f852114ab?placeholderIfAbsent=true&apiKey=a1e026a667a24fc2bd5beacbd7180351"
-          alt="Background"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-
-        <h1 className="relative text-7xl font-bold tracking-tighter leading-tight text-center text-neutral-950 max-md:text-4xl mb-10">
+      <section className="flex relative flex-col items-center px-6 pt-12 pb-20 w-full bg-gradient-to-b from-gray-50 to-gray-100">
+        <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
           Token Exchange
         </h1>
 
-        <div className="relative w-full max-w-2xl z-10">
+        <div className="w-full max-w-7xl">
           <SwapForm />
         </div>
       </section>
