@@ -161,10 +161,10 @@ export const ProposalsSection: React.FC = () => {
       // This returns {againstVotes, forVotes, abstainVotes}
       const { againstVotes, forVotes, abstainVotes } = await governance.proposalVotes(proposalId);
       
-      console.log("Proposal Votes:");
-      console.log(`- Against: ${ethers.utils.formatEther(againstVotes)} voting power`);
-      console.log(`- For: ${ethers.utils.formatEther(forVotes)} voting power`);
-      console.log(`- Abstain: ${ethers.utils.formatEther(abstainVotes)} voting power`);
+      // console.log("Proposal Votes:");
+      // console.log(`- Against: ${ethers.utils.formatEther(againstVotes)} voting power`);
+      // console.log(`- For: ${ethers.utils.formatEther(forVotes)} voting power`);
+      // console.log(`- Abstain: ${ethers.utils.formatEther(abstainVotes)} voting power`);
       
       return {
         againstVotes: ethers.utils.formatEther(againstVotes),
@@ -181,16 +181,67 @@ export const ProposalsSection: React.FC = () => {
   const getAddressVote = async (proposalId: number, voterAddress: string) => {
     try {
       const governance = getGovernanceContract();
-      // 0 = Against, 1 = For, 2 = Abstain, will throw error if not voted
-      const voteType = await governance.hasVoted(proposalId, voterAddress);
       
+      // First check if the address has voted at all
+      const hasVoted = await governance.hasVoted(proposalId, voterAddress);
+      
+      if (!hasVoted) {
+        return "Has not voted";
+      }
+      
+      // // Create filters for both VoteCast and VoteCastWithParams events
+      // const filter1 = governance.filters.VoteCast(voterAddress);
+      // const filter2 = governance.filters.VoteCastWithParams(voterAddress);
+      
+      // // Get all vote events for this voter from both event types
+      // const events1 = await governance.queryFilter(filter1);
+      // const events2 = await governance.queryFilter(filter2);
+      
+      // // Combine both event types
+      // const allEvents = [...events1, ...events2];
+
+      // // Print the events for debugging
+      // console.log("Vote Events:");
+      // allEvents.forEach(event => {
+      //   console.log(`Event: ${event.event}, Args: ${JSON.stringify(event.args)}`);
+      // });
+        
+      // // Find the vote for this specific proposal
+      // const proposalVote = allEvents.find(event => {
+      //   if (!event.args) return false;
+        
+      //   // For VoteCast: args[0]=voter, args[1]=proposalId, args[2]=support, args[3]=weight, args[4]=reason
+      //   // For VoteCastWithParams: args[0]=voter, args[1]=proposalId, args[2]=support, args[3]=weight, args[4]=reason, args[5]=params
+      //   const eventProposalId = event.args[1]; // ProposalId is the second argument in both events
+        
+      //   if (!eventProposalId) return false;
+        
+      //   // Convert both to strings and normalize
+      //   return eventProposalId.toString().toLowerCase() === proposalId.toString().toLowerCase();
+      // });
+
+      // // Print the found event for debugging
+      // console.log("Found Vote Event:", proposalVote);
+      
+      // if (!proposalVote || !proposalVote.args) {
+      //   console.log(`No vote event found for address ${voterAddress} on proposal ${proposalId}`);
+      //   return "Vote data unavailable";
+      // }
+      
+      // // Get the support value from the event
+      // const support = proposalVote.args.support;
+      
+      // Map the support value to a human-readable string
+      // let voteString;
+      // if (support === 0) voteString = "Against";
+      // else if (support === 1) voteString = "For";
+      // else if (support === 2) voteString = "Abstain";
+      // else voteString = "Unknown";
+
       let voteString;
-      if (voteType === 0) voteString = "Against";
-      else if (voteType === 1) voteString = "For";
-      else if (voteType === 2) voteString = "Abstain";
+      if (hasVoted) voteString = "Has voted";
       else voteString = "Has not voted";
-      
-      console.log(`Address ${voterAddress} vote: ${voteString}`);
+
       return voteString;
     } catch (err) {
       console.error("Failed to check vote status:", err);
@@ -528,7 +579,7 @@ return (
                   {/* User vote status */}
                   {proposal.userVote && (
                     <div className="mt-2 text-sm">
-                      Your vote: <span className={`font-medium ${
+                      Your Voting Status: <span className={`font-medium ${
                         proposal.userVote === "For" ? "text-green-600" : 
                         proposal.userVote === "Against" ? "text-red-600" :
                         proposal.userVote === "Abstain" ? "text-gray-500" : ""
