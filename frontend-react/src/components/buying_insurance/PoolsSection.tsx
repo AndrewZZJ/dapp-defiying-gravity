@@ -15,7 +15,11 @@ export const PoolsSection: React.FC = () => {
   const [homeAddress, setHomeAddress] = useState(""); // State for the user's home address
   const [isLoading, setIsLoading] = useState(false);
   const [insuranceAddress, setInsuranceAddress] = useState<string | null>(null);
-  const [showPopup, setShowPopup] = useState(false); // State for success popup
+
+  // Popup state (visual only)
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMsg, setPopupMsg] = useState("");
 
   // Function to connect wallet
   const connectWallet = async () => {
@@ -86,9 +90,6 @@ export const PoolsSection: React.FC = () => {
   // Example function to fetch annual fee (replace with actual logic)
   const fetchAnnualFee = async (): Promise<string | null> => {
     try {
-      // Simulate a backend call
-      // return null; // Replace with actual logic
-
       const response = await fetch("/addresses.json");
       const addresses = await response.json();
 
@@ -105,10 +106,8 @@ export const PoolsSection: React.FC = () => {
       const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, provider);
 
       const premiumRate = await contract.premiumRate();
-      // const annualFeeInEth = ethers.utils.formatEther(premiumRate);
       setAnnualFee(`${premiumRate}%`);
       return `${premiumRate}%`;
-
     } catch (error) {
       console.error("Error fetching annual fee:", error);
       return null;
@@ -117,7 +116,12 @@ export const PoolsSection: React.FC = () => {
 
   const handlePurchase = async () => {
   if (!walletAddress) return alert("Connect your wallet first.");
-  if (!homeAddress.trim()) return alert("Enter a property address.");
+  if (!homeAddress.trim()) {
+      setPopupTitle("Invalid Address");
+      setPopupMsg("Please enter a valid address.");
+      setShowPopup(true);
+      return;
+    }
 
   try {
     setIsLoading(true);
@@ -152,25 +156,35 @@ export const PoolsSection: React.FC = () => {
       }
     );
 
-    await tx.wait();
+      await tx.wait();
 
-    // Show the success popup
-    setShowPopup(true);
+      // Show success popup
+      setPopupTitle("Insurance Purchased Successfully");
+      setPopupMsg(`Your policy purchase was successful! Transaction hash:\n${tx.hash}`);
+      setShowPopup(true);
 
-    // Clear input fields
-    setHomeAddress("");
-    setPortfolioValue(1);
-    setCoverPeriod(30);
+      // STEP 3: Update the UI and clear fields
+      setHomeAddress("");
+      setPortfolioValue(1);
+      setCoverPeriod(30);
 
-    setCoverCost("N/A");
-    setMaxCoverage("N/A");
-  } catch (error) {
-    console.error("Failed to purchase insurance:", error);
-    alert("Purchase failed. See console for details.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // Reset coverage cost and max coverage
+      setCoverCost("N/A");
+      setMaxCoverage("N/A");
+    } catch (error) {
+      console.error("Failed to purchase insurance:", error);
+
+      setPopupTitle("Purchase Failed");
+      setPopupMsg(
+        (error as any)?.reason ||
+          (error as any)?.message ||
+          "Transaction reverted — see console for details."
+      );
+      setShowPopup(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // A plain async function to calculate coverage cost without internal debounce logic
   const calculateCoverageCost = async () => {
@@ -188,7 +202,6 @@ export const PoolsSection: React.FC = () => {
       // If necessary fields aren't set, mark as unavailable
       if (!homeAddress || !portfolioValue) {
         setCoverCost("N/A");
-        // setAnnualFee("N/A");
         setMaxCoverage("N/A");
         return;
       }
@@ -212,7 +225,6 @@ export const PoolsSection: React.FC = () => {
     } catch (error) {
       console.error("Error calculating coverage cost:", error);
       setCoverCost("Error");
-      // setAnnualFee("Error");
       setMaxCoverage("Error");
     }
   };
@@ -220,22 +232,20 @@ export const PoolsSection: React.FC = () => {
   useEffect(() => {
     // Immediately set the UI to indicate a calculation is pending
     setCoverCost("Calculating...");
-    // setAnnualFee("Calculating...");
     setMaxCoverage("Calculating...");
-  
+
     // If required fields are not set, clear the messages to "N/A"
     if (!homeAddress || !portfolioValue) {
       setCoverCost("N/A");
-      // setAnnualFee("N/A");
       setMaxCoverage("N/A");
       return;
     }
-  
+
     // Set a timer to call the calculation after 2 seconds
     const timer = setTimeout(() => {
       calculateCoverageCost();
     }, 2000);
-  
+
     // Cleanup: clear the timer if any dependency changes within the delay period
     return () => clearTimeout(timer);
   }, [homeAddress, portfolioValue, coverPeriod, selectedDisaster]);
@@ -253,6 +263,30 @@ export const PoolsSection: React.FC = () => {
 
   return (
     <main className="relative px-8 py-12 bg-white min-h-screen">
+      {/* Popup Modal */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-50" />
+          <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+          >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+              <p className="text-3xl font-bold text-center">{popupTitle}</p>
+              <pre className="text-sm text-center break-all whitespace-pre-wrap">
+                {popupMsg}
+              </pre>
+              <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="mb-12 text-4xl font-bold text-center text-gray-900">
         Buy Insurance
       </h1>
@@ -279,16 +313,16 @@ export const PoolsSection: React.FC = () => {
             {/* Home Address Input */}
             <div className="mb-6 p-4 rounded-lg border border-gray-300">
               <label className="block text-lg font-semibold text-gray-700 mb-2">
-                Desired Address to Insure
+              Desired Address to Insure
               </label>
               <input
-                type="text"
-                value={homeAddress}
-                onChange={(e) => {
+              type="text"
+              value={homeAddress}
+              onChange={(e) => {
                   setHomeAddress(e.target.value);
                   // Do not call calculateCoverageCost here!
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md"
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 placeholder="Enter your desired address to insure (123 Main St, City, Province/State, Country)."
               />
             </div>
@@ -303,7 +337,6 @@ export const PoolsSection: React.FC = () => {
                 value={portfolioValue}
                 onChange={(e) => {
                   setPortfolioValue(Number(e.target.value));
-                  // Do not call calculateCoverageCost here!
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 min="0.1"
@@ -323,7 +356,6 @@ export const PoolsSection: React.FC = () => {
                 value={coverPeriod}
                 onChange={(e) => {
                   setCoverPeriod(Number(e.target.value));
-                  // Do not call calculateCoverageCost here!
                 }}
                 className="w-full accent-orange-500"
               />
@@ -409,31 +441,6 @@ export const PoolsSection: React.FC = () => {
           </button>
         </div>
       )}
-      {/* Success Popup */}
-        {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-50"></div>
-            <div
-            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-            style={{ width: "600px", height: "300px" }}
-            >
-            <div className="flex flex-col items-center justify-center h-full space-y-4">
-                <p className="text-3xl font-bold text-center">
-                Insurance Purchased Successfully!
-                </p>
-                <p className="text-sm text-center">
-                Your insurance has been successfully purchased. Thank you!
-                </p>
-                <button
-                onClick={() => setShowPopup(false)}
-                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-                >
-                OK
-                </button>
-            </div>
-            </div>
-        </div>
-        )}
     </main>
   );
 };

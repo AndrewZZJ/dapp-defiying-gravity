@@ -29,6 +29,11 @@ export default function NFTMarketplace() {
   const [pastBids, setPastBids] = useState<NFT[]>([]);
   const [withdrawable, setWithdrawable] = useState<string>("0");
 
+  // Popup state (visual only)
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMsg, setPopupMsg] = useState("");
+
   // Connect wallet.
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
@@ -41,9 +46,14 @@ export default function NFTMarketplace() {
         getNFTAuctionStatus();
       } catch (error) {
         console.error("Wallet connection failed:", error);
+        setPopupTitle("Wallet Connection Failed");
+        setPopupMsg((error as any)?.message || "Unable to connect wallet.");
+        setShowPopup(true);
       }
     } else {
-      alert("Please install MetaMask to connect your wallet.");
+      setPopupTitle("MetaMask Required");
+      setPopupMsg("Please install MetaMask to connect your wallet.");
+      setShowPopup(true);
     }
   };
 
@@ -115,10 +125,6 @@ export default function NFTMarketplace() {
         // Fetch the withdrawable amount.
         const pending = await userGraviPoolNFT.withdrawableAmount();
         const pendingFormatted = ethers.utils.formatUnits(pending, 18);
-
-        // // For not set pending amount, set it to 0.
-        // const pendingFormatted = "1.0";
-        console.log("Pending amount:", pendingFormatted);
         setWithdrawable(pendingFormatted);
       }
 
@@ -187,7 +193,6 @@ export default function NFTMarketplace() {
       });
 
       const active = mergedNFTs.filter((nft) => new Date(nft.endDate) > now);
-      // const past = mergedNFTs.filter((nft) => new Date(nft.endDate) <= now);
       const past = mergedNFTs
         .filter((nft) => new Date(nft.endDate) <= now)
         .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
@@ -216,18 +221,19 @@ export default function NFTMarketplace() {
         signer
       );
       const parsedBidAmount = ethers.utils.parseUnits(bidValue, "ether");
-      console.log("Approving charity token spending...");
       const approveTx = await graviCha.approve(graviPoolNFTAddress, parsedBidAmount);
       await approveTx.wait();
-      console.log("Approval successful. Tx hash:", approveTx.hash);
-      console.log(`Placing a bid of ${bidValue} tokens for NFT ${nftId}...`);
       const bidTx = await graviPoolNFT.bid(nftId, parsedBidAmount);
       await bidTx.wait();
-    //   alert("Bid submitted successfully!");
+      setPopupTitle("Bid Submitted Successfully");
+      setPopupMsg(`Transaction hash:\n${bidTx.hash}`);
+      setShowPopup(true);
       getNFTAuctionStatus();
     } catch (error) {
       console.error("Error placing bid:", error);
-      alert("Bid failed!");
+      setPopupTitle("Bid Failed");
+      setPopupMsg((error as any)?.reason || (error as any)?.message || "Bid failed!");
+      setShowPopup(true);
     }
   };
 
@@ -245,14 +251,17 @@ export default function NFTMarketplace() {
         GraviPoolNFTABI.abi,
         signer
       );
-      console.log(`Claiming NFT (tokenId: ${nftId})...`);
       const claimTx = await graviPoolNFT.claimNFT(nftId);
       await claimTx.wait();
-    //   alert("NFT claimed successfully!");
+      setPopupTitle("NFT Claimed Successfully");
+      setPopupMsg(`Transaction hash:\n${claimTx.hash}`);
+      setShowPopup(true);
       getNFTAuctionStatus();
     } catch (error) {
       console.error("Error claiming NFT:", error);
-      alert("Claim NFT failed!");
+      setPopupTitle("Claim NFT Failed");
+      setPopupMsg((error as any)?.reason || (error as any)?.message || "Claim NFT failed!");
+      setShowPopup(true);
     }
   };
 
@@ -271,11 +280,15 @@ export default function NFTMarketplace() {
       );
       const tx = await graviPoolNFT.withdraw();
       await tx.wait();
-    //   alert("Tokens reclaimed successfully!");
+      setPopupTitle("Tokens Reclaimed Successfully");
+      setPopupMsg(`Recovered ${withdrawable} GraviCha tokens.\n\nTransaction hash:\n${tx.hash}`);
+      setShowPopup(true);
       getNFTAuctionStatus();
     } catch (error) {
       console.error("Error withdrawing tokens:", error);
-      alert("Token withdrawal failed!");
+      setPopupTitle("Token Withdrawal Failed");
+      setPopupMsg((error as any)?.reason || (error as any)?.message || "Token withdrawal failed!");
+      setShowPopup(true);
     }
   };
 
@@ -289,6 +302,30 @@ export default function NFTMarketplace() {
 
   return (
     <main>
+      {/* Popup Modal */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-50" />
+          <div
+            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+            style={{ width: "600px", height: "300px" }}
+          >
+            <div className="flex flex-col items-center justify-center h-full space-y-4">
+              <p className="text-3xl font-bold text-center">{popupTitle}</p>
+              <pre className="text-sm text-center break-all whitespace-pre-wrap">
+                {popupMsg}
+              </pre>
+              <button
+                onClick={() => setShowPopup(false)}
+                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <NavigationHeader />
       <section className="flex flex-col gap-16 p-16 bg-white max-sm:gap-8 max-sm:p-6">
         {walletAddress ? (

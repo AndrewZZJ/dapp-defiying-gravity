@@ -19,7 +19,11 @@ export const DonationForm: React.FC = () => {
   const [floodAddress, setFloodAddress] = useState("");
   const [earthquakeAddress, setEarthquakeAddress] = useState("");
   const [donors, setDonors] = useState<Donor[]>([]);
-  const [showPopup, setShowPopup] = useState(false); // State for success popup
+
+  // Popup state (visual only)
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMsg, setPopupMsg] = useState("");
 
   type Donor = {
     address: string;
@@ -36,7 +40,6 @@ export const DonationForm: React.FC = () => {
         const flood = deploymentConfig["FloodInsurance"];
         const earthquake = deploymentConfig["EarthquakeInsurance"];
 
-        // Fetch charity tokens from the backend (Note this should be PER insurance)
         const provider = new ethers.providers.Web3Provider(window.ethereum as any);
         const contract = new ethers.Contract(wildfire, GraviInsuranceABI.abi, provider);
         const exchangeRate = await contract.getDonationRewardRate();
@@ -61,16 +64,19 @@ export const DonationForm: React.FC = () => {
       }
     };
 
+
     fetchAddressesAndDonors();
   }, []);
 
   const fetchDonors = async (poolAddress: string) => {
     if (!poolAddress || !window.ethereum) return;
 
+
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
       const contract = new ethers.Contract(poolAddress, GraviInsuranceABI.abi, provider);
       const [addresses, amounts]: [string[], ethers.BigNumber[]] = await contract.getAllDonors();
+
 
       const formatted: Donor[] = addresses.map((addr, i) => ({
         address: addr,
@@ -82,6 +88,7 @@ export const DonationForm: React.FC = () => {
         .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
         .slice(0, 8);
 
+
       setDonors(topDonors);
     } catch (err) {
       console.error("Failed to fetch donors:", err);
@@ -90,12 +97,16 @@ export const DonationForm: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!walletAddress) {
-      alert("Please connect your wallet to donate.");
+      setPopupTitle("Wallet Not Connected");
+      setPopupMsg("Please connect your wallet to donate.");
+      setShowPopup(true);
       return;
     }
 
     if (!selectedPool || !amount) {
-      alert("Please select a pool and enter an amount to donate.");
+      setPopupTitle("Incomplete Donation Details");
+      setPopupMsg("Please select a pool and enter an amount to donate.");
+      setShowPopup(true);
       return;
     }
 
@@ -115,7 +126,9 @@ export const DonationForm: React.FC = () => {
       } else if (selectedPool === "Earthquake") {
         selectedAddress = earthquakeAddress;
       } else {
-        alert("Invalid pool selected.");
+        setPopupTitle("Invalid Pool Selected");
+        setPopupMsg("Please choose a valid donation pool.");
+        setShowPopup(true);
         return;
       }
 
@@ -128,28 +141,34 @@ export const DonationForm: React.FC = () => {
         value: ethers.utils.parseEther(amount),
       });
 
+
       await tx.wait();
 
-      // Clear the donation amount
+      setPopupTitle("Donation Successful");
+      setPopupMsg(`Donated ${amount} ETH to the insurance.\n Awarded charity tokens will be sent to your wallet.\n\n Thank you for your support!\nTransaction hash:\n${tx.hash}`);
+      setShowPopup(true);
+
       setAmount("");
 
       // Refresh the donors list for the selected pool
       await fetchDonors(selectedAddress);
 
-      // Show the success popup
-      setShowPopup(true);
+      // // Show the success popup
+      // setShowPopup(true);
     } catch (error) {
       console.error("Failed to process donation:", error);
-      alert("Donation failed. Please try again.");
+      setPopupTitle("Donation Failed");
+      setPopupMsg((error as any)?.reason || (error as any)?.message || "Donation failed. Please try again.");
+      setShowPopup(true);
     } finally {
       setLoading(false);
     }
   };
 
   const poolOptions = [
-    { title: "Wildfire", color: "bg-orange-500" }, // Sunset orange
-    { title: "Flood", color: "bg-blue-300" }, // Light baby blue
-    { title: "Earthquake", color: "bg-tan-500" }, // Muted tan
+    { title: "Wildfire", color: "bg-orange-500" },
+    { title: "Flood", color: "bg-blue-300" },
+    { title: "Earthquake", color: "bg-tan-500" },
   ];
 
   const selectedColor = poolOptions.find((pool) => pool.title === selectedPool)?.color || "bg-white";
@@ -161,126 +180,18 @@ export const DonationForm: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-8">
-      {/* Donation Form Section */}
-      <section className="flex-1 px-4 pt-4 pb-1 bg-white rounded-lg border border-solid border-zinc-300 max-md:px-4">
-        <InputField
-          label="Amount to Donate"
-          placeholder="Enter amount in ETH"
-          value={amount}
-          onChange={setAmount}
-        />
-
-        <div className="mt-3">
-          <div
-            className={`relative border border-zinc-300 rounded-md shadow-sm ${selectedColor} text-black`}
-          >
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center justify-between w-full px-3 py-2 text-left"
-            >
-              <div className="text-sm font-medium">
-                {selectedPool || "Select a Pool to Donate Toward"}
-              </div>
-            </button>
-            {isDropdownOpen && (
-              <div className="absolute left-0 right-0 bg-white border border-zinc-300 rounded-md shadow-md z-10">
-                {poolOptions.map((pool) => (
-                  <button
-                    key={pool.title}
-                    onClick={() => {
-                      setSelectedPool(pool.title);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-zinc-100`}
-                  >
-                    {pool.title}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-4 items-center mt-3 leading-none whitespace-nowrap text-neutral-100">
-          <button
-            onClick={handleSubmit}
-            className={`overflow-hidden flex-1 shrink gap-2 self-stretch p-3 w-full rounded-md border border-solid ${
-              loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 hover:text-gray-200"
-            }`}
-            disabled={loading}
-          >
-            {loading ? "Processing..." : "Donate"}
-          </button>
-        </div>
-      </section>
-
-      {/* Overview Panel Section */}
-      <section className="flex-1 self-start px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
-        <h2 className="font-bold text-lg">Overview</h2>
-
-        <div className="mt-4">
-          <p className="font-medium">Wallet Address:</p>
-          <p className="text-sm text-gray-700">{walletAddress || "Not connected"}</p>
-        </div>
-
-        <div className="mt-4">
-          <p className="font-medium">Selected Pool:</p>
-          <p className="text-sm text-gray-700">{selectedPool || "None"}</p>
-        </div>
-
-        <div className="mt-4">
-          <p className="font-medium">Donation Amount:</p>
-          <p className="text-sm text-gray-700">{amount !== "" ? amount + " ETH" : "0 ETH"}</p>
-        </div>
-
-        <div className="mt-4">
-          <p className="font-medium">Rewarded Charity Tokens (Per ETH):</p>
-          <p className="text-sm text-gray-700">
-            {selectedPool ? charityTokenMapping[selectedPool] ?? "Pending request..." : "Select a pool first"}
-          </p>
-        </div>
-      </section>
-
-      {/* Leaderboard Section */}
-      <section className="flex-1 px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
-        <h2 className="font-bold text-lg text-center">Highest Historical Donors</h2>
-        <ul className="mt-4 space-y-4">
-          {donors.length === 0 ? (
-            <li className="text-center text-gray-500 italic">No donors yet</li>
-          ) : (
-            donors.map((entry, index) => (
-              <li
-                key={index}
-                className="flex justify-between border-b pb-2 text-sm sm:text-base"
-              >
-                <span>
-                  {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
-                </span>
-                <span className="text-emerald-700 font-semibold">
-                  {parseFloat(entry.amount).toFixed(3)} ETH
-                </span>
-              </li>
-            ))
-          )}
-        </ul>
-      </section>
-
-      {/* Success Popup */}
+    <>
+      {/* Popup Modal */}
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className="absolute inset-0 bg-black opacity-50" />
           <div
             className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
             style={{ width: "600px", height: "300px" }}
           >
             <div className="flex flex-col items-center justify-center h-full space-y-4">
-              <p className="text-3xl font-bold text-center">
-                Donation Successful!
-              </p>
-              <p className="text-sm text-center">
-                Thank you for your generosity. Your donation has been processed.
-              </p>
+              <p className="text-3xl font-bold text-center">{popupTitle}</p>
+              <pre className="text-sm text-center break-all whitespace-pre-wrap">{popupMsg}</pre>
               <button
                 onClick={() => setShowPopup(false)}
                 className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
@@ -291,6 +202,112 @@ export const DonationForm: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Donation Form Section */}
+        <section className="flex-1 px-4 pt-4 pb-1 bg-white rounded-lg border border-solid border-zinc-300 max-md:px-4">
+          <InputField
+            label="Amount to Donate"
+            placeholder="Enter amount in ETH"
+            value={amount}
+            onChange={setAmount}
+          />
+
+          <div className="mt-3">
+            <div
+              className={`relative border border-zinc-300 rounded-md shadow-sm ${selectedColor} text-black`}
+            >
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between w-full px-3 py-2 text-left"
+              >
+                <div className="text-sm font-medium">
+                  {selectedPool || "Select a Pool to Donate Toward"}
+                </div>
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute left-0 right-0 bg-white border border-zinc-300 rounded-md shadow-md z-10">
+                  {poolOptions.map((pool) => (
+                    <button
+                      key={pool.title}
+                      onClick={() => {
+                        setSelectedPool(pool.title);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-100"
+                    >
+                      {pool.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-4 items-center mt-3 leading-none whitespace-nowrap text-neutral-100">
+            <button
+              onClick={handleSubmit}
+              className={`overflow-hidden flex-1 shrink gap-2 self-stretch p-3 w-full rounded-md border border-solid ${
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-800 hover:text-gray-200"
+              }`}
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Donate"}
+            </button>
+          </div>
+        </section>
+
+        {/* Overview Panel Section */}
+        <section className="flex-1 self-start px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
+          <h2 className="font-bold text-lg">Overview</h2>
+
+          <div className="mt-4">
+            <p className="font-medium">Wallet Address:</p>
+            <p className="text-sm text-gray-700">{walletAddress || "Not connected"}</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="font-medium">Selected Pool:</p>
+            <p className="text-sm text-gray-700">{selectedPool || "None"}</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="font-medium">Donation Amount:</p>
+            <p className="text-sm text-gray-700">{amount !== "" ? `${amount} ETH` : "0 ETH"}</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="font-medium">Rewarded Charity Tokens (Per ETH):</p>
+            <p className="text-sm text-gray-700">
+              {selectedPool ? charityTokenMapping[selectedPool] ?? "Pending request..." : "Select a pool first"}
+            </p>
+          </div>
+        </section>
+
+        {/* Leaderboard Section */}
+        <section className="flex-1 px-5 pt-6 pb-2.5 leading-snug bg-white rounded-lg border border-solid border-zinc-300 text-stone-900 max-md:pr-5">
+          <h2 className="font-bold text-lg text-center">Highest Historical Donors</h2>
+          <ul className="mt-4 space-y-4">
+            {donors.length === 0 ? (
+              <li className="text-center text-gray-500 italic">No donors yet</li>
+            ) : (
+              donors.map((entry, index) => (
+                <li
+                  key={index}
+                  className="flex justify-between border-b pb-2 text-sm sm:text-base"
+                >
+                  <span>
+                    {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
+                  </span>
+                  <span className="text-emerald-700 font-semibold">
+                    {parseFloat(entry.amount).toFixed(3)} ETH
+                  </span>
+                </li>
+              ))
+            )}
+          </ul>
+        </section>
+      </div>
+    </>
   );
 };

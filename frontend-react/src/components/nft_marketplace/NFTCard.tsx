@@ -233,27 +233,6 @@ export function NFTCard({
           </div>
         )}
       </div>
-
-      {/* Success Popup */}
-      {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div
-            className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-            style={{ width: "600px", height: "300px" }}
-          >
-            <div className="flex flex-col items-center justify-center h-full space-y-4">
-              <p className="text-3xl font-bold text-center">{popupMessage}</p>
-              <button
-                onClick={() => setShowPopup(false)}
-                className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </article>
   );
 }
