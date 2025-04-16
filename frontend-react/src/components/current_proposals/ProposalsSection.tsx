@@ -456,11 +456,225 @@ const openVoteModal = (proposalId: number) => {
     }
   }; 
 
-return (
+// return (
 
-  <main className="relative px-8 py-12 bg-white min-h-screen">
-  {/* <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]"> */}
-    {/* <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl"> */}
+//   <main className="relative px-8 py-12 bg-white min-h-screen">
+//   {/* <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]"> */}
+//     {/* <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl"> */}
+//     <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
+//       Current Proposals
+//     </h1>
+
+//     {/* Success Popup */}
+//     {showPopup && (
+//       <div className="fixed inset-0 z-50 flex items-center justify-center">
+//           <div className="absolute inset-0 bg-black opacity-50"></div>
+//           <div
+//           className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
+//           style={{ width: "600px", height: "300px" }}
+//           >
+//           <div className="flex flex-col items-center justify-center h-full space-y-4">
+//               <p className="text-3xl font-bold text-center">{popupTitle}</p>
+//               <pre className="text-sm text-center break-all whitespace-pre-wrap">
+//                 {popupMsg}
+//               </pre>
+//               <button
+//               onClick={() => setShowPopup(false)}
+//               className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+//               >
+//               OK
+//               </button>
+//           </div>
+//           </div>
+//       </div>
+//     )}
+
+//     {walletAddress ? (
+//       <>
+//         {/* Delegation Controls */}
+//         <div className="flex flex-col items-center mb-10">
+//           <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
+//           <div className="flex flex-col sm:flex-row gap-2">
+//             <input
+//               type="text"
+//               value={delegateInput}
+//               onChange={(e) => setDelegateInput(e.target.value)}
+//               placeholder="Enter delegate wallet address"
+//               className="p-2 border border-gray-300 rounded w-72"
+//             />
+//             <button
+//               onClick={handleDelegate}
+//               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+//             >
+//               Submit Delegation
+//             </button>
+//           </div>
+//         </div>
+    
+//         <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
+//           {loading ? (
+//             <p className="text-center text-lg font-medium">Loading proposals...</p>
+//           ) : proposals.length > 0 ? (
+//             proposals.map((proposal) => {
+//               const now = Date.now();
+//               const isInProgress = proposal.status === "In Progress";
+//               const beforeEnd = now < proposal.endDate * 1000;
+//               const canVote = isInProgress && beforeEnd && hasDelegated;
+    
+//               return (
+//                 <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
+//                   <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
+//                     <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
+//                     <p className="text-sm text-gray-600">
+//                       Start: {new Date(proposal.startDate * 1000).toLocaleString()}
+//                     </p>
+//                     <p className="text-sm text-gray-600">
+//                       End: {new Date(proposal.endDate * 1000).toLocaleString()}
+//                     </p>
+                  
+//                   {/* Vote counts display */}
+//                   {proposal.votes && (
+//                     <div className="mt-3 p-3 bg-gray-50 rounded-md">
+//                       <h4 className="font-semibold text-sm mb-2">Current Votes</h4>
+//                       <div className="flex flex-col gap-1">
+//                         <div className="flex justify-between">
+//                           <span className="text-sm text-green-700">For:</span>
+//                           <span className="text-sm font-medium">{proposal.votes.forVotes} votes</span>
+//                         </div>
+//                         <div className="flex justify-between">
+//                           <span className="text-sm text-red-700">Against:</span>
+//                           <span className="text-sm font-medium">{proposal.votes.againstVotes} votes</span>
+//                         </div>
+//                         <div className="flex justify-between">
+//                           <span className="text-sm text-gray-500">Abstain:</span>
+//                           <span className="text-sm font-medium">{proposal.votes.abstainVotes} votes</span>
+//                         </div>
+                        
+//                         {/* Total votes and progress bar */}
+//                         {(() => {
+//                           const totalVotes = parseFloat(proposal.votes.forVotes) + 
+//                                            parseFloat(proposal.votes.againstVotes) + 
+//                                            parseFloat(proposal.votes.abstainVotes);
+//                           const forPercentage = totalVotes > 0 ? 
+//                             (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
+//                           const againstPercentage = totalVotes > 0 ? 
+//                             (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
+//                           const abstainPercentage = totalVotes > 0 ? 
+//                             (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
+                            
+//                           return (
+//                             <>
+//                               <div className="mt-2 text-sm text-gray-700">
+//                                 Total: {totalVotes.toFixed(2)} votes
+//                               </div>
+//                               <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+//                                 <div className="h-full bg-green-500" style={{width: `${forPercentage}%`, float: 'left'}}></div>
+//                                 <div className="h-full bg-red-500" style={{width: `${againstPercentage}%`, float: 'left'}}></div>
+//                                 <div className="h-full bg-gray-400" style={{width: `${abstainPercentage}%`, float: 'left'}}></div>
+//                               </div>
+//                             </>
+//                           );
+//                         })()}
+//                       </div>
+//                     </div>
+//                   )}
+                  
+//                   {/* User vote status */}
+//                   {proposal.userVote && (
+//                     <div className="mt-2 text-sm">
+//                       Your Voting Status: <span className={`font-medium ${
+//                         proposal.userVote === "For" ? "text-green-600" : 
+//                         proposal.userVote === "Against" ? "text-red-600" :
+//                         proposal.userVote === "Abstain" ? "text-gray-500" : ""
+//                       }`}>
+//                         {proposal.userVote}
+//                       </span>
+//                     </div>
+//                   )}
+    
+//                     <button
+//                       onClick={() => openVoteModal(proposal.id)}
+//                       disabled={!canVote || proposal.userVote !== "Has not voted"}
+//                       className={`mt-3 px-4 py-2 rounded text-white ${
+//                         canVote && proposal.userVote === "Has not voted" 
+//                         ? "bg-green-600 hover:bg-green-700" 
+//                         : "bg-gray-400 cursor-not-allowed"
+//                       }`}
+//                     >
+//                       {proposal.userVote !== "Has not voted" ? "Already Voted" : "Vote"}
+//                     </button>
+//                   </ProposalItem>
+//                 </div>
+//               );
+//             })
+//           ) : (
+//             <p className="text-center text-lg font-medium">No proposals found. Please check back later.</p>
+//           )}
+//         </section>
+//       </>
+//     ) : (
+//       // When wallet is not connected, show login card
+//       <div className="flex justify-center items-center pt-8">
+//         <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
+//           <LoginIcon />
+//           <div className="flex flex-col flex-1 gap-4 items-start">
+//             <div className="flex flex-col gap-2 items-start w-full">
+//               <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
+//                 Crowd-sourced Insurance
+//               </h2>
+//               <p className="w-full text-base leading-6 text-center text-neutral-500">
+//                 Please connect your wallet to continue.
+//               </p>
+//             </div>
+//             <div className="flex gap-4 items-center w-full">
+//               <button
+//                 onClick={connectWallet}
+//                 className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
+//               >
+//                 Connect your wallet
+//               </button>
+//             </div>
+//           </div>
+//         </article>
+//       </div>
+//     )}
+
+//     {/* Vote Modal */}
+//     {modalOpen && selectedProposalId !== null && (
+//       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+//         <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+//           <h2 className="text-xl font-semibold mb-4 text-gray-800">
+//             Vote on Proposal 
+//           </h2>
+//           <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
+
+//           <div className="flex justify-end gap-4">
+//             <button
+//               onClick={() => submitVote(selectedProposalId, true)}
+//               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+//             >
+//               Approve
+//             </button>
+//             <button
+//               onClick={() => submitVote(selectedProposalId, false)}
+//               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+//             >
+//               Decline
+//             </button>
+//             <button
+//               onClick={() => setModalOpen(false)}
+//               className="text-gray-500 hover:underline"
+//             >
+//               Cancel
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     )}
+//   </main>
+// );
+return (
+  <main className="relative px-8 py-12 bg-white min-h-[100dvh]">
     <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
       Current Proposals
     </h1>
@@ -468,24 +682,19 @@ return (
     {/* Success Popup */}
     {showPopup && (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div
-          className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-          style={{ width: "600px", height: "300px" }}
-          >
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50" style={{ width: "600px", height: "300px" }}>
           <div className="flex flex-col items-center justify-center h-full space-y-4">
-              <p className="text-3xl font-bold text-center">{popupTitle}</p>
-              <pre className="text-sm text-center break-all whitespace-pre-wrap">
-                {popupMsg}
-              </pre>
-              <button
+            <p className="text-3xl font-bold text-center">{popupTitle}</p>
+            <pre className="text-sm text-center break-all whitespace-pre-wrap">{popupMsg}</pre>
+            <button
               onClick={() => setShowPopup(false)}
               className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-              >
+            >
               OK
-              </button>
+            </button>
           </div>
-          </div>
+        </div>
       </div>
     )}
 
@@ -510,29 +719,40 @@ return (
             </button>
           </div>
         </div>
-    
-        <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
-          {loading ? (
+
+        {/* Proposal Section */}
+        <section
+        className={`flex flex-col items-center justify-center ${
+          loading || proposals.length > 0 ? "gap-4 p-8" : "p-0 h-0"
+        } mx-auto max-w-screen-sm`}
+      >
+          {loading && (
             <p className="text-center text-lg font-medium">Loading proposals...</p>
-          ) : proposals.length > 0 ? (
-            proposals.map((proposal) => {
-              const now = Date.now();
-              const isInProgress = proposal.status === "In Progress";
-              const beforeEnd = now < proposal.endDate * 1000;
-              const canVote = isInProgress && beforeEnd && hasDelegated;
-    
-              return (
-                <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
-                  <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
-                    <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
-                    <p className="text-sm text-gray-600">
-                      Start: {new Date(proposal.startDate * 1000).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      End: {new Date(proposal.endDate * 1000).toLocaleString()}
-                    </p>
-                  
-                  {/* Vote counts display */}
+          )}
+
+          {!loading && proposals.length === 0 && (
+            <p className="text-center text-lg font-medium mb-8">
+              No proposals found. Please check back later.
+            </p>
+          )}
+
+          {!loading && proposals.length > 0 && proposals.map((proposal) => {
+            const now = Date.now();
+            const isInProgress = proposal.status === "In Progress";
+            const beforeEnd = now < proposal.endDate * 1000;
+            const canVote = isInProgress && beforeEnd && hasDelegated;
+
+            return (
+              <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
+                <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
+                  <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
+                  <p className="text-sm text-gray-600">
+                    Start: {new Date(proposal.startDate * 1000).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    End: {new Date(proposal.endDate * 1000).toLocaleString()}
+                  </p>
+
                   {proposal.votes && (
                     <div className="mt-3 p-3 bg-gray-50 rounded-md">
                       <h4 className="font-semibold text-sm mb-2">Current Votes</h4>
@@ -549,28 +769,24 @@ return (
                           <span className="text-sm text-gray-500">Abstain:</span>
                           <span className="text-sm font-medium">{proposal.votes.abstainVotes} votes</span>
                         </div>
-                        
-                        {/* Total votes and progress bar */}
                         {(() => {
-                          const totalVotes = parseFloat(proposal.votes.forVotes) + 
-                                           parseFloat(proposal.votes.againstVotes) + 
-                                           parseFloat(proposal.votes.abstainVotes);
-                          const forPercentage = totalVotes > 0 ? 
-                            (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
-                          const againstPercentage = totalVotes > 0 ? 
-                            (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
-                          const abstainPercentage = totalVotes > 0 ? 
-                            (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
-                            
+                          const totalVotes =
+                            parseFloat(proposal.votes.forVotes) +
+                            parseFloat(proposal.votes.againstVotes) +
+                            parseFloat(proposal.votes.abstainVotes);
+                          const forPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
+                          const againstPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
+                          const abstainPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
+
                           return (
                             <>
                               <div className="mt-2 text-sm text-gray-700">
                                 Total: {totalVotes.toFixed(2)} votes
                               </div>
                               <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
-                                <div className="h-full bg-green-500" style={{width: `${forPercentage}%`, float: 'left'}}></div>
-                                <div className="h-full bg-red-500" style={{width: `${againstPercentage}%`, float: 'left'}}></div>
-                                <div className="h-full bg-gray-400" style={{width: `${abstainPercentage}%`, float: 'left'}}></div>
+                                <div className="h-full bg-green-500" style={{ width: `${forPercentage}%`, float: 'left' }}></div>
+                                <div className="h-full bg-red-500" style={{ width: `${againstPercentage}%`, float: 'left' }}></div>
+                                <div className="h-full bg-gray-400" style={{ width: `${abstainPercentage}%`, float: 'left' }}></div>
                               </div>
                             </>
                           );
@@ -578,12 +794,11 @@ return (
                       </div>
                     </div>
                   )}
-                  
-                  {/* User vote status */}
+
                   {proposal.userVote && (
                     <div className="mt-2 text-sm">
                       Your Voting Status: <span className={`font-medium ${
-                        proposal.userVote === "For" ? "text-green-600" : 
+                        proposal.userVote === "For" ? "text-green-600" :
                         proposal.userVote === "Against" ? "text-red-600" :
                         proposal.userVote === "Abstain" ? "text-gray-500" : ""
                       }`}>
@@ -591,31 +806,27 @@ return (
                       </span>
                     </div>
                   )}
-    
-                    <button
-                      onClick={() => openVoteModal(proposal.id)}
-                      disabled={!canVote || proposal.userVote !== "Has not voted"}
-                      className={`mt-3 px-4 py-2 rounded text-white ${
-                        canVote && proposal.userVote === "Has not voted" 
-                        ? "bg-green-600 hover:bg-green-700" 
+
+                  <button
+                    onClick={() => openVoteModal(proposal.id)}
+                    disabled={!canVote || proposal.userVote !== "Has not voted"}
+                    className={`mt-3 px-4 py-2 rounded text-white ${
+                      canVote && proposal.userVote === "Has not voted"
+                        ? "bg-green-600 hover:bg-green-700"
                         : "bg-gray-400 cursor-not-allowed"
-                      }`}
-                    >
-                      {proposal.userVote !== "Has not voted" ? "Already Voted" : "Vote"}
-                    </button>
-                  </ProposalItem>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-center text-lg font-medium">No proposals found. Please check back later.</p>
-          )}
+                    }`}
+                  >
+                    {proposal.userVote !== "Has not voted" ? "Already Voted" : "Vote"}
+                  </button>
+                </ProposalItem>
+              </div>
+            );
+          })}
         </section>
       </>
     ) : (
-      // When wallet is not connected, show login card
       <div className="flex justify-center items-center pt-8">
-        <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
+        <article className="flex gap-6 items-start p-6 bg-white rounded-lg border w-[588px] max-sm:w-full">
           <LoginIcon />
           <div className="flex flex-col flex-1 gap-4 items-start">
             <div className="flex flex-col gap-2 items-start w-full">
@@ -629,7 +840,7 @@ return (
             <div className="flex gap-4 items-center w-full">
               <button
                 onClick={connectWallet}
-                className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
+                className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border text-stone-900"
               >
                 Connect your wallet
               </button>
@@ -643,11 +854,8 @@ return (
     {modalOpen && selectedProposalId !== null && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            Vote on Proposal 
-          </h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">Vote on Proposal</h2>
           <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
-
           <div className="flex justify-end gap-4">
             <button
               onClick={() => submitVote(selectedProposalId, true)}
@@ -673,4 +881,5 @@ return (
     )}
   </main>
 );
+
 };
