@@ -4,22 +4,28 @@ import { ethers } from "ethers";
 import { ChevronDownIcon, ChevronUpIcon } from "./Icons";
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
+// Update the ClaimItemProps interface
+
 interface ClaimItemProps {
-  title: string;
-  status: string;
-  policyId: string;
-  information: string;
-  moderators: string[];
-  hasDecided: boolean[];
-  isApproved: boolean[];
-  approvedAmounts: string[];
-  onCancel?: () => void;
-  // New properties for enhanced display
-  address?: string;
-  disasterType?: string;
-  disasterEvent?: string;
-  eventId: string; // Added to fetch disaster event details
-}
+    title: string;
+    status: string;
+    policyId: string;
+    information: string;
+    moderators: string[];
+    hasDecided: boolean[];
+    isApproved: boolean[];
+    approvedAmounts: string[];
+    onCancel?: () => void;
+    address?: string;
+    disasterType?: string;
+    disasterEvent?: string;
+    eventId: string;
+    eventDetails?: {
+      name: string;
+      description: string;
+      date: string;
+    };
+  }
 
 export const ClaimItem: React.FC<ClaimItemProps> = ({
   title,
@@ -66,14 +72,11 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
         
         // Get property address from policy
         if (policyId) {
-            // const policyDetails = await contract.getUserPolicy(policyId);
-            // console.log("Policy Details:", policyDetails);
-            // console.log("Property Address:", policyDetails._propertyAddress);
           try {
             const policyDetails = await contract.getUserPolicy(policyId);
             console.log("Policy Details:", policyDetails);
             if (policyDetails._propertyAddress) {
-              // setPropertyAddress(policyDetails._propertyAddress);
+              setPropertyAddress(policyDetails._propertyAddress);
               console.log("Property Address:", policyDetails._propertyAddress);
             }
           } catch (err) {
@@ -86,6 +89,7 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
           try {
             // From the smart contract we saw the getDisasterEvent function
             const eventData = await contract.getDisasterEvent(eventId);
+            console.log("Event Data:", eventData);
             setEventDetails({
               name: eventData.name || disasterEvent,
               description: eventData.eventDescription || "",
@@ -149,7 +153,7 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
     textColor: "text-gray-600",
     bgColor: "bg-gray-50",
     borderColor: "border-gray-200",
-    icon: "?",
+    icon: "",
   };
 
   // Format the date for display

@@ -250,37 +250,53 @@ export const ClaimForm: React.FC = () => {
           {/* Disaster Type Dropdown */}
           <div>
             <label className="block text-lg font-semibold text-gray-700 mb-2">
-              Select Disaster Type
+                Select Disaster Type
             </label>
-            <div className={`relative border border-zinc-300 rounded-md shadow-sm ${selectedColor}`}>
-              <button
+            <div className="relative">
+                <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 type="button"
-                className="flex items-center justify-between w-full px-3 py-2 text-left"
-              >
-                <div className="text-sm font-medium">
-                  {selectedDisaster || "Select a disaster type"}
+                className="relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                >
+                <div className="flex items-center">
+                    {selectedDisaster && (
+                    <span className={`flex-shrink-0 w-3 h-3 rounded-full mr-2 ${
+                        selectedDisaster === "Wildfire" ? "bg-orange-500" :
+                        selectedDisaster === "Flood" ? "bg-blue-300" :
+                        "bg-yellow-600"
+                    }`}></span>
+                    )}
+                    <span className="block truncate">
+                    {selectedDisaster || "Select a disaster type"}
+                    </span>
                 </div>
-              </button>
-              {isDropdownOpen && (
-                <div className="absolute left-0 right-0 bg-white border border-zinc-300 rounded-md shadow-md z-10">
-                  {disasterOptions.map((option) => (
+                <span className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                </span>
+                </button>
+                
+                {isDropdownOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1">
+                    {disasterOptions.map((option) => (
                     <button
-                      key={option.title}
-                      onClick={() => {
+                        key={option.title}
+                        onClick={() => {
                         setSelectedDisaster(option.title);
                         setIsDropdownOpen(false);
-                      }}
-                      type="button"
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-100"
+                        }}
+                        type="button"
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      {option.title}
+                        <span className={`flex-shrink-0 w-4 h-4 rounded-full mr-2 ${option.color}`}></span>
+                        <span>{option.title}</span>
                     </button>
-                  ))}
+                    ))}
                 </div>
-              )}
+                )}
             </div>
-          </div>
+            </div>
 
           {/* Disaster Event Dropdown */}
           {selectedDisaster && (

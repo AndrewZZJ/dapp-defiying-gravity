@@ -6,16 +6,19 @@ import { ClaimItem } from "./ClaimItem";
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 
 interface Claim {
-  id: string;
-  policyId: string;
-  eventId: string;
-  status: string;
-  description: string;
-  moderators: string[];
-  hasDecided: boolean[];
-  isApproved: boolean[];
-  approvedAmounts: string[];
-}
+    id: string;
+    policyId: string;
+    eventId: string;
+    status: string;
+    description: string;
+    moderators: string[];
+    hasDecided: boolean[];
+    isApproved: boolean[];
+    approvedAmounts: string[];
+    eventName?: string;
+    eventDescription?: string;
+    eventDate?: string;
+  }
 
 export const ClaimsList: React.FC = () => {
   const { walletAddress } = useWallet();
@@ -59,7 +62,145 @@ const extractAddressFromDescription = (description: string): string => {
   };
   
   // Extract or determine disaster event name
-  const getEventNameFromEventId = (eventId: string): string => {
+  const fetchDisasterEvents = async (contract: ethers.Contract): Promise<Record<string, any>> => {
+    try {
+      // Get all disaster event IDs
+      const disasterEventIds = await contract.getAllDisasterEvents();
+      const eventsMap: Record<string, any> = {};
+      
+      // Fetch details for each event
+      for (const eventId of disasterEventIds) {
+        try {
+          const disasterEvent = await contract.getDisasterEvent(eventId);
+          console.log(`Disaster Event ${eventId}:`, disasterEvent);
+          
+          // Store the event details with eventId as key
+          eventsMap[eventId] = {
+            id: eventId,
+            name: disasterEvent.name,
+            description: disasterEvent.eventDescription,
+            date: disasterEvent.disasterDate ? new Date(disasterEvent.disasterDate * 1000).toISOString().split('T')[0] : ""
+          };
+        } catch (err) {
+          console.warn(`Failed to fetch details for event ${eventId}`, err);
+        }
+      }
+      
+      return eventsMap;
+    } catch (err) {
+      console.warn("Failed to fetch disaster events", err);
+      return {};
+    }
+  };
+
+  const fetchClaims = async () => {
+    if (!walletAddress) {
+      setClaims([]);
+      setLoading(false);
+      return;
+    }
+  
+    try {
+      setLoading(true);
+      const res = await fetch("/addresses.json");
+      const addresses = await res.json();
+      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      const signer = provider.getSigner();
+  
+      const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
+      let allClaims: Claim[] = [];
+      let disasterEventsCache: Record<string, Record<string, any>> = {};
+  
+      // First, fetch all disaster events for each contract type
+      for (const type of types) {
+        const contractAddress = addresses[type];
+        if (!contractAddress) continue;
+  
+        const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
+        
+        // Cache disaster events for each contract type
+        try {
+          disasterEventsCache[type] = await fetchDisasterEvents(contract);
+        } catch (err) {
+          console.warn(`Could not fetch disaster events for ${type}`, err);
+          disasterEventsCache[type] = {};
+        }
+      }
+  
+      // Then fetch claims and use the cached event details
+      for (const type of types) {
+        const contractAddress = addresses[type];
+        if (!contractAddress) continue;
+  
+        const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
+        
+        try {
+          const claimIds: ethers.BigNumber[] = await contract.fetchClaimIds(walletAddress);
+          for (const id of claimIds) {
+            const details = await contract.getClaimDetails(id);
+            const eventId = details[2];
+            
+            // Try to get event details from our cache
+            let eventDetails = null;
+            for (const cacheType in disasterEventsCache) {
+              if (disasterEventsCache[cacheType][eventId]) {
+                eventDetails = disasterEventsCache[cacheType][eventId];
+                break;
+              }
+            }
+            
+            // If event details not in cache, try direct fetch
+            if (!eventDetails) {
+              try {
+                const disasterEvent = await contract.getDisasterEvent(eventId);
+                eventDetails = {
+                  name: disasterEvent.name,
+                  description: disasterEvent.eventDescription,
+                  date: disasterEvent.disasterDate ? new Date(disasterEvent.disasterDate * 1000).toISOString().split('T')[0] : ""
+                };
+              } catch (err) {
+                console.warn(`Could not fetch disaster event details for ${eventId}`, err);
+                // Fall back to using our helper function
+                eventDetails = {
+                  name: getDefaultEventName(eventId),
+                  description: "",
+                  date: ""
+                };
+              }
+            }
+  
+            const claim: Claim = {
+              id: details[0].toString(),
+              policyId: details[1],
+              eventId: eventId,
+              approvedAmounts: details[11].map((amt: any) => ethers.utils.formatEther(amt)),
+              status: details[6],
+              description: details[7],
+              moderators: details[8],
+              hasDecided: details[9],
+              isApproved: details[10],
+              // Add event details
+              eventName: eventDetails.name,
+              eventDescription: eventDetails.description,
+              eventDate: eventDetails.date
+            };
+            allClaims.push(claim);
+          }
+        } catch (err) {
+          console.warn(`Skipping ${type} — failed to fetch claims.`, err);
+        }
+      }
+  
+      setClaims(allClaims);
+    } catch (error) {
+      console.error("Failed to fetch claims:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fallback function for when we can't get event name from contract
+  const getDefaultEventName = (eventId: string): string => {
     // Handle specific known events with better names
     const eventMap: Record<string, string> = {
       "EVT#1": "California Wildfire 2025",
@@ -86,61 +227,6 @@ const extractAddressFromDescription = (description: string): string => {
     
     // Default formatting for generic event IDs
     return eventId.replace(/EVT#?/, "Event #");
-  };
-
-  const fetchClaims = async () => {
-    if (!walletAddress) {
-      setClaims([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const res = await fetch("/addresses.json");
-      const addresses = await res.json();
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
-
-      const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
-      let allClaims: Claim[] = [];
-
-      for (const type of types) {
-        const contractAddress = addresses[type];
-        if (!contractAddress) continue;
-
-        const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
-
-        try {
-          const claimIds: ethers.BigNumber[] = await contract.fetchClaimIds(walletAddress);
-          for (const id of claimIds) {
-            const details = await contract.getClaimDetails(id);
-
-            const claim: Claim = {
-              id: details[0].toString(),
-              policyId: details[1],
-              eventId: details[2],
-              approvedAmounts: details[11].map((amt: any) => ethers.utils.formatEther(amt)),
-              status: details[6], // already string from contract
-              description: details[7],
-              moderators: details[8],
-              hasDecided: details[9],
-              isApproved: details[10],
-            };
-
-            allClaims.push(claim);
-          }
-        } catch (err) {
-          console.warn(`Skipping ${type} — failed to fetch claims.`);
-        }
-      }
-
-      setClaims(allClaims);
-    } catch (error) {
-      console.error("Failed to fetch claims:", error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   useEffect(() => {
@@ -220,8 +306,16 @@ const extractAddressFromDescription = (description: string): string => {
         ) : (
           <>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Claims</h2>
-            {sortedClaims.map((claim) => (
-            <ClaimItem
+            {sortedClaims.map((claim) => {
+            // Determine the correct event details to use
+            const eventDetails = {
+                name: claim.eventName || getDefaultEventName(claim.eventId),
+                description: claim.eventDescription || `Details for ${claim.eventId} disaster event.`,
+                date: claim.eventDate || ""
+            };
+            
+            return (
+                <ClaimItem
                 key={claim.id}
                 title={`Event: ${claim.eventId}`}
                 status={claim.status}
@@ -234,10 +328,12 @@ const extractAddressFromDescription = (description: string): string => {
                 onCancel={claim.status === "In Progress" ? () => handleCancel(claim.id) : undefined}
                 address={extractAddressFromDescription(claim.description)}
                 disasterType={getDisasterTypeFromEventId(claim.eventId, claim.policyId)}
-                disasterEvent={getEventNameFromEventId(claim.eventId)}
-                eventId={claim.eventId} // Pass the eventId to allow fetching event details
-            />
-            ))}
+                disasterEvent={eventDetails.name}
+                eventId={claim.eventId}
+                eventDetails={eventDetails}
+                />
+            );
+            })}
           </>
         )}
       </section>
