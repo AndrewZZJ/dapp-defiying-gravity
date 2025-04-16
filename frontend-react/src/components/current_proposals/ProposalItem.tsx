@@ -26,11 +26,16 @@ export const ProposalItem: React.FC<ProposalItemProps> = ({ title, description, 
     <div className="border border-zinc-300 rounded-lg bg-white shadow-sm">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full p-4 text-left"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-4 text-left gap-2"
       >
-        <div className="text-lg font-medium">{displayTitle}</div>
-        <div className={`text-sm font-semibold ${statusColor[status]}`}>{status}</div>
+        <div className="text-lg font-semibold text-gray-900">{displayTitle}</div>
+        <div
+          className={`text-sm font-medium px-3 py-1 rounded-full inline-block ${statusColor[status]}`}
+        >
+          {status}
+        </div>
       </button>
+
 
       {open && (
         <div className="px-4 pb-4 text-sm text-zinc-700">
