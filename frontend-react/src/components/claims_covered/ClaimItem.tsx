@@ -10,6 +10,7 @@ interface ClaimItemProps {
     title: string;
     status: string;
     policyId: string;
+    insuranceType: string;
     information: string;
     moderators: string[];
     hasDecided: boolean[];
@@ -31,6 +32,7 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
   title,
   status,
   policyId,
+  insuranceType,
   information,
   moderators,
   hasDecided,
@@ -50,6 +52,8 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
     description: "",
     date: ""
   });
+  // Add a state for the display disaster type
+  const [displayDisasterType, setDisplayDisasterType] = useState(disasterType);
 
   useEffect(() => {
     // Fetch property address from policy and event details
@@ -57,13 +61,25 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
       try {
         const res = await fetch("/addresses.json");
         const addresses = await res.json();
+
+        console.log("Insurance Type:", insuranceType);
         
-        // Determine which contract to use based on disaster type
+        // Determine which contract to use based on insurance type
         let contractKey = "EarthquakeInsurance";
-        if (disasterType === "Wildfire") contractKey = "FireInsurance";
-        if (disasterType === "Flood") contractKey = "FloodInsurance";
+        if (insuranceType === "FireInsurance") contractKey = "FireInsurance";
+        if (insuranceType === "FloodInsurance") contractKey = "FloodInsurance";
         
-        const contractAddress = addresses[contractKey];
+        // Map contract keys to human-readable disaster types
+        let displayType = "Earthquake";
+        if (contractKey === "FireInsurance") displayType = "Wildfire";
+        if (contractKey === "FloodInsurance") displayType = "Flood";
+        
+        // Update the display disaster type
+        setDisplayDisasterType(displayType);
+        
+        console.log("Contract Key:", contractKey);
+
+        const contractAddress = addresses[insuranceType];
         if (!contractAddress) return;
 
         const provider = new ethers.providers.Web3Provider(window.ethereum as any);
@@ -74,10 +90,10 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
         if (policyId) {
           try {
             const policyDetails = await contract.getUserPolicy(policyId);
-            console.log("Policy Details:", policyDetails);
+            // console.log("Policy Details:", policyDetails);
             if (policyDetails._propertyAddress) {
               setPropertyAddress(policyDetails._propertyAddress);
-              console.log("Property Address:", policyDetails._propertyAddress);
+              // console.log("Property Address:", policyDetails._propertyAddress);
             }
           } catch (err) {
             console.warn("Could not fetch policy details", err);
@@ -89,11 +105,11 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
           try {
             // From the smart contract we saw the getDisasterEvent function
             const eventData = await contract.getDisasterEvent(eventId);
-            console.log("Event Data:", eventData);
+            // console.log("Event Data:", eventData);
             setEventDetails({
-              name: eventData.name || disasterEvent,
+              name: eventData.eventName || "", // Use the display type here
               description: eventData.eventDescription || "",
-              date: eventData.disasterDate || ""
+              date: new Date(eventData.disasterDate * 1000).toISOString().split('T')[0] || ""
             });
           } catch (err) {
             console.warn("Could not fetch event details", err);
@@ -105,7 +121,7 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
     };
 
     fetchAdditionalData();
-  }, [policyId, eventId, disasterType]);
+  }, [policyId, eventId, insuranceType]);
 
   const statusConfig = {
     Approved: {
@@ -147,7 +163,8 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
     }
   };
 
-  const currentDisaster = disasterConfig[disasterType] || disasterConfig.Earthquake;
+  // Update to use displayDisasterType instead of disasterType
+  const currentDisaster = disasterConfig[displayDisasterType] || disasterConfig.Earthquake;
   const currentStatus = status as keyof typeof statusConfig;
   const { textColor, bgColor, borderColor, icon } = statusConfig[currentStatus] || {
     textColor: "text-gray-600",
@@ -186,7 +203,7 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
               {/* Disaster Type and Event */}
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-medium px-2 py-1 rounded-full ${currentDisaster.bgColor} ${currentDisaster.color}`}>
-                  {disasterType}
+                  {displayDisasterType}
                 </span>
                 <h3 className="text-lg font-semibold text-gray-800">{eventDetails.name}</h3>
               </div>

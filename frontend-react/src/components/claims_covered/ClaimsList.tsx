@@ -15,6 +15,7 @@ interface Claim {
     hasDecided: boolean[];
     isApproved: boolean[];
     approvedAmounts: string[];
+    insuranceType: string;
     eventName?: string;
     eventDescription?: string;
     eventDate?: string;
@@ -28,9 +29,7 @@ export const ClaimsList: React.FC = () => {
   // Helper functions to extract information from claims
   // Extract address from the description
 const extractAddressFromDescription = (description: string): string => {
-    // Look for address patterns in the description
-    const addressMatch = description.match(/at\s+([\d\w\s]+(?:Avenue|Lane|Road|Street|Ave|Ln|Rd|St|Drive|Dr|Boulevard|Blvd|Court|Ct|Circle|Cir)[\s\w\d,]*)/i);
-    return addressMatch ? addressMatch[1] : "Property Address";
+    return description;
   };
   
   // Extract or determine disaster type from event ID
@@ -72,7 +71,7 @@ const extractAddressFromDescription = (description: string): string => {
       for (const eventId of disasterEventIds) {
         try {
           const disasterEvent = await contract.getDisasterEvent(eventId);
-          console.log(`Disaster Event ${eventId}:`, disasterEvent);
+          // console.log(`Disaster Event ${eventId}:`, disasterEvent);
           
           // Store the event details with eventId as key
           eventsMap[eventId] = {
@@ -150,24 +149,15 @@ const extractAddressFromDescription = (description: string): string => {
             }
             
             // If event details not in cache, try direct fetch
-            if (!eventDetails) {
-              try {
-                const disasterEvent = await contract.getDisasterEvent(eventId);
-                eventDetails = {
-                  name: disasterEvent.name,
-                  description: disasterEvent.eventDescription,
-                  date: disasterEvent.disasterDate ? new Date(disasterEvent.disasterDate * 1000).toISOString().split('T')[0] : ""
-                };
-              } catch (err) {
-                console.warn(`Could not fetch disaster event details for ${eventId}`, err);
-                // Fall back to using our helper function
-                eventDetails = {
-                  name: getDefaultEventName(eventId),
-                  description: "",
-                  date: ""
-                };
-              }
-            }
+            const disasterEvent = await contract.getDisasterEvent(eventId);
+            eventDetails = {
+              name: disasterEvent.eventName,
+              description: disasterEvent.eventDescription,
+              date: disasterEvent.disasterDate ? new Date(disasterEvent.disasterDate * 1000).toISOString().split('T')[0] : ""
+            };
+
+            // Print the event date
+            console.log(`Event Date: ${eventDetails.date}`);
   
             const claim: Claim = {
               id: details[0].toString(),
@@ -179,11 +169,29 @@ const extractAddressFromDescription = (description: string): string => {
               moderators: details[8],
               hasDecided: details[9],
               isApproved: details[10],
+              insuranceType: type,
               // Add event details
               eventName: eventDetails.name,
               eventDescription: eventDetails.description,
               eventDate: eventDetails.date
             };
+            // // Print Insurance type
+            // console.log(`Insurance Type: ${type}`);
+
+            // // Print this claim object
+            // console.log(`Claim ID: ${claim.id}`);
+            // console.log(`Claim Policy ID: ${claim.policyId}`);
+            // console.log(`Claim Event ID: ${claim.eventId}`);
+            // console.log(`Claim Status: ${claim.status}`);
+            // console.log(`Claim Description: ${claim.description}`);
+            // console.log(`Claim Moderators: ${claim.moderators}`);
+            // console.log(`Claim Has Decided: ${claim.hasDecided}`);
+            // console.log(`Claim Is Approved: ${claim.isApproved}`);
+            // console.log(`Claim Approved Amounts: ${claim.approvedAmounts}`);
+            // console.log(`Claim Event Name: ${claim.eventName}`);
+            // console.log(`Claim Event Description: ${claim.eventDescription}`);
+            // console.log(`Claim Event Date: ${claim.eventDate}`);
+
             allClaims.push(claim);
           }
         } catch (err) {
@@ -197,36 +205,6 @@ const extractAddressFromDescription = (description: string): string => {
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Fallback function for when we can't get event name from contract
-  const getDefaultEventName = (eventId: string): string => {
-    // Handle specific known events with better names
-    const eventMap: Record<string, string> = {
-      "EVT#1": "California Wildfire 2025",
-      "EVT1": "California Wildfire 2025",
-      "EVT#2": "Mississippi River Flood 2025",
-      "EVT2": "Mississippi River Flood 2025",
-      "EVT#3": "San Andreas Earthquake 2025",
-      "EVT3": "San Andreas Earthquake 2025"
-    };
-    
-    if (eventMap[eventId]) {
-      return eventMap[eventId];
-    }
-    
-    // If it's one of the mock events, just return it as is
-    if (eventId.includes("Palisades") || 
-        eventId.includes("Big Bear") || 
-        eventId.includes("Ohio River") || 
-        eventId.includes("Louisiana") || 
-        eventId.includes("San Andreas") || 
-        eventId.includes("Tokyo")) {
-      return eventId;
-    }
-    
-    // Default formatting for generic event IDs
-    return eventId.replace(/EVT#?/, "Event #");
   };
 
   useEffect(() => {
@@ -307,12 +285,21 @@ const extractAddressFromDescription = (description: string): string => {
           <>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Claims</h2>
             {sortedClaims.map((claim) => {
+
+            // Print claims
+            console.log(`Claim ID: ${claim}`);
+
             // Determine the correct event details to use
             const eventDetails = {
-                name: claim.eventName || getDefaultEventName(claim.eventId),
+                name: claim.eventName || "N/A",
                 description: claim.eventDescription || `Details for ${claim.eventId} disaster event.`,
                 date: claim.eventDate || ""
             };
+
+            // Print the eventDetails details
+            console.log(`Event ID: ${claim.eventId}`);
+            console.log(`Event Name: ${eventDetails.name}`);
+            console.log(`Event Description: ${eventDetails.description}`);
             
             return (
                 <ClaimItem
@@ -320,6 +307,7 @@ const extractAddressFromDescription = (description: string): string => {
                 title={`Event: ${claim.eventId}`}
                 status={claim.status}
                 policyId={claim.policyId}
+                insuranceType={claim.insuranceType}
                 information={claim.description}
                 moderators={claim.moderators}
                 hasDecided={claim.hasDecided}
