@@ -34,6 +34,12 @@ interface Proposal {
   status: ProposalStatus;
   startDate: number;
   endDate: number;
+  votes?: {
+    forVotes: string;
+    againstVotes: string;
+    abstainVotes: string;
+  };
+  userVote?: string;
 }
 
 // Toggle mock mode
@@ -47,6 +53,12 @@ const mockProposals: Proposal[] = [
     status: "In Progress",
     startDate: Math.floor(Date.now() / 1000) - 86400,
     endDate: Math.floor(Date.now() / 1000) + 86400 * 2,
+    votes: {
+      forVotes: "1000.0",
+      againstVotes: "500.0",
+      abstainVotes: "100.0",
+    },
+    userVote: "For",
   },
   {
     id: 2,
@@ -55,6 +67,12 @@ const mockProposals: Proposal[] = [
     status: "Approved",
     startDate: Math.floor(Date.now() / 1000) - 604800,
     endDate: Math.floor(Date.now() / 1000) - 432000,
+    votes: {
+      forVotes: "2000.0",
+      againstVotes: "300.0",
+      abstainVotes: "50.0",
+    },
+    userVote: "Against",
   },
 ];
 
@@ -136,58 +154,127 @@ export const ProposalsSection: React.FC = () => {
     return new ethers.Contract(graviGovAddress, GraviGovABI.abi, signerOrProvider);
   };
 
-  // const fetchProposals = async () => {
-  //   setLoading(true);
+  // Get votes for a proposal
+  const getProposalVotes = async (proposalId: number) => {
+    try {
+      const governance = getGovernanceContract();
+      // This returns {againstVotes, forVotes, abstainVotes}
+      const { againstVotes, forVotes, abstainVotes } = await governance.proposalVotes(proposalId);
+      
+      // console.log("Proposal Votes:");
+      // console.log(`- Against: ${ethers.utils.formatEther(againstVotes)} voting power`);
+      // console.log(`- For: ${ethers.utils.formatEther(forVotes)} voting power`);
+      // console.log(`- Abstain: ${ethers.utils.formatEther(abstainVotes)} voting power`);
+      
+      return {
+        againstVotes: ethers.utils.formatEther(againstVotes),
+        forVotes: ethers.utils.formatEther(forVotes),
+        abstainVotes: ethers.utils.formatEther(abstainVotes)
+      };
+    } catch (err) {
+      console.error("Failed to get proposal votes:", err);
+      return { againstVotes: "0", forVotes: "0", abstainVotes: "0" };
+    }
+  };
   
-  //   if (useMockData) {
-  //     const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
-  //     const sorted = [...mockProposals].sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-  //     setProposals(sorted);
-  //     setLoading(false);
-  //     return;
-  //   }
-  
-  //   try {
-  //     const contract = getGovernanceContract(); // already set up
-  
-  //     const proposalIds: number[] = await contract.getAllProposalIds(); // 🔁 fetch all IDs
-  //     const rawProposals = await Promise.all(
-  //       proposalIds.map((id) => contract.getProposalDetail(id))
-  //     );
+  // Check if an address has voted on a proposal and what their vote was
+  const getAddressVote = async (proposalId: number, voterAddress: string) => {
+    try {
+      const governance = getGovernanceContract();
+      
+      // First check if the address has voted at all
+      const hasVoted = await governance.hasVoted(proposalId, voterAddress);
+      
+      if (!hasVoted) {
+        return "Has not voted";
+      }
+      
+      // // Create filters for both VoteCast and VoteCastWithParams events
+      // const filter1 = governance.filters.VoteCast(voterAddress);
+      // const filter2 = governance.filters.VoteCastWithParams(voterAddress);
+      
+      // // Get all vote events for this voter from both event types
+      // const events1 = await governance.queryFilter(filter1);
+      // const events2 = await governance.queryFilter(filter2);
+      
+      // // Combine both event types
+      // const allEvents = [...events1, ...events2];
 
-  //     // console.log(rawProposals);
-  
-  //     const formatted: Proposal[] = rawProposals.map((p: any) => {
-  //       // You may need to determine status separately if it's not in the struct
-  //       const now = Math.floor(Date.now() / 1000);
-  //       const votingPeriod = 3 * 24 * 60 * 60; // hardcoded for now
-  //       let status: ProposalStatus;
-  
-  //       if (now < p.created + votingPeriod) status = "In Progress";
-  //       else status = "Approved"; 
-  
-  //       return {
-  //         // id: Number(p.id),
-  //         id: p.id.toHexString(),
-  //         title: p.title,
-  //         description: p.description,
-  //         status,
-  //         startDate: Number(p.created),
-  //         endDate: Number(p.created) + votingPeriod,
-  //       };
-  //     });
-  
-  //     const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
-  //     formatted.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-  
-  //     setProposals(formatted);
-  //   } catch (err) {
-  //     console.error("Fetch proposals failed:", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  // This function fetches proposals in real time using on-chain data.
+      // // Print the events for debugging
+      // console.log("Vote Events:");
+      // allEvents.forEach(event => {
+      //   console.log(`Event: ${event.event}, Args: ${JSON.stringify(event.args)}`);
+      // });
+        
+      // // Find the vote for this specific proposal
+      // const proposalVote = allEvents.find(event => {
+      //   if (!event.args) return false;
+        
+      //   // For VoteCast: args[0]=voter, args[1]=proposalId, args[2]=support, args[3]=weight, args[4]=reason
+      //   // For VoteCastWithParams: args[0]=voter, args[1]=proposalId, args[2]=support, args[3]=weight, args[4]=reason, args[5]=params
+      //   const eventProposalId = event.args[1]; // ProposalId is the second argument in both events
+        
+      //   if (!eventProposalId) return false;
+        
+      //   // Convert both to strings and normalize
+      //   return eventProposalId.toString().toLowerCase() === proposalId.toString().toLowerCase();
+      // });
+
+      // // Print the found event for debugging
+      // console.log("Found Vote Event:", proposalVote);
+      
+      // if (!proposalVote || !proposalVote.args) {
+      //   console.log(`No vote event found for address ${voterAddress} on proposal ${proposalId}`);
+      //   return "Vote data unavailable";
+      // }
+      
+      // // Get the support value from the event
+      // const support = proposalVote.args.support;
+      
+      // Map the support value to a human-readable string
+      // let voteString;
+      // if (support === 0) voteString = "Against";
+      // else if (support === 1) voteString = "For";
+      // else if (support === 2) voteString = "Abstain";
+      // else voteString = "Unknown";
+
+      let voteString;
+      if (hasVoted) voteString = "Has voted";
+      else voteString = "Has not voted";
+
+      return voteString;
+    } catch (err) {
+      console.error("Failed to check vote status:", err);
+      return "Has not voted";
+    }
+  };
+
+  // Get votes and address vote status for each proposal
+  const enrichProposalWithVotes = async (proposal: Proposal): Promise<Proposal> => {
+    if (useMockData) {
+      return proposal; // Mock data already has votes
+    }
+    
+    try {
+      // Get overall proposal votes
+      const votes = await getProposalVotes(proposal.id);
+      
+      let userVote = "Has not voted";
+      if (walletAddress) {
+        userVote = await getAddressVote(proposal.id, walletAddress);
+      }
+      
+      return {
+        ...proposal,
+        votes,
+        userVote
+      };
+    } catch (err) {
+      console.error(`Failed to enrich proposal ${proposal.id} with votes:`, err);
+      return proposal;
+    }
+  };
+
   // This function fetches proposals in real time using on-chain data.
   const fetchProposals = async () => {
     setLoading(true);
@@ -204,96 +291,72 @@ export const ProposalsSection: React.FC = () => {
       // Fetch the proposal IDs from the contract.
       const proposalIds: number[] = await contract.getAllProposalIds();
       // For each proposal, get the details and the on-chain timing info.
-      const proposalsData: Proposal[] = await Promise.all(
+      let proposalsData: Proposal[] = await Promise.all(
         proposalIds.map(async (id: number) => {
           // Retrieve basic proposal details.
           const proposalDetail = await contract.getProposalDetail(id);
           // Retrieve state, snapshot, and deadline using additional contract functions.
           const state = await contract.state(id);
-            const snapshot = Number(await contract.proposalSnapshot(id));
-            const deadline = Number(await contract.proposalDeadline(id));
+          const snapshot = Number(await contract.proposalSnapshot(id));
+          const deadline = Number(await contract.proposalDeadline(id));
 
-            // Fetch the latest block to get the current block number and timestamp
-            const latestBlock = await contract.provider.getBlock("latest");
+          // Fetch the latest block to get the current block number and timestamp
+          const latestBlock = await contract.provider.getBlock("latest");
 
-            // Ensure we work with numbers
-            const currentBlockNumber = Number(latestBlock.number);
-            const currentTimestamp = Number(latestBlock.timestamp);
+          // Ensure we work with numbers
+          const currentBlockNumber = Number(latestBlock.number);
+          const currentTimestamp = Number(latestBlock.timestamp);
 
-            // Determine snapshot date
-            let snapshotDate: number;
-            if (snapshot <= currentBlockNumber) {
+          // Determine snapshot date
+          let snapshotDate: number;
+          if (snapshot <= currentBlockNumber) {
             const snapshotBlock = await contract.provider.getBlock(snapshot);
             snapshotDate = Number(snapshotBlock.timestamp);
-            } else {
+          } else {
             const snapshotBlocksToWait = snapshot - currentBlockNumber;
             const snapshotEstimatedSeconds = snapshotBlocksToWait * 12; // 12 seconds per block
             snapshotDate = currentTimestamp + snapshotEstimatedSeconds;
-            }
+          }
 
-            // Determine deadline date
-            let deadlineDate: number;
-            if (deadline <= currentBlockNumber) {
+          // Determine deadline date
+          let deadlineDate: number;
+          if (deadline <= currentBlockNumber) {
             const deadlineBlock = await contract.provider.getBlock(deadline);
             deadlineDate = Number(deadlineBlock.timestamp);
-            } else {
+          } else {
             const deadlineBlocksToWait = deadline - currentBlockNumber;
             const deadlineEstimatedSeconds = deadlineBlocksToWait * 12; // 12 seconds per block
             deadlineDate = currentTimestamp + deadlineEstimatedSeconds;
-            }
+          }
 
           // Determine the status.
-          // if (now < deadline) {
-          //   status = "In Progress";
-          // } else {
-          //   // Map the proposal state to a human‑readable status.
-          //   // (Adjust the mapping if your contract uses different numeric values.)
-          //   const stateStr = state.toString();
-          //   if (stateStr === "1") {
-          //     status = "In Progress";
-          //     // status = "Approved";
-          //   } else if (stateStr === "7") {
-          //     status = "Approved and Executed";
-          //   } else if (stateStr === "3" || stateStr === "4") {
-          //     status = "Declined";
-          //   } else {
-          //     status = "Unknown"; // Fallback
-          //   }
-          // }
-        //   enum ProposalState {
-        //     Pending, -> 0
-        //     Active, -> 1
-        //     Canceled, -> 2
-        //     Defeated, -> 3
-        //     Succeeded, -> 4
-        //     Queued, -> 5
-        //     Expired, -> 6
-        //     Executed -> 7
-        // }
-        const stateStr = state.toString();
-        let status: ProposalStatus;
-        if (stateStr === "1") { 
-          status = "In Progress";
-        } else if (stateStr === "7") {
-          status = "Approved and Executed";
-        } else if (stateStr === "2" || stateStr === "3") {
-          status = "Declined";
-        } else if (stateStr === "4" || stateStr === "5") {
-          status = "Approved";
-        } else {
-          status = "Unknown"; // Fallback
-        }
+          let status: ProposalStatus;
+          const stateStr = state.toString();
+          if (stateStr === "1") { // Active
+            status = "In Progress";
+          } else if (stateStr === "7") {
+            status = "Approved and Executed";
+          } else if (stateStr === "2" || stateStr === "3") {
+            status = "Declined";
+          } else if (stateStr === "4" || stateStr === "5") {
+            status = "Approved";
+          } else {
+            status = "Unknown"; // Fallback
+          }
 
-        return {
-          id: proposalDetail.id.toHexString(),
-          title: proposalDetail.title,
-          description: proposalDetail.description,
-          status,
-          startDate: snapshotDate,
-          endDate: deadlineDate,
-        };
-      })
-    );
+          return {
+            id: proposalDetail.id.toHexString(),
+            title: proposalDetail.title,
+            description: proposalDetail.description,
+            status,
+            startDate: snapshotDate,
+            endDate: deadlineDate,
+          };
+        })
+      );
+
+      // Enrich proposals with vote information
+      proposalsData = await Promise.all(proposalsData.map(enrichProposalWithVotes));
 
     // Optionally sort proposals by status.
     const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed" , "Unknown"];
@@ -346,36 +409,52 @@ const openVoteModal = (proposalId: number) => {
   setModalOpen(true);
 };
 
-const submitVote = async (proposalId: number, approve: boolean) => {
-  try {
-    if (useMockData) {
-      setPopupTitle(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
-      setPopupMsg("This is a mock vote. No on-chain action taken.");
+  const submitVote = async (proposalId: number, approve: boolean) => {
+    try {
+      if (useMockData) {
+        setPopupTitle(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
+        setPopupMsg("This is a mock vote. No on-chain action taken.");
+        setShowPopup(true);
+        setModalOpen(false);
+        return;
+      }
+  
+      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer); // ✅ use governanceAddress + correct ABI
+
+      // // Log all the current votes for the proposal
+      // const votes = await getProposalVotes(proposalId);
+      // console.log("Proposal Votes:");
+      // console.log(`- Against: ${votes.againstVotes} voting power`);
+      // console.log(`- For: ${votes.forVotes} voting power`);
+      // console.log(`- Abstain: ${votes.abstainVotes} voting power`);
+
+      // // Get the user's vote status
+      // const userVote = await getAddressVote(proposalId, walletAddress || "");
+      // console.log(`Your vote: ${userVote}`);
+
+      // Convert approve to 1 or 0
+      const voteValue = approve ? 1 : 0;
+      const tx = await contract.castVote(proposalId, voteValue); // ✅ updated to castVote
+      await tx.wait();
+
+      // Show success popup
+      setPopupTitle(`Voted ${approve ? "Approve" : "Decline"}`);
+      setPopupMsg(`Your vote has been successfully submitted  on Proposal #${proposalId}`);
       setShowPopup(true);
+  
       setModalOpen(false);
-      return;
+
+      // Refrsh proposals to reflect the new vote
+      fetchProposals();
+    } catch (err) {
+      console.error("Vote failed:", err);
+      setPopupTitle(`Vote failed.`);
+      setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
+      setShowPopup(true);
     }
-
-    const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-    const signer = provider.getSigner();
-    const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer);
-
-    const voteValue = approve ? 1 : 0;
-    const tx = await contract.castVote(proposalId, voteValue);
-    await tx.wait();
-
-    setPopupTitle(`Voted ${approve ? "Approve" : "Decline"}`);
-    setPopupMsg(`Your vote has been successfully submitted on Proposal #${proposalId}`);
-    setShowPopup(true);
-
-    setModalOpen(false);
-  } catch (err) {
-    console.error("Vote failed:", err);
-    setPopupTitle(`Vote failed.`);
-    setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
-    setShowPopup(true);
-  }
-}; 
+  }; 
 
 return (
   <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
@@ -449,15 +528,77 @@ return (
                     <p className="text-sm text-gray-600">
                       End: {new Date(proposal.endDate * 1000).toLocaleString()}
                     </p>
+                  
+                  {/* Vote counts display */}
+                  {proposal.votes && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                      <h4 className="font-semibold text-sm mb-2">Current Votes</h4>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-green-700">For:</span>
+                          <span className="text-sm font-medium">{proposal.votes.forVotes} votes</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-red-700">Against:</span>
+                          <span className="text-sm font-medium">{proposal.votes.againstVotes} votes</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Abstain:</span>
+                          <span className="text-sm font-medium">{proposal.votes.abstainVotes} votes</span>
+                        </div>
+                        
+                        {/* Total votes and progress bar */}
+                        {(() => {
+                          const totalVotes = parseFloat(proposal.votes.forVotes) + 
+                                           parseFloat(proposal.votes.againstVotes) + 
+                                           parseFloat(proposal.votes.abstainVotes);
+                          const forPercentage = totalVotes > 0 ? 
+                            (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
+                          const againstPercentage = totalVotes > 0 ? 
+                            (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
+                          const abstainPercentage = totalVotes > 0 ? 
+                            (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
+                            
+                          return (
+                            <>
+                              <div className="mt-2 text-sm text-gray-700">
+                                Total: {totalVotes.toFixed(2)} votes
+                              </div>
+                              <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                                <div className="h-full bg-green-500" style={{width: `${forPercentage}%`, float: 'left'}}></div>
+                                <div className="h-full bg-red-500" style={{width: `${againstPercentage}%`, float: 'left'}}></div>
+                                <div className="h-full bg-gray-400" style={{width: `${abstainPercentage}%`, float: 'left'}}></div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* User vote status */}
+                  {proposal.userVote && (
+                    <div className="mt-2 text-sm">
+                      Your Voting Status: <span className={`font-medium ${
+                        proposal.userVote === "For" ? "text-green-600" : 
+                        proposal.userVote === "Against" ? "text-red-600" :
+                        proposal.userVote === "Abstain" ? "text-gray-500" : ""
+                      }`}>
+                        {proposal.userVote}
+                      </span>
+                    </div>
+                  )}
     
                     <button
                       onClick={() => openVoteModal(proposal.id)}
-                      disabled={!canVote}
+                      disabled={!canVote || proposal.userVote !== "Has not voted"}
                       className={`mt-3 px-4 py-2 rounded text-white ${
-                        canVote ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
+                        canVote && proposal.userVote === "Has not voted" 
+                        ? "bg-green-600 hover:bg-green-700" 
+                        : "bg-gray-400 cursor-not-allowed"
                       }`}
                     >
-                      Vote
+                      {proposal.userVote !== "Has not voted" ? "Already Voted" : "Vote"}
                     </button>
                   </ProposalItem>
                 </div>
@@ -530,436 +671,3 @@ return (
   </main>
 );
 };
-
-// "use client";
-// import React, { useEffect, useState } from "react";
-// import { ethers } from "ethers";
-// import { ProposalItem } from "./ProposalItem";
-// import { useWallet } from "../../context/WalletContext";
-
-// type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed";
-
-// interface Proposal {
-//   id: number;
-//   title: string;
-//   status: ProposalStatus;
-//   startDate: number;
-//   endDate: number;
-// }
-
-// export const ProposalsSection: React.FC = () => {
-//   const { walletAddress } = useWallet();
-//   const [proposals, setProposals] = useState<Proposal[]>([]);
-//   const [loading, setLoading] = useState<boolean>(true);
-//   const [delegateInput, setDelegateInput] = useState<string>("");
-//   const [hasDelegated, setHasDelegated] = useState<boolean>(false);
-//   const [modalOpen, setModalOpen] = useState(false);
-//   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
-
-//   const contractAddress = "0xYourContractAddress"; // Replace with actual address
-//   const contractABI = [
-//     "function getProposals() public view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[])",
-//     "function delegate(address delegateAddress) public",
-//     "function undelegate() public",
-//     "function hasDelegate(address user) public view returns (bool)",
-//     "function vote(uint proposalId, bool approve) public"
-//   ];
-
-//   const fetchProposals = async () => {
-//     try {
-//       setLoading(true);
-//       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-//       // AJ: a method getting all proposals
-//       // Fetch proposals from the smart contract
-//       const proposalsData = await contract.getProposals();
-//       const formatted: Proposal[] = proposalsData.map((p: any) => ({
-//         id: Number(p.id),
-//         title: p.title,
-//         status: p.status as ProposalStatus,
-//         startDate: Number(p.startDate),
-//         endDate: Number(p.endDate),
-//       }));
-
-//       const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
-//       formatted.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
-
-//       setProposals(formatted);
-//     } catch (err) {
-//       console.error("Fetch proposals failed:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const checkDelegation = async () => {
-//     try {
-//       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-//       const result = await contract.hasDelegate(walletAddress);
-//       setHasDelegated(result);
-//     } catch (err) {
-//       console.error("Delegation check failed:", err);
-//     }
-//   };
-
-//   const handleDelegate = async () => {
-//     try {
-//       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-//       const tx = await contract.delegate(delegateInput);
-//       await tx.wait();
-
-//       alert("Delegation successful.");
-//       setDelegateInput("");
-//       checkDelegation();
-//     } catch (err) {
-//       console.error("Delegation failed:", err);
-//       alert("Delegation failed. See console.");
-//     }
-//   };
-
-//   const handleUndelegate = async () => {
-//     try {
-//       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-//       const tx = await contract.undelegate();
-//       await tx.wait();
-
-//       alert("Undelegated successfully.");
-//       checkDelegation();
-//     } catch (err) {
-//       console.error("Undelegation failed:", err);
-//     }
-//   };
-
-//   const openVoteModal = (proposalId: number) => {
-//     if (!hasDelegated) {
-//       alert("You must delegate your voting power before voting.");
-//       return;
-//     }
-//     setSelectedProposalId(proposalId);
-//     setModalOpen(true);
-//   };
-
-//   const submitVote = async (proposalId: number, approve: boolean) => {
-//     try {
-//       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-//       const tx = await contract.vote(proposalId, approve);
-//       await tx.wait();
-
-//       alert(`Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
-//       setModalOpen(false);
-//     } catch (err) {
-//       console.error("Vote failed:", err);
-//       alert("Vote failed. See console.");
-//     }
-//   };
-
-//   useEffect(() => {
-//     if (walletAddress) {
-//       fetchProposals();
-//       checkDelegation();
-//     }
-//   }, [walletAddress]);
-
-//   return (
-//     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
-//       <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl">
-//         Current Proposals
-//       </h1>
-
-//       {/* Delegation Controls */}
-//       <div className="flex flex-col items-center mb-10">
-//         <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
-//         <div className="flex flex-col sm:flex-row gap-2">
-//           <input
-//             type="text"
-//             value={delegateInput}
-//             onChange={(e) => setDelegateInput(e.target.value)}
-//             placeholder="Enter delegate wallet address"
-//             className="p-2 border border-gray-300 rounded w-72"
-//           />
-//           <button
-//             onClick={handleDelegate}
-//             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-//           >
-//             Submit Delegation
-//           </button>
-//           {hasDelegated && (
-//             <button
-//               onClick={handleUndelegate}
-//               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-//             >
-//               Undo Delegation
-//             </button>
-//           )}
-//         </div>
-//       </div>
-
-//       <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
-//         {loading ? (
-//           <p className="text-center text-lg font-medium">Loading proposals...</p>
-//         ) : proposals.length > 0 ? (
-//           proposals.map((proposal) => {
-//             const now = Date.now();
-//             const isInProgress = proposal.status === "In Progress";
-//             const beforeEnd = now < proposal.endDate * 1000;
-//             const canVote = isInProgress && beforeEnd && hasDelegated;
-
-//             return (
-//               <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
-//                 <ProposalItem title={proposal.title} status={proposal.status}>
-//                   <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
-//                   <p className="text-sm text-gray-600">
-//                     Start: {new Date(proposal.startDate * 1000).toLocaleString()}
-//                   </p>
-//                   <p className="text-sm text-gray-600">
-//                     End: {new Date(proposal.endDate * 1000).toLocaleString()}
-//                   </p>
-
-//                   <button
-//                     onClick={() => openVoteModal(proposal.id)}
-//                     disabled={!canVote}
-//                     className={`mt-3 px-4 py-2 rounded text-white ${
-//                       canVote ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
-//                     }`}
-//                   >
-//                     Vote
-//                   </button>
-//                 </ProposalItem>
-//               </div>
-//             );
-//           })
-//         ) : (
-//           <p className="text-center text-lg font-medium">
-//             No proposals found. Please check back later.
-//           </p>
-//         )}
-//       </section>
-
-//       {/* Vote Modal */}
-//       {modalOpen && selectedProposalId !== null && (
-//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-//           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-//             <h2 className="text-xl font-semibold mb-4 text-gray-800">
-//               Vote on Proposal #{selectedProposalId}
-//             </h2>
-//             <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
-
-//             <div className="flex justify-end gap-4">
-//               <button
-//                 onClick={() => submitVote(selectedProposalId, true)}
-//                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-//               >
-//                 Approve
-//               </button>
-//               <button
-//                 onClick={() => submitVote(selectedProposalId, false)}
-//                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-//               >
-//                 Decline
-//               </button>
-//               <button
-//                 onClick={() => setModalOpen(false)}
-//                 className="text-gray-500 hover:underline"
-//               >
-//                 Cancel
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </main>
-//   );
-// };
-
-// "use client";
-// import React, { useEffect, useState } from "react";
-// import { ethers } from "ethers";
-// import { ProposalItem } from "./ProposalItem";
-// import { useWallet } from "../../context/WalletContext"; // Import WalletContext
-
-// // Define the allowed statuses
-// type ProposalStatus = "Approved" | "Declined" | "In Progress" | "Approved and Executed";
-
-// interface Proposal {
-//   id: number;
-//   title: string;
-//   status: ProposalStatus;
-//   startDate: number; // UNIX timestamp in seconds
-//   endDate: number;   // UNIX timestamp in seconds
-// }
-
-// // interface Proposal {
-// //   title: string;
-// //   status: ProposalStatus;
-// // }
-
-// export const ProposalsSection: React.FC = () => {
-//   const { walletAddress } = useWallet(); // Access wallet state from context
-//   const [proposals, setProposals] = useState<Proposal[]>([]);
-//   const [loading, setLoading] = useState<boolean>(true);
-
-//   const contractAddress = "0xYourContractAddress"; // Replace with your contract address
-//   const contractABI = [
-//     "function getProposals() public view returns (tuple(uint id, string title, string status, uint startDate, uint endDate)[])",
-//     "function delegateToProposal(uint proposalId) public",
-//   ];
-
-//   // const contractABI = [
-//   //   "function getProposals() public view returns (tuple(string title, string status)[])",
-//   // ];
-
-//   const fetchProposals = async () => {
-//     if (!walletAddress) {
-//       alert("Please connect your wallet to view proposals.");
-//       return;
-//     }
-
-//     try {
-//       setLoading(true);
-//       const provider = new ethers.providers.Web3Provider(
-//         window.ethereum as ethers.providers.ExternalProvider
-//       );
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-//       // Fetch proposals from the smart contract
-//       const proposalsData = await contract.getProposals();
-//       const formattedProposals: Proposal[] = proposalsData.map((proposal: any) => ({
-//         id: Number(proposal.id),
-//         title: proposal.title,
-//         status: proposal.status as ProposalStatus,
-//         startDate: Number(proposal.startDate),
-//         endDate: Number(proposal.endDate),
-//       }));
-
-//       const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed"];
-//       formattedProposals.sort(
-//         (a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status)
-//       );
-
-//       setProposals(formattedProposals);
-//     } catch (error) {
-//       console.error("Failed to fetch proposals:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     if (walletAddress) {
-//       fetchProposals();
-//     }
-//   }, [walletAddress]);
-
-//   const handleDelegate = async (proposalId: number) => {
-//     try {
-//       const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-//       const signer = provider.getSigner();
-//       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-  
-//       const tx = await contract.delegateToProposal(proposalId);
-//       await tx.wait();
-//       alert("Delegation successful!");
-//     } catch (error) {
-//       console.error("Delegation failed:", error);
-//       alert("Delegation failed. See console.");
-//     }
-//   };
-  
-
-//   return (
-//     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
-//       <h1 className="mb-16 text-7xl font-bold text-center text-neutral-950 max-md:mb-10 max-md:text-5xl max-sm:mb-8 max-sm:text-4xl">
-//         Current Proposals
-//       </h1>
-
-//       <section className="flex flex-col gap-4 p-16 mx-auto my-0 max-w-screen-sm max-md:px-4 max-md:py-8 max-sm:px-2 max-sm:py-4">
-//         {loading ? (
-//           <p className="text-center text-lg font-medium">Loading proposals...</p>
-//         ) : proposals.length > 0 ? (
-//           proposals.map((proposal) => {
-//             const now = Date.now();
-//             const isInProgress = proposal.status === "In Progress";
-//             const beforeEnd = now < proposal.endDate * 1000; // Convert to ms
-//             const canDelegate = isInProgress && beforeEnd;
-          
-//             return (
-//               <div key={proposal.id} className="border p-4 rounded-md shadow">
-//                 <ProposalItem title={proposal.title} status={proposal.status} />
-//                 <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
-//                 <p className="text-sm text-gray-600">
-//                   Start: {new Date(proposal.startDate * 1000).toLocaleString()}
-//                 </p>
-//                 <p className="text-sm text-gray-600">
-//                   End: {new Date(proposal.endDate * 1000).toLocaleString()}
-//                 </p>
-          
-//                 {canDelegate ? (
-//                   <button
-//                     onClick={() => handleDelegate(proposal.id)}
-//                     className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-//                   >
-//                     Delegate DAO
-//                   </button>
-//                 ) : (
-//                   <p className="text-sm text-gray-500 mt-2">Delegation not available.</p>
-//                 )}
-//               </div>
-//             );
-//           })
-          
-//         ) : (
-//           <p className="text-center text-lg font-medium">
-//             No proposals found. Please check back later.
-//           </p>
-//         )}
-//       </section>
-//     </main>
-//   );
-// };
-
-// // "use client";
-// // import React from "react";
-// // import { ProposalItem } from "./ProposalItem";
-
-// // // Define the allowed statuses
-// // type ProposalStatus = "Approved" | "Declined" | "In Progress";
-
-// // // Type the array items properly
-// // const proposalItems: { title: string; status: ProposalStatus }[] = [
-// //   { title: "Proposal to Reduce Premiums", status: "Approved" },
-// //   { title: "Proposal for New Risk Pool", status: "In Progress" },
-// //   { title: "Proposal to Increase Coverage Limits", status: "Declined" },
-// //   { title: "Proposal for Emergency Fund Allocation", status: "Approved" },
-// //   { title: "Proposal to Partner with GraviTrust", status: "In Progress" },
-// // ];
-
-// // export const ProposalsSection: React.FC = () => {
-// //   return (
-// //     <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
-// //       <h1 className="mb-16 text-7xl font-bold text-center text-neutral-950 max-md:mb-10 max-md:text-5xl max-sm:mb-8 max-sm:text-4xl">
-// //         Current Proposals
-// //       </h1>
-
-// //       <section className="flex flex-col gap-4 p-16 mx-auto my-0 max-w-screen-sm max-md:px-4 max-md:py-8 max-sm:px-2 max-sm:py-4">
-// //         {proposalItems.map((item, index) => (
-// //           <ProposalItem key={index} title={item.title} status={item.status} />
-// //         ))}
-// //       </section>
-// //     </main>
-// //   );
-// // };
