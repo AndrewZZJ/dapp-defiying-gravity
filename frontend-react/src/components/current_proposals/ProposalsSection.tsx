@@ -457,8 +457,11 @@ const openVoteModal = (proposalId: number) => {
   }; 
 
 return (
-  <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]">
-    <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl">
+
+  <main className="relative px-8 py-12 bg-white min-h-screen">
+  {/* <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]"> */}
+    {/* <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl"> */}
+    <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
       Current Proposals
     </h1>
 

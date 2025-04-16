@@ -320,7 +320,9 @@ export default function NFTMarketplace() {
   }, [walletAddress]);
 
   return (
-    <main>
+    <>
+      <NavigationHeader />
+    <main className="relative px-8 py-12 bg-white min-h-screen">
       {/* Popup Modal */}
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -345,7 +347,13 @@ export default function NFTMarketplace() {
         </div>
       )}
 
-      <NavigationHeader />
+      {/* <NavigationHeader /> */}
+
+      <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
+        NFT Auction
+      </h1>
+
+
       <section className="flex flex-col gap-16 p-16 bg-white max-sm:gap-8 max-sm:p-6">
         {walletAddress ? (
           <>
@@ -434,5 +442,6 @@ export default function NFTMarketplace() {
       </section>
       {walletAddress && <DonorLeaderboard />}
     </main>
+    </>
   );
 }

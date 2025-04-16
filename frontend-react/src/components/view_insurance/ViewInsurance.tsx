@@ -24,6 +24,20 @@ const LoginIcon = () => (
   </svg>
 );
 
+// Insurance type icons
+const InsuranceIcon = ({ type }: { type: string }) => {
+  switch (type) {
+    case 'Wildfire':
+      return <span className="text-lg">🔥</span>;
+    case 'Flood':
+      return <span className="text-lg">💧</span>;
+    case 'Earthquake':
+      return <span className="text-lg">🌋</span>;
+    default:
+      return <span className="text-lg">🏦</span>;
+  }
+};
+
 interface InsuranceEntry {
   address: string;
   insurances: {
@@ -207,89 +221,213 @@ export const ViewInsurance: React.FC = () => {
       },
     ];
   };
+  
+  // Function to get background color based on insurance type
+  const getInsuranceTypeColor = (type: string): string => {
+    switch (type) {
+      case 'Wildfire':
+        return 'bg-red-50 border-red-200';
+      case 'Flood':
+        return 'bg-blue-50 border-blue-200';
+      case 'Earthquake':
+        return 'bg-gray-50 border-gray-200';
+      default:
+        return 'bg-gray-50 border-gray-200';
+    }
+  };
+  
+  // Function to format date to be more readable
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
 
   return (
     <>
       <NavigationHeader />
+      {/* <main className="relative px-4 py-12 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen"> */}
+      {/* <main className="relative px-8 py-12 bg-gradient-to-b min-h-screen from-gray-50 to-gray-100 "> */}
       <main className="relative px-8 py-12 bg-white min-h-screen">
-        <h1 className="mb-8 text-4xl font-bold text-center text-gray-900">View Insurance</h1>
-        
-        {walletAddress ? (
-          <>
-            {isLoading ? (
-              <p className="text-center text-lg text-gray-700">Loading insurance data...</p>
-            ) : insuranceData.length > 0 ? (
-              <div className="flex flex-col gap-8 max-w-6xl mx-auto">
-                {insuranceData.map((entry, index) => (
-                  <div
-                    key={index}
-                    className="p-6 bg-white rounded-lg shadow-md border border-gray-300"
-                  >
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                      Address: {entry.address}
-                    </h2>
-                    <div className="flex flex-col gap-4">
-                      {entry.insurances.map((insurance, idx) => (
-                        <div
-                          key={idx}
-                          className="p-4 bg-gray-50 rounded-lg border border-gray-300"
-                        >
-                          <p className="text-lg font-semibold text-gray-700">
-                            Insurance Type: {insurance.type}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            ID: <span className="text-gray-900">{insurance.id}</span>
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Purchase Price: <span className="text-gray-900">{insurance.premium || "N/A"}</span>
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Max Coverage: <span className="text-gray-900">{insurance.maxCoverage || "N/A"}</span>
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Coverage Start: <span className="text-gray-900">{insurance.startTime || "N/A"}</span>
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Coverage Ends: <span className="text-gray-900">{insurance.coverageEndDate || "N/A"}</span>
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+          <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
+            Your Insurance Portfolio
+          </h1>
+
+        <div className="max-w-7xl mx-auto">
+          {/* {walletAddress && (
+            <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
+              Your Insurance Portfolio
+            </h1>
+          )} */}
+
+          {walletAddress ? (
+            <>
+              {isLoading ? (
+                <div className="flex items-center justify-center p-12">
+                  <div className="flex flex-col items-center">
+                    <svg className="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p className="text-lg text-gray-700">Loading your insurance policies...</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-lg text-gray-700">
-                No insurance data found for this wallet address.
-              </p>
-            )}
-          </>
-        ) : (
-          // Updated wallet connection UI to match the Dashboard style
-          <div className="flex justify-center items-center">
-          <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
-            <LoginIcon />
-            <div className="flex flex-col flex-1 gap-4 items-start">
-              <div className="flex flex-col gap-2 items-start w-full">
-                <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
-                  Crowd-sourced Insurance
-                </h2>
-                <p className="w-full text-base leading-6 text-center text-neutral-500">
-                  Please connect your wallet to continue.
-                </p>
-              </div>
-              <div className="flex gap-4 items-center w-full">
-                <button
-                  onClick={connectWallet}
-                  className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
-                >
-                  Connect your wallet
-                </button>
-              </div>
+                </div>
+              ) : insuranceData.length > 0 ? (
+                <div className="space-y-8">
+                  {insuranceData.map((entry, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden"
+                    >
+                      <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
+                          <svg className="h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                          </svg>
+                          Property Location
+                        </h2>
+                        <p className="text-gray-700 font-medium">{entry.address}</p>
+                      </div>
+                      
+                      <div className="p-6">
+                        <h3 className="text-lg font-medium text-gray-700 mb-4">Active Policies</h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                          {entry.insurances.map((insurance, idx) => {
+                            const typeColor = getInsuranceTypeColor(insurance.type);
+                            return (
+                              <div
+                                key={idx}
+                                className={`rounded-lg border ${typeColor} p-5 transition-all hover:shadow-md`}
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center">
+                                    <div className={`p-2 rounded-full ${
+                                      insurance.type === 'Wildfire' ? 'bg-red-100' :
+                                      insurance.type === 'Flood' ? 'bg-blue-100' :
+                                      'bg-gray-100'
+                                    } mr-3`}>
+                                      <InsuranceIcon type={insurance.type} />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-gray-800">
+                                      {insurance.type}
+                                    </h4>
+                                  </div>
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    insurance.isClaimed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                  }`}>
+                                    {insurance.isClaimed ? 'Claimed' : 'Active'}
+                                  </span>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  <div>
+                                  <span className="text-sm text-gray-500 block mb-1">Policy ID</span>
+                                  <div className="bg-gray-50 rounded p-2 overflow-hidden flex justify-between items-center">
+                                    <span className="text-xs font-medium text-gray-800 font-mono break-all">
+                                    {insurance.id}
+                                    </span>
+                                    <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(insurance.id);
+                                      // Optional: Add toast notification or visual feedback
+                                    }}
+                                    className="ml-2 p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                                    title="Copy to clipboard"
+                                    >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    </button>
+                                  </div>
+                                  </div>
+                                  
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">Coverage</span>
+                                    <span className="text-sm font-medium text-gray-800">
+                                      {insurance.maxCoverage}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">Premium Paid</span>
+                                    <span className="text-sm font-medium text-gray-800">
+                                      {insurance.premium || "N/A"}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">Start Date</span>
+                                    <span className="text-sm font-medium text-gray-800">
+                                      {formatDate(insurance.startTime)}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">End Date</span>
+                                    <span className="text-sm font-medium text-gray-800">
+                                      {formatDate(insurance.coverageEndDate)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12 text-center">
+                  <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-500 mb-4">
+                    <svg className="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">No Insurance Policies Found</h2>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    You currently don't have any insurance policies associated with this wallet address. 
+                    Consider protecting your assets by purchasing an insurance policy.
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            // Wallet connection UI
+            <div className="flex justify-center items-center pt-8">
+              <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border-gray-200 shadow-md w-[588px] max-sm:w-full">
+                <LoginIcon />
+                <div className="flex flex-col flex-1 gap-4 items-start">
+                  <div className="flex flex-col gap-2 items-start w-full">
+                    <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
+                      Crowd-sourced Insurance
+                    </h2>
+                    <p className="w-full text-base leading-6 text-center text-neutral-500">
+                      Please connect your wallet to continue.
+                    </p>
+                  </div>
+                  <div className="flex gap-4 items-center w-full">
+                    <button
+                      onClick={connectWallet}
+                      className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg border border-gray-200 text-stone-900"
+                    >
+                      Connect your wallet
+                    </button>
+                  </div>
+                </div>
+              </article>
             </div>
-          </article>
+          )}
         </div>
-        )}
       </main>
     </>
   );

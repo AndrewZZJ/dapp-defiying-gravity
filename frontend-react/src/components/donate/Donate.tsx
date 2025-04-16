@@ -15,7 +15,8 @@ function Donate() {
           className="absolute inset-0 w-full h-full object-cover"
         /> */}
 
-        <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
+        {/* <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8"> */}
+        <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800">
             Donate
         </h1>
 

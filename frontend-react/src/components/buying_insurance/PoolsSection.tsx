@@ -287,6 +287,10 @@ export const PoolsSection: React.FC = () => {
 
   return (
     <main className="relative px-8 py-12 bg-white min-h-screen">
+      <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
+        Buy Insurance
+      </h1>
+
       {/* Popup Modal */}
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -311,9 +315,7 @@ export const PoolsSection: React.FC = () => {
         </div>
       )}
 
-      <h1 className="mb-12 text-4xl font-bold text-center text-gray-900">
-        Buy Insurance
-      </h1>
+
 
       {walletAddress ? (
         <div className="flex flex-col md:flex-row gap-12 max-w-6xl mx-auto">
