@@ -61,18 +61,19 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
         if (!contractAddress) return;
 
         const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-        const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, provider);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
         
         // Get property address from policy
         if (policyId) {
-            const policyDetails = await contract.getUserPolicy(policyId);
-            console.log("Policy Details:", policyDetails);
-            console.log("Property Address:", policyDetails._propertyAddress);
+            // const policyDetails = await contract.getUserPolicy(policyId);
+            // console.log("Policy Details:", policyDetails);
+            // console.log("Property Address:", policyDetails._propertyAddress);
           try {
             const policyDetails = await contract.getUserPolicy(policyId);
             console.log("Policy Details:", policyDetails);
             if (policyDetails._propertyAddress) {
-              setPropertyAddress(policyDetails._propertyAddress);
+              // setPropertyAddress(policyDetails._propertyAddress);
               console.log("Property Address:", policyDetails._propertyAddress);
             }
           } catch (err) {
