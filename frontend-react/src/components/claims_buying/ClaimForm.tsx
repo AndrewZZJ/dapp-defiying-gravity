@@ -5,41 +5,51 @@ import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import GraviInsuranceABI from "../../artifacts/contracts/GraviInsurance.sol/GraviInsurance.json";
 import { ethers } from "ethers";
 
+// Define the structure for a disaster event
+interface DisasterEvent {
+  id: string;
+  name: string;
+  description: string;
+  date: string;
+}
+
 export const ClaimForm: React.FC = () => {
   const [description, setDescription] = useState("");
   const [selectedDisaster, setSelectedDisaster] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
-  const [eventOptions, setEventOptions] = useState<string[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [eventOptions, setEventOptions] = useState<DisasterEvent[]>([]);
+  const [disasterEvents, setDisasterEvents] = useState<Record<string, DisasterEvent[]>>({
+    Wildfire: [],
+    Flood: [],
+    Earthquake: []
+  });
   const [insuranceOptions, setInsuranceOptions] = useState<
     { id: string; type: string }[]
-  >([]); // Insurance IDs with their types
+  >([]);
   const [filteredInsuranceOptions, setFilteredInsuranceOptions] = useState<
     { id: string; type: string }[]
   >([]);
   const [insuranceId, setInsuranceId] = useState<string | null>(null);
   const [incidentDate, setIncidentDate] = useState("");
   const [showPopup, setShowPopup] = useState(false);
-  const [generatedHash, setGeneratedHash] = useState<string | null>(null);
+  const [popupDescription, setPopupDescription] = useState<string | null>(null);
 
   const { walletAddress } = useWallet();
 
-  const mockEventData: Record<string, string[]> = {
-    Wildfire: ["Palisades Wildfire 2024", "Big Bear Blaze 2024"],
-    Flood: ["Ohio River Flood 2024", "Louisiana Swell 2024"],
-    Earthquake: ["San Andreas Shaker 2024", "Tokyo Quake 2024"],
-  };
-
+  // Update event options when a disaster type is selected
   useEffect(() => {
     if (selectedDisaster) {
-      setEventOptions(mockEventData[selectedDisaster] || []);
-      setSelectedEvent(null); // Reset when changing disaster
+      setEventOptions(disasterEvents[selectedDisaster] || []);
+      setSelectedEvent(null);
+      setSelectedEventId(null);
     }
-  }, [selectedDisaster]);
+  }, [selectedDisaster, disasterEvents]);
 
-  // Fetch insurance IDs from all contract addresses
+  // Fetch insurance IDs and disaster events from all contract addresses
   useEffect(() => {
-    const fetchInsuranceIds = async () => {
+    const fetchContractData = async () => {
       if (!walletAddress) return;
 
       try {
@@ -49,14 +59,24 @@ export const ClaimForm: React.FC = () => {
         const signer = provider.getSigner();
 
         const types = ["FireInsurance", "FloodInsurance", "EarthquakeInsurance"];
+        const disasterTypes = ["Wildfire", "Flood", "Earthquake"];
         let allInsuranceIds: { id: string; type: string }[] = [];
+        const allDisasterEvents: Record<string, DisasterEvent[]> = {
+          Wildfire: [],
+          Flood: [],
+          Earthquake: []
+        };
 
-        for (const type of types) {
+        for (let i = 0; i < types.length; i++) {
+          const type = types[i];
+          const disasterType = disasterTypes[i];
           const contractAddress = addresses[type];
+          
           if (!contractAddress) continue;
 
           const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
 
+          // Fetch insurance IDs
           try {
             const ids: string[] = await contract.fetchInsuranceIds(walletAddress);
             if (ids.length > 0) {
@@ -67,16 +87,34 @@ export const ClaimForm: React.FC = () => {
           } catch (err) {
             console.warn(`Skipping ${type} — no insurance found or fetch failed.`);
           }
+
+          // Fetch disaster events
+          try {
+            const disasterEventIds = await contract.getAllDisasterEvents();
+            
+            for (const eventId of disasterEventIds) {
+              const disasterEvent = await contract.getDisasterEvent(eventId);
+              allDisasterEvents[disasterType].push({
+                id: eventId,
+                name: disasterEvent.eventName,
+                description: disasterEvent.eventDescription,
+                date: new Date(disasterEvent.disasterDate * 1000).toISOString().split('T')[0]
+              });
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch disaster events for ${type}:`, err);
+          }
         }
 
         setInsuranceOptions(allInsuranceIds);
-        setFilteredInsuranceOptions(allInsuranceIds); // Initially show all IDs
+        setFilteredInsuranceOptions(allInsuranceIds);
+        setDisasterEvents(allDisasterEvents);
       } catch (error) {
-        console.error("Failed to fetch insurance IDs from contracts:", error);
+        console.error("Failed to fetch data from contracts:", error);
       }
     };
 
-    fetchInsuranceIds();
+    fetchContractData();
   }, [walletAddress]);
 
   // Filter insurance options based on selected disaster type
@@ -93,7 +131,7 @@ export const ClaimForm: React.FC = () => {
         insuranceOptions.filter((option) => option.type === typeKey)
       );
     } else {
-      setFilteredInsuranceOptions(insuranceOptions); // Show all IDs if no disaster type is selected
+      setFilteredInsuranceOptions(insuranceOptions);
     }
   }, [selectedDisaster, insuranceOptions]);
 
@@ -115,6 +153,15 @@ export const ClaimForm: React.FC = () => {
     }
   };
 
+  const handleEventChange = (eventName: string) => {
+    setSelectedEvent(eventName);
+    // Find the event ID based on the selected event name
+    const event = eventOptions.find(event => event.name === eventName);
+    if (event) {
+      setSelectedEventId(event.id);
+    }
+  };
+
   const generateClaimHash = (
     wallet: string,
     disaster: string,
@@ -131,19 +178,18 @@ export const ClaimForm: React.FC = () => {
     e.preventDefault();
 
     if (!walletAddress) return alert("Please connect your wallet first.");
-    if (!selectedDisaster || !description || !incidentDate || !insuranceId)
+    if (!selectedDisaster || !selectedEventId || !description || !incidentDate || !insuranceId)
       return alert("Please fill out all fields.");
 
     try {
-      const eventName = `${selectedDisaster} Generic Event`;
-      const claimHash = generateClaimHash(
-        walletAddress,
-        selectedDisaster,
-        eventName,
-        description,
-        incidentDate,
-        insuranceId
-      );
+      // const claimHash = generateClaimHash(
+      //   walletAddress,
+      //   selectedDisaster,
+      //   selectedEvent || "",
+      //   description,
+      //   incidentDate,
+      //   insuranceId
+      // );
 
       const res = await fetch("/addresses.json");
       const addresses = await res.json();
@@ -158,14 +204,18 @@ export const ClaimForm: React.FC = () => {
       const signer = provider.getSigner();
       const contract = new ethers.Contract(contractAddress, GraviInsuranceABI.abi, signer);
 
-      // Submit the claim
-      const eventId = "EVT#1"; // Since each pool only has one event
-      const tx = await contract.startAClaim(eventId, insuranceId, description);
+      // Submit the claim using the actual event ID
+      const tx = await contract.startAClaim(selectedEventId, insuranceId, description);
 
       await tx.wait();
 
-      console.log("Generated Claim Hash:", claimHash);
-      setGeneratedHash(claimHash);
+      // Get the transaction ID
+      const txReceipt = await provider.getTransactionReceipt(tx.hash);
+      const txId = txReceipt.transactionHash;
+
+      // console.log("Generated Claim Hash:", claimHash);
+      // setGeneratedHash(claimHash);
+      setPopupDescription("Claim File submitted successfully!\nTransaction ID: " + txId);
       setShowPopup(true);
     } catch (error) {
       console.error("Error submitting claim:", error);
@@ -175,7 +225,7 @@ export const ClaimForm: React.FC = () => {
 
   const handlePopupOk = () => {
     setShowPopup(false);
-    setGeneratedHash(null);
+    setPopupDescription(null);
     setDescription("");
     setSelectedDisaster(null);
     setSelectedEvent(null);
@@ -241,14 +291,14 @@ export const ClaimForm: React.FC = () => {
               <select
                 className="w-full p-2 border border-zinc-300 rounded-md"
                 value={selectedEvent || ""}
-                onChange={(e) => setSelectedEvent(e.target.value)}
+                onChange={(e) => handleEventChange(e.target.value)}
               >
                 <option value="" disabled>
                   Select an event
                 </option>
                 {eventOptions.map((event, index) => (
-                  <option key={index} value={event}>
-                    {event}
+                  <option key={index} value={event.name}>
+                    {event.name} - {event.date}
                   </option>
                 ))}
               </select>
@@ -325,9 +375,9 @@ export const ClaimForm: React.FC = () => {
               <p className="text-3xl font-bold text-center">
                 Form Successfully Submitted to Moderators
               </p>
-              {generatedHash && (
+              {popupDescription && (
                 <p className="text-sm text-center break-all">
-                  Generated Hash: <br /> <code>{generatedHash}</code>
+                  {popupDescription}
                 </p>
               )}
               <button

@@ -230,12 +230,12 @@ export const ViewInsurance: React.FC = () => {
       case 'Flood':
         return 'bg-blue-50 border-blue-200';
       case 'Earthquake':
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-yellow-50 border-yellow-200';
       default:
         return 'bg-gray-50 border-gray-200';
     }
   };
-  
+
   // Function to format date to be more readable
   const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
@@ -294,7 +294,7 @@ export const ViewInsurance: React.FC = () => {
                           </svg>
                           Property Location
                         </h2>
-                        <p className="text-gray-700 font-medium">{entry.address}</p>
+                        <p className="text-xl text-gray-700 my-4">{entry.address}</p>
                       </div>
                       
                       <div className="p-6">
