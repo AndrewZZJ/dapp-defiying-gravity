@@ -10,22 +10,13 @@ async function deployGraviDisasterOracleFixture() {
   const oracle = (await OracleFactory.deploy()) as GraviDisasterOracle;
   await oracle.waitForDeployment();
   return { oracle, owner, customer };
-  // const GraviDisasterOracle = await ethers.getContractFactory("GraviDisasterOracle");
-  // const oracle = (await GraviDisasterOracle.deploy()) as GraviDisasterOracle;
-  // await oracle.waitForDeployment();
-  // return { oracle };
 }
 
 describe("GraviDisasterOracle Contract", function () {
   describe("Test 1: approve a claim", function () {
     it("should emit ClaimValidated(true) when all fields are filled", async function () {
       const { oracle } = await loadFixture(deployGraviDisasterOracleFixture);
-      
       const result = await oracle.validateClaim("Fire damage", "Wildfire", "Photo evidence");
-      // const receipt = await tx.wait();
-    
-      // const event = receipt?.logs.find(log => log.eventName === "ClaimValidated");
-      // expect(event?.args?.isValid).to.equal(true);
       expect(result).to.emit(oracle, "ClaimValidated").withArgs("Fire damage", "Wildfire", "Photo evidence", true);
     });
   });
