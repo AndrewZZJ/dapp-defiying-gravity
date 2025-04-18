@@ -8,69 +8,128 @@ import {IGraviInsurance} from "./interfaces/IGraviInsurance.sol";
 //import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
+/**
+ * @title GraviInsurance
+ * @notice Implementation of disaster insurance policies and claims management
+ * @dev Handles policy creation, claim processing, and fund management for disaster insurance
+ */
 contract GraviInsurance is IGraviInsurance, Ownable {
     using Strings for uint256;
 
     // ========================================
     // Structures and Enums
     // ========================================
-    // Policy created when a user buys insurance.
+    /**
+     * @notice Insurance policy structure
+     * @param policyId Unique identifier for the policy
+     * @param policyHolder Address of the policy owner
+     * @param maxCoverageAmount Maximum amount that can be claimed
+     * @param premiumPaid Amount paid for the insurance
+     * @param startTime When coverage begins
+     * @param endTime When coverage ends
+     * @param isClaimed Whether a claim has been processed for this policy
+     * @param propertyAddress Physical address of the insured property
+     * @param propertyValue Estimated value of the property
+     */
     struct Policy {
         bytes32 policyId;
         address policyHolder;
         uint256 maxCoverageAmount;
         uint256 premiumPaid;
         uint256 startTime;
-        uint256 endTime;          // End time of the insurance policy
+        uint256 endTime;
         bool isClaimed;
-        string propertyAddress;   // property address
-        uint256 propertyValue;    // Value of the property (in ETH)
+        string propertyAddress;
+        uint256 propertyValue;
     }
 
-    // Enum for claim statuses.
+    /**
+     * @notice Enum for tracking claim status
+     */
     enum ClaimStatus {
         Pending,
         Accepted,
         Denied
     }
-    // Struct to track each moderator's decision on a claim.
+
+    /**
+     * @notice Structure for tracking moderator decisions on claims
+     * @param moderator Information about the moderator
+     * @param hasDecided Whether the moderator has made a decision
+     * @param isApproved Whether the moderator approved the claim
+     * @param approvedAmount Amount the moderator approved for payout
+     */
     struct ModeratorInfo {
-        Moderator moderator;     // Moderator Info
-        bool hasDecided;        // Whether the moderator has given their decision
-        bool isApproved;        // Whether the moderator approved the claim
-        uint256 approvedAmount; // Amount the moderator approved
+        Moderator moderator;
+        bool hasDecided;
+        bool isApproved;
+        uint256 approvedAmount;
     }
-    // Claim record structure, associated with both a policy and a disaster event.
+
+    /**
+     * @notice Structure for claim records
+     * @param claimId Unique identifier for the claim
+     * @param policyId Associated policy ID
+     * @param eventId Associated disaster event ID
+     * @param approvedClaimAmount Final approved payout amount
+     * @param assessmentStart When claim assessment began
+     * @param assessmentEnd When claim assessment ended
+     * @param status Current status of the claim
+     * @param incidentDescription Details about the incident
+     * @param moderatorTeam Array of moderator decisions on this claim
+     */
     struct ClaimRecord {
-        uint256 claimId; // Auto-incremented claim ID.
-        bytes32 policyId; // Associated policy.
-        string eventId; // Associated disaster event (string ID, e.g., "EVT#1").
-        uint256 approvedClaimAmount; // The final approved amount.
-        uint256 assessmentStart; // Timestamp when claim assessment starts.
-        uint256 assessmentEnd; // Timestamp when claim assessment ends.
-        ClaimStatus status; // Current claim status.
-        string incidentDescription; // Details about the incident.
-        ModeratorInfo[] moderatorTeam; // Array of moderator decisions
+        uint256 claimId;
+        bytes32 policyId;
+        string eventId;
+        uint256 approvedClaimAmount;
+        uint256 assessmentStart;
+        uint256 assessmentEnd;
+        ClaimStatus status;
+        string incidentDescription;
+        ModeratorInfo[] moderatorTeam;
     }
-    // Disaster event structure.
+
+    /**
+     * @notice Structure for disaster events
+     * @param eventId Unique identifier for the event (e.g., "EVT#1")
+     * @param name Human-readable name of the event
+     * @param disasterDate When the disaster occurred
+     * @param eventDescription Details about the disaster event
+     */
     struct DisasterEvent {
-        string eventId; // Auto-generated unique id as a string, e.g., "EVT#1".
-        string name; // Human-readable event name.
+        string eventId;
+        string name;
         uint256 disasterDate;
         string eventDescription;
     }
-    // Consolidated user record that stores all data related to a user.
+
+    /**
+     * @notice Structure for tracking user-related data
+     * @param policyIds Array of policy IDs owned by the user
+     * @param claimIds Array of claim IDs filed by the user
+     * @param donationTotal Total amount donated by the user
+     */
     struct UserRecord {
         bytes32[] policyIds;
         uint256[] claimIds;
         uint256 donationTotal;
     }
+
+    /**
+     * @notice Structure for moderator data
+     * @param moderatorAddress Address of the moderator
+     * @param maxApprovalAmount Maximum amount this moderator can approve per claim
+     * @param totalClaimsAssessed Total number of claims assessed
+     * @param totalClaimsApproved Total number of claims approved
+     * @param totalApprovedAmount Total amount approved across all claims
+     */
     struct Moderator {
-        address moderatorAddress;      // Moderator address
-        uint256 maxApprovalAmount;     // The maximum amount this moderator can approve per claim
-        uint256 totalClaimsAssessed;   // Total number of claims this moderator has assessed
-        uint256 totalClaimsApproved;   // Total number of claims this moderator has approved
-        uint256 totalApprovedAmount;   // Total amount approved across all claims
+        address moderatorAddress;
+        uint256 maxApprovalAmount;
+        uint256 totalClaimsAssessed;
+        uint256 totalClaimsApproved;
+        uint256 totalApprovedAmount;
     }
 
 
@@ -139,6 +198,12 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     // ========================================
     // Constructor
     // ========================================
+    /**
+     * @notice Initializes the insurance contract for a specific disaster type
+     * @param _disasterType The type of disaster covered by this insurance
+     * @param _premiumRate The rate used to calculate insurance premiums
+     * @param _graviCha The address of the GraviCha token contract
+     */
     constructor(
         string memory _disasterType,
         uint256 _premiumRate,
@@ -158,11 +223,14 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     // IGraviInsurance Interface Implementations
     // ========================================
 
-    /// @notice User buys an insurance policy using ETH
-    /// @param startTime The start time of the insurance policy (must be <= current time)
-    /// @param propertyAddress The property address as a plain text string
-    /// @param propertyValue The value of the property (in ETH)
-    /// @return policyId The unique hash-based ID for the policy
+    /**
+     * @notice User buys an insurance policy using ETH
+     * @param startTime The start time of the insurance policy
+     * @param coveragePeriod Coverage period in days
+     * @param propertyAddress The property address as a plain text string
+     * @param propertyValue The value of the property (in ETH)
+     * @return policyId The unique hash-based ID for the policy
+     */
     function buyInsurance(
         uint256 startTime,      // Unix timestamp in seconds
         uint256 coveragePeriod, // Coverage period in days
@@ -230,29 +298,39 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         premium = (propertyValue * coveragePeriod * addressFactor) / divisor;
     }
 
-    /// @notice Calculates a mocked MAX coverage amount based solely on the premium and a fixed ratio.
-    /// @param premium The premium paid (in ETH).
-    /// @return coverageAmount The resulting coverage amount (in ETH).
+    /**
+     * @notice Calculates coverage amount based on the premium paid
+     * @param premium The premium paid (in ETH)
+     * @return coverageAmount The resulting coverage amount (in ETH)
+     */
     function calculateCoverageAmountFromPremium(uint256 premium) public pure returns (uint256 coverageAmount) {
         // Define a fixed ratio. For example, if the ratio is 5, then coverage = 5 * premium.
         uint256 ratio = 5;
         coverageAmount = premium * ratio;
     }
 
-    /// @notice Gets the donation reward rate.
-    /// @return The donation exchange rate.
+    /**
+     * @notice Gets the donation reward rate
+     * @return The donation exchange rate
+     */
     function getDonationRewardRate() external view returns (uint256) {
         return donationRewardRate;
     }
 
-    /// @notice Sets the donation reward rate. (1 ETH to X GraviCha)
+    /**
+     * @notice Sets the donation reward rate (1 ETH to X GraviCha)
+     * @param newRate The new reward rate
+     * @dev Only callable by the owner
+     */
     function setDonationRewardRate(uint256 newRate) external onlyOwner {
         require(newRate > 0, "Invalid rate");
         donationRewardRate = newRate;
     }
 
-    /// @notice Donate ETH to the pool and receive tokens/NFT.
-    /// @return tokensReceived The amount of charity tokens minted for this donation.
+    /**
+     * @notice Donate ETH to the pool and receive charity tokens
+     * @return tokensReceived The amount of charity tokens minted for this donation
+     */
     function donate() external payable returns (uint256 tokensReceived) {
         require(msg.value > 0, "Must send ETH");
         totalPoolFunds += msg.value;
@@ -273,8 +351,13 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         totalPoolFunds += msg.value;
     }
 
-    /// @notice Adds a new disaster event.
-    /// A unique eventId is auto-generated (e.g., "EVT#1") and stored along with the event name, description, and initial claim moderators.
+    /**
+     * @notice Adds a new disaster event
+     * @param eventName The name of the disaster event
+     * @param eventDescription Description of the disaster event
+     * @param disasterDate Date when the disaster occurred
+     * @dev Only callable by the owner
+     */
     function addDisasterEvent(
         string memory eventName,
         string memory eventDescription,
@@ -292,19 +375,23 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         emit DisasterEventAdded(autoEventId);
     }
 
-    /// @notice Returns the details of a disaster event.
-    /// @param eventId The ID of the disaster event.
-    /// @return eventName The name of the disaster event.
-    /// @return eventDescription The description of the disaster event.
-    /// @return disasterDate The date of the disaster event.
+    /**
+     * @notice Returns the details of a disaster event
+     * @param eventId The ID of the disaster event
+     * @return eventName The name of the disaster event
+     * @return eventDescription The description of the disaster event
+     * @return disasterDate The date of the disaster event
+     */
     function getDisasterEvent(string memory eventId) external view returns (string memory eventName, string memory eventDescription, uint256 disasterDate) {
         require(bytes(disasterEvents[eventId].eventId).length != 0, "Event does not exist");
         DisasterEvent storage de = disasterEvents[eventId];
         return (de.name, de.eventDescription, de.disasterDate);
     }
 
-    /// @notice Returns a list of all disaster events by their IDs.
-    /// @return eventIds An array of disaster event IDs.
+    /**
+     * @notice Returns a list of all disaster events by their IDs
+     * @return eventIds An array of disaster event IDs
+     */
     function getAllDisasterEvents() external view returns (string[] memory eventIds) {
         uint256 count = nextEventId - 1; // Adjust for 0-based index
         eventIds = new string[](count);
@@ -313,8 +400,14 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         }
     }
 
-    /// @notice Modifies an existing disaster event.
-    /// Updates the event name and event description.
+    /**
+     * @notice Modifies an existing disaster event
+     * @param eventId The unique identifier of the event to modify
+     * @param newName The new name for the event
+     * @param newEventDescription The new description for the event
+     * @param disasterDate The new date for the disaster
+     * @dev Only callable by the owner
+     */
     function modifyDisasterEvent(
         string memory eventId,
         string calldata newName,
@@ -330,7 +423,11 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Removes an existing disaster event.
+    /**
+     * @notice Removes an existing disaster event
+     * @param eventId The unique identifier of the event to remove
+     * @dev Only callable by the owner
+     */
     function removeDisasterEvent(
         string memory eventId
     ) external override onlyOwner {
@@ -340,9 +437,12 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Adds a new moderator to the pool if not already present.
-    /// @param _moderatorAddress The address of the moderator to be added.
-    /// @param maxAmount The maximum claim amount the moderator can approve.
+    /**
+     * @notice Adds a new moderator to the pool
+     * @param _moderatorAddress The address of the moderator to be added
+     * @param maxAmount The maximum claim amount the moderator can approve
+     * @dev Only callable by the owner
+     */
     function addModeratorToPool(address _moderatorAddress, uint256 maxAmount) external override onlyOwner {
         require(_moderatorAddress != address(0), "Invalid moderator address");
         require(maxAmount > 0, "Max approval amount must be greater than zero");
@@ -360,8 +460,11 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         emit ModeratorAdded(_moderatorAddress, maxAmount);
     }
 
-    /// @notice Removes a moderator from the pool.
-    /// @param moderator The address of the moderator to be removed.
+    /**
+     * @notice Removes a moderator from the pool
+     * @param moderator The address of the moderator to be removed
+     * @dev Only callable by the owner
+     */
     function removeModeratorFromPool(address moderator) external override onlyOwner {
         require(moderator != address(0), "Invalid moderator address");
         require(moderators[moderator].maxApprovalAmount != 0, "Moderator does not exist");
@@ -372,6 +475,12 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         emit ModeratorRemoved(moderator);
     }
 
+    /**
+     * @notice Transfers Ether to a specified recipient
+     * @param recipient The address to receive the Ether
+     * @param amount The amount of Ether to transfer
+     * @dev Only callable by the owner
+     */
     function transferEther(
         address payable recipient,
         uint256 amount
@@ -382,10 +491,13 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Starts a new claim for the given policy and event.
-    /// @param eventId The ID of the disaster event.
-    /// @param policyId The ID of the insurance policy.
-    /// @param incidentDescription A description of the incident.
+    /**
+     * @notice Starts a new claim for the given policy and event
+     * @param eventId The ID of the disaster event
+     * @param policyId The ID of the insurance policy
+     * @param incidentDescription A description of the incident
+     * @return True if the claim was successfully started
+     */
     function startAClaim(
         string memory eventId,
         bytes32 policyId,
@@ -436,8 +548,10 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Processes the claim to determine the final decision based on moderator votes.
-    /// @param claimId The ID of the claim to process.
+    /**
+     * @notice Processes the claim to determine the final decision based on moderator votes
+     * @param claimId The ID of the claim to process
+     */
     function processClaim(uint256 claimId) external override {
         require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
 
@@ -497,10 +611,12 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
 
 
-    /// @notice Allows a moderator to assess a claim by approving or denying it.
-    /// @param claimId The ID of the claim being assessed.
-    /// @param isApproved A boolean indicating whether the claim is approved (true) or denied (false).
-    /// @param amount The amount the moderator approves (if isApproved is true).
+    /**
+     * @notice Allows a moderator to assess a claim by approving or denying it
+     * @param claimId The ID of the claim being assessed
+     * @param isApproved Whether the claim is approved
+     * @param amount The amount the moderator approves
+     */
     function assessClaim(uint256 claimId, bool isApproved, uint256 amount) external override {
         require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
 
@@ -538,9 +654,11 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
 
 
-    /// @notice Executes payout for a processed claim.
-    /// Only the contract owner can call this function.
-    /// @param claimId The ID of the claim to process for payout.
+    /**
+     * @notice Executes payout for a processed claim
+     * @param claimId The ID of the claim to process for payout
+     * @dev Only callable by the owner
+     */
     function payoutClaim(uint256 claimId) external override onlyOwner {
         require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
 
@@ -580,7 +698,11 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     // ========================================
     // Internal Helper Functions
     // ========================================
-    /// @dev Converts a ClaimStatus enum to its string representation.
+    /**
+     * @dev Converts a ClaimStatus enum to its string representation
+     * @param status The status enum value
+     * @return The string representation of the status
+     */
     function getStatusString(
         ClaimStatus status
     ) internal pure returns (string memory) {
@@ -594,22 +716,29 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     // View Functions
     // ========================================
 
-    /// @notice Returns the policy IDs for a given user.
+    /**
+     * @notice Returns the policy IDs for a given user
+     * @param user The address of the user
+     * @return Array of policy identifiers
+     */
     function fetchInsuranceIds(
         address user
     ) external view override returns (bytes32[] memory) {
         return userRecords[user].policyIds;
     }
-    /// @notice Returns all insurance policies held by the caller (msg.sender).
-    /// @return policyIds Array of policy IDs.
-    /// @return policyHolders Array of policy holder addresses (will all be msg.sender).
-    /// @return maxCoverageAmounts Array of maximum coverage amounts for each policy.
-    /// @return premiums Array of premiums paid for each policy.
-    /// @return startTimes Array of start timestamps for each policy.
-    /// @return endTimes Array of end timestamps for each policy.
-    /// @return isClaimedList Array indicating whether each policy has been claimed.
-    /// @return propertyAddresses Array of property addresses associated with each policy.
-    /// @return propertyValues Array of property values (in ETH) for each policy.
+    
+    /**
+     * @notice Returns all insurance policies held by the caller.
+     * @return policyIds Array of policy IDs.
+     * @return policyHolders Array of policy holder addresses.
+     * @return maxCoverageAmounts Array of maximum coverage amounts for each policy.
+     * @return premiums Array of premiums paid for each policy.
+     * @return startTimes Array of start times for each policy.
+     * @return endTimes Array of end times for each policy.
+     * @return isClaimedList Array indicating whether each policy has been claimed.
+     * @return propertyAddresses Array of property addresses associated with each policy.
+     * @return propertyValues Array of property values associated with each policy.
+     */
     function getUserPolicies() external view override returns (
         bytes32[] memory policyIds,
         address[] memory policyHolders,
@@ -649,6 +778,21 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         }
     }
 
+    /**
+     * @notice Gets details of a specific policy
+     * @dev This function retrieves the details of a policy associated with the given policy ID.
+     *      It ensures that only the policy holder can access the policy details.
+     * @param policyId The identifier of the policy
+     * @return _policyId The unique identifier of the policy
+     * @return _policyHolder The address of the policy holder
+     * @return _maxCoverageAmount The maximum coverage amount of the policy
+     * @return _premiumPaid The premium amount paid for the policy
+     * @return _startTime The start time of the policy
+     * @return _endTime The end time of the policy
+     * @return _isClaimed The claim status of the policy (true if claimed, false otherwise)
+     * @return _propertyAddress The address of the insured property
+     * @return _propertyValue The value of the insured property
+     */
     function getUserPolicy(bytes32 policyId) external view returns (
         bytes32 _policyId,
         address _policyHolder,
@@ -676,9 +820,11 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Returns the addresses of all moderators assigned to a specific claim.
-    /// @param claimId The ID of the claim to retrieve moderators for.
-    /// @return moderatorAddresses An array of moderator addresses.
+    /**
+     * @notice Returns the addresses of all moderators assigned to a specific claim
+     * @param claimId The ID of the claim to retrieve moderators for
+     * @return moderatorAddresses An array of moderator addresses
+     */
     function getClaimModerators(uint256 claimId) external view override returns (address[] memory) {
         require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
 
@@ -697,15 +843,31 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         return moderatorAddresses;
     }
 
-    /// @notice Returns the claim IDs for a given user.
-    /// @param user The address of the user to fetch claims for.
-    /// @return claimIds An array of claim IDs.
+    /**
+     * @notice Returns the claim IDs for a given user
+     * @param user The address of the user to fetch claims for
+     * @return claimIds An array of claim IDs
+     */
     function fetchClaimIds(address user) external view returns (uint256[] memory) {
         return userRecords[user].claimIds;
     }
 
-    /// @notice Return the details of a specific claim.
-    /// @param claimId The ID of the claim to retrieve.
+    /**
+     * @notice Returns the details of a specific claim
+     * @param claimId The ID of the claim to retrieve
+     * @return _claimId The ID of the claim
+     * @return _policyId The ID of the associated policy
+     * @return _eventId The ID of the event related to the claim
+     * @return _approvedClaimAmount The approved claim amount
+     * @return _assessmentStart The timestamp when the assessment started
+     * @return _assessmentEnd The timestamp when the assessment ended
+     * @return _status The status of the claim as a string
+     * @return _incidentDescription A description of the incident
+     * @return moderatorAddresses An array of moderator addresses involved in the claim
+     * @return hasDecidedList An array indicating whether each moderator has made a decision
+     * @return isApprovedList An array indicating whether each moderator approved the claim
+     * @return approvedAmounts An array of approved amounts by each moderator
+     */
     function getClaimDetails(uint256 claimId) external view returns (
         uint256 _claimId,
         bytes32 _policyId,
@@ -753,12 +915,14 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         );
     }
 
-    /// @notice Returns the claims associated with the user.
-    /// @return claimIds An array of claim IDs held by the user.
-    /// @return policyIds An array of policy IDs associated with the claims.
-    /// @return moderatorList An array of arrays containing the addresses of moderators who assessed each claim.
-    /// @return statuses An array of claim statuses.
-    /// @return descriptions An array of claim descriptions.
+    /**
+     * @notice Returns the claims associated with the caller.
+     * @return claimIds An array of claim IDs associated with the user.
+     * @return policyIds An array of policy IDs corresponding to the claims.
+     * @return moderatorList A 2D array where each sub-array contains the addresses of moderators for a claim.
+     * @return statuses An array of statuses for each claim, represented as strings.
+     * @return descriptions An array of descriptions for each claim's incident.
+     */
     function getUserClaims() 
         external 
         view override
@@ -807,7 +971,10 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-    /// @notice Returns all donors and their total donated amounts.
+    /**
+     * @notice Returns all donors and their total donated amounts
+     * @return Arrays of donor addresses and corresponding donation amounts
+     */
     function getAllDonors()
         external
         view override
@@ -823,9 +990,11 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         return (addrs, amounts);
     }
 
-    /// @notice Returns the top 10 highest donors based on the total donation amount.
-    /// @return topDonors An array of the top 10 donor addresses.
-    /// @return topAmounts An array of the corresponding donation amounts.
+    /**
+     * @notice Returns the top 10 highest donors based on total donation amount
+     * @return topDonors An array of the top 10 donor addresses
+     * @return topAmounts An array of the corresponding donation amounts
+     */
     function getTopDonors() external view override returns (address[] memory topDonors, uint256[] memory topAmounts) {
         uint256 donorCount = donors.length;
         uint256 topCount = donorCount < 10 ? donorCount : 10;
@@ -863,6 +1032,10 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         }
     }
 
+    /**
+     * @notice Returns all claim records
+     * @return Array of all claim records
+     */
     function getAllClaims() external view returns (ClaimRecord[] memory) {
         return claimRecords;
     }

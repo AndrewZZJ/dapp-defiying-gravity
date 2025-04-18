@@ -10,11 +10,18 @@ import {IGraviPoolNFT} from "./interfaces/tokens/IGraviPoolNFT.sol";
 
 import {IGraviDAO} from "./interfaces/IGraviDAO.sol";
 
+/**
+ * @title GraviDAO
+ * @notice DAO contract that manages governance tokens, insurance pools, and NFT operations
+ * @dev This contract serves as the central manager of the protocol components
+ */
 contract GraviDAO is IGraviDAO, Ownable {
     // Address of the TimelockController.
     address public timelockController;
 
-    // Custom modifier that allows either the owner or the timelock controller.
+    /**
+     * @dev Modifier that allows either the owner or the timelock controller to call a function
+     */
     modifier onlyOwnerOrTimelock() {
         require(msg.sender == owner() || msg.sender == timelockController, "Unauthorized: caller is not owner or timelock");
         _;
@@ -33,25 +40,34 @@ contract GraviDAO is IGraviDAO, Ownable {
     IGraviPoolNFT public nftPool;
     string[] public insurancePoolNames;
     
-    // event InsuranceCreated(string disasterType, address poolAddress);
-    // event InsuranceRemoved(string disasterType, address poolAddress);
-    // event NFTPoolAdded(address poolAddress);
-    // event NFTPoolRemoved(address poolAddress);
-    // event GovTokensPurchased(address indexed buyer, uint256 amount);
-    
+    /**
+     * @notice Constructs the DAO contract
+     * @param _graviCha The address of the GraviCha token
+     * @param _graviGov The address of the GraviGov token
+     */
     constructor(address _graviCha, address _graviGov) Ownable(msg.sender) {
         graviCha = IGraviCha(_graviCha);
         graviGov = IGraviGov(_graviGov);
     }
 
-    // Setter function to update the timelock controller address.
-    // This function can only be called by the owner.
+    /**
+     * @notice Sets the timelock controller address
+     * @param _timelockController The new timelock controller address
+     * @dev Only callable by the contract owner
+     */
     function setTimelockController(address _timelockController) external onlyOwner {
         require(_timelockController != address(0), "Timelock address cannot be zero");
         timelockController = _timelockController;
     }
 
-    // Governance token management functions.
+    /**
+     * @notice Sets governance token parameters
+     * @param newRate The new charity token exchange rate
+     * @param newPrice The new Ether price per governance token
+     * @param newBurnAmount The new GraviCha burn amount per governance token purchase
+     * @param mintAmount The monthly mint amount for governance tokens
+     * @dev Only callable by the owner or timelock
+     */
     function setGovernanceTokenParameters(
         uint256 newRate,
         uint256 newPrice,
@@ -65,18 +81,37 @@ contract GraviDAO is IGraviDAO, Ownable {
         graviGov.setMonthlyMintAmount(mintAmount);
     }
     
+    /**
+     * @notice Mints the monthly allotment of governance tokens
+     * @dev Only callable by the owner or timelock
+     */
     function monthlyMintGovTokens() external onlyOwnerOrTimelock {
         graviGov.mintMonthly();
     }
     
+    /**
+     * @notice Sets the monthly mint amount for governance tokens
+     * @param newAmount The new monthly mint amount
+     * @dev Only callable by the owner or timelock
+     */
     function setMonthlyGovMintAmount(uint256 newAmount) external onlyOwnerOrTimelock {
         graviGov.setMonthlyMintAmount(newAmount);
     }
     
+    /**
+     * @notice Sets the charity token exchange rate
+     * @param newRate The new exchange rate
+     * @dev Only callable by the owner or timelock
+     */
     function setCharityTokenExchangeRate(uint256 newRate) external onlyOwnerOrTimelock {
         graviGov.setCharityTokenExchangeRate(newRate);
     }
     
+    /**
+     * @notice Allows a user to purchase governance tokens
+     * @param amount The number of governance tokens to purchase
+     * @dev Burns charity tokens and requires ETH payment
+     */
     function purchaseGovTokens(uint256 amount) external payable {
         uint256 requiredEth = amount * govTokenEthPrice / 10 ** 18;
         require(msg.value >= requiredEth, "Insufficient Ether sent");
@@ -97,14 +132,23 @@ contract GraviDAO is IGraviDAO, Ownable {
         emit GovTokensPurchased(msg.sender, amount);
     }
 
-    // Calculates the token purchase price per (FULL) given governance tokens, in ETH and GraviCha.
+    /**
+     * @notice Calculates the token purchase price per given governance tokens
+     * @param amount The number of governance tokens
+     * @return ethPrice The total Ether required
+     * @return graviChaBurn The total GraviCha tokens to burn
+     */
     function calculatesGovTokenPurchasePrice(
         uint256 amount
     ) external view returns (uint256 ethPrice, uint256 graviChaBurn) {
         return (amount * govTokenEthPrice, amount * govTokenGraviChaBurn);
     }
     
-    // Insurance and NFT pool management.
+    /**
+     * @notice Sets or updates the NFT pool used by the DAO
+     * @param _nftPool The address of the new NFT pool
+     * @dev Only callable by the owner or timelock
+     */
     function setNFTPool(address _nftPool) external onlyOwnerOrTimelock {
         require(address(_nftPool) != address(0), "NFT pool address cannot be zero");
         require(Ownable(_nftPool).owner() == address(this), "DAO must own NFT pool");
@@ -119,6 +163,12 @@ contract GraviDAO is IGraviDAO, Ownable {
         emit NFTPoolAdded(_nftPool);
     }
     
+    /**
+     * @notice Adds a new insurance pool with a specified name
+     * @param poolName The identifier for the insurance pool
+     * @param insurancePool The address of the insurance pool
+     * @dev Only callable by the owner or timelock
+     */
     function addInsurancePool(string memory poolName, address insurancePool) external onlyOwnerOrTimelock {
         require(address(insurancePools[poolName]) == address(0), "Insurance pool already exists");
         require(address(nftPool) != address(0), "NFT pool must be set before adding insurance pool");
@@ -131,6 +181,11 @@ contract GraviDAO is IGraviDAO, Ownable {
         emit InsuranceCreated(poolName, insurancePool);
     }
     
+    /**
+     * @notice Removes an existing insurance pool by its name
+     * @param insuranceName The identifier of the insurance pool to remove
+     * @dev Only callable by the owner or timelock
+     */
     function removeInsurancePool(string memory insuranceName) external onlyOwnerOrTimelock {
         address insPool = address(insurancePools[insuranceName]);
         require(insPool != address(0), "Pool does not exist");
@@ -139,15 +194,31 @@ contract GraviDAO is IGraviDAO, Ownable {
         emit InsuranceRemoved(insuranceName, insPool);
     }
     
+    /**
+     * @notice Retrieves the addresses of an insurance pool and the NFT pool
+     * @param insuranceName The identifier of the insurance pool
+     * @return insurancePoolAddress The address of the insurance pool
+     * @return nftPoolAddress The address of the NFT pool
+     */
     function getInsurancePoolAddresses(string memory insuranceName) external view returns (address insurancePoolAddress, address nftPoolAddress) {
         insurancePoolAddress = address(insurancePools[insuranceName]);
         nftPoolAddress = address(nftPool);
     }
     
+    /**
+     * @notice Returns all insurance pool names managed by the DAO
+     * @return An array containing all insurance pool names
+     */
     function getAllInsurancePoolNames() external view returns (string[] memory) {
         return insurancePoolNames;
     }
     
+    /**
+     * @notice Mints NFTs for a specified insurance pool and triggers an auction
+     * @param insuranceName The identifier of the insurance pool
+     * @param tokenURIs An array of token URIs for the NFTs
+     * @dev Only callable by the owner or timelock
+     */
     function monthlyMintNFTForPool(string memory insuranceName, string[] calldata tokenURIs) external onlyOwnerOrTimelock {
         address nftPoolAddress = address(nftPool);
         require(nftPoolAddress != address(0), "NFT pool not found");
@@ -161,6 +232,13 @@ contract GraviDAO is IGraviDAO, Ownable {
         pool.mintAndAuctionNFTs(tokenURIs, insuranceAddresses);
     }
     
+    /**
+     * @notice Transfers Ether from a specified insurance pool to a recipient
+     * @param insuranceName The identifier of the insurance pool
+     * @param recipient The address to receive the Ether
+     * @param amount The amount of Ether to transfer
+     * @dev Only callable by the owner or timelock
+     */
     function moveEtherFromInsurance(string memory insuranceName, address payable recipient, uint256 amount) external onlyOwnerOrTimelock {
         IGraviInsurance insurance = insurancePools[insuranceName];
         require(address(insurance) != address(0), "Insurance pool not found");

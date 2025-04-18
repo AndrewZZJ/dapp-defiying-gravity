@@ -6,11 +6,16 @@ import {ERC721URIStorage, ERC721} from "@openzeppelin/contracts/token/ERC721/ext
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-// Interface for the GraviCha token.
+// Interface for the tokens and insurance functions
 import {IGraviCha} from "../interfaces/tokens/IGraviCha.sol";
 import {IGraviInsurance} from "../interfaces/IGraviInsurance.sol";
 import {IGraviPoolNFT} from "../interfaces/tokens/IGraviPoolNFT.sol";
 
+/**
+ * @title GraviPoolNFT
+ * @notice NFT contract that represents ownership in the insurance pools
+ * @dev Uses auctions to distribute NFTs and collects fees for the insurance pools
+ */
 contract GraviPoolNFT is
     ERC721URIStorage,
     Ownable,
@@ -27,15 +32,21 @@ contract GraviPoolNFT is
     // The ERC20 token used for bidding (and charity donation)
     IGraviCha public graviCha;
 
-    // This should be the insurance pool contract address.
-    // We'll maintain an array of treasury addresses (e.g., four insurance pools).
+    // Maps token IDs to their associated treasury (insurance pool) index
     mapping(uint256 => uint8) public tokenTreasuryIndex;
     address[] public treasuries;
 
-    // Tracking donations associated with each NFT.
+    // Tracking donations associated with each NFT
     mapping(uint256 => uint256) public tokenDonations;
 
-    // Auction structure.
+    /**
+     * @notice Auction data structure for NFT sales
+     * @param tokenId ID of the NFT being auctioned
+     * @param highestBidder Address of the current highest bidder
+     * @param highestBid Amount of the current highest bid in GraviCha tokens
+     * @param ended Whether the auction has been finalized
+     * @param startTime Timestamp when the auction started
+     */
     struct Auction {
         uint256 tokenId;
         address highestBidder;
@@ -44,18 +55,21 @@ contract GraviPoolNFT is
         uint256 startTime;
     }
 
-    // Mapping of token ID to auction details.
+    // Mapping of token ID to auction details
     mapping(uint256 => Auction) public auctions;
 
-    // Mapping to hold refundable amounts for outbid bidders.
+    // Mapping to hold refundable amounts for outbid bidders
     mapping(address => uint256) public pendingReturns;
 
-    // Events.
+    // Events
     event AuctionStarted(uint256 tokenId, uint256 startTime);
     event AuctionBid(uint256 tokenId, address bidder, uint256 bid);
     event AuctionEnded(uint256 tokenId, address winner, uint256 bid);
 
-    // Modifier for functions that require the auction to be active (i.e. before duration ends).
+    /**
+     * @notice Ensures auction is still active and not ended
+     * @param tokenId The ID of the NFT token being auctioned
+     */
     modifier auctionActive(uint256 tokenId) {
         Auction storage auction = auctions[tokenId];
         require(
@@ -66,7 +80,10 @@ contract GraviPoolNFT is
         _;
     }
 
-    // Modifier for functions that require the auction to have ended (i.e. after duration).
+    /**
+     * @notice Ensures auction has ended but not been finalized
+     * @param tokenId The ID of the NFT token being auctioned
+     */
     modifier auctionEnded(uint256 tokenId) {
         Auction storage auction = auctions[tokenId];
         require(
@@ -77,7 +94,10 @@ contract GraviPoolNFT is
         _;
     }
 
-    // Modifier to check token ownership or approval.
+    /**
+     * @notice Ensures caller is either token owner or approved to manage token
+     * @param tokenId The ID of the NFT token
+     */
     modifier onlyTokenOwnerOrApproved(uint256 tokenId) {
         bool isOwner = ownerOf(tokenId) == msg.sender;
         bool isApproved = getApproved(tokenId) == msg.sender;
@@ -88,29 +108,47 @@ contract GraviPoolNFT is
         _;
     }
 
-    // Constructor with token addresses.
+    /**
+     * @notice Constructor initializes the contract with the GraviCha token address
+     * @param _graviCha Address of the GraviCha token contract
+     */
     constructor(
         address _graviCha
     ) ERC721("GraviPoolNFT", "GRANFT") Ownable(msg.sender) {
         graviCha = IGraviCha(_graviCha);
     }
 
-    /// @notice Allows the owner to update the transfer fee.
+    /**
+     * @notice Updates the transfer fee
+     * @param _transferFee New fee amount in wei
+     * @dev Only callable by the owner (DAO)
+     */
     function setTransferFee(uint256 _transferFee) external onlyOwner {
         transferFee = _transferFee;
     }
 
-    /// @notice Allows the owner to add a new treasury address.
+    /**
+     * @notice Adds a new treasury address to the list of insurance pools
+     * @param treasury Address of the insurance pool to add
+     * @dev Only callable by the owner (DAO)
+     */
     function addTreasuryAddress(address treasury) external onlyOwner {
         treasuries.push(treasury);
     }
 
-    // View function to get the list of treasury addresses.
+    /**
+     * @notice Returns all treasury addresses
+     * @return Array of treasury (insurance pool) addresses
+     */
     function getTreasuryAddresses() external view returns (address[] memory) {
         return treasuries;
     }
 
-    // View function to get the treasury address at a specific index.
+    /**
+     * @notice Gets the treasury address for a specific token ID
+     * @param tokenId The ID of the NFT
+     * @return The address of the treasury (insurance pool)
+     */
     function getTreasuryAddress(uint256 tokenId) external view returns (address) {
         // Get the treasury index for the token ID.
         uint8 index = tokenTreasuryIndex[tokenId];
@@ -120,19 +158,31 @@ contract GraviPoolNFT is
         return treasuries[index];
     }
 
-    /// @notice Allows the owner to update an existing treasury address.
+    /**
+     * @notice Updates an existing treasury address
+     * @param index Index of the treasury to update
+     * @param treasury New address for the treasury
+     * @dev Only callable by the owner (DAO)
+     */
     function setTreasuryAddress(uint8 index, address treasury) external onlyOwner {
         require(index < treasuries.length, "GraviPoolNFT: Index out of bounds");
         treasuries[index] = treasury;
     }
 
-    /// @notice Returns the index of a treasury given its address.
-    /// @param treasuryAddress The treasury (insurance) address to search for.
-    /// @return The index of the treasury.
+    /**
+     * @notice Finds the index of a treasury given its address
+     * @param treasuryAddress The treasury (insurance) address to search for
+     * @return The index of the treasury in the treasuries array
+     */
     function getTreasuryIndexByAddress(address treasuryAddress) external view returns (uint8) {
         return _getTreasuryIndexByAddress(treasuryAddress);
     }
 
+    /**
+     * @notice Internal function to find the index of a treasury
+     * @param treasuryAddress The treasury address to search for
+     * @return The index of the treasury in the treasuries array
+     */
     function _getTreasuryIndexByAddress(address treasuryAddress) internal view returns (uint8) {
         for (uint8 i = 0; i < treasuries.length; i++) {
             if (treasuries[i] == treasuryAddress) {
@@ -142,7 +192,13 @@ contract GraviPoolNFT is
         revert("GraviPoolNFT: Treasury address not found");
     }
 
-    /// @notice A custom transfer function that collects a fixed fee to the NFT's treasury.
+    /**
+     * @notice Transfers an NFT with a fixed fee that goes to the NFT's treasury
+     * @param from Address to transfer from
+     * @param to Address to transfer to
+     * @param tokenId ID of the NFT
+     * @dev Requires msg.value >= transferFee
+     */
     function transferWithFee(
         address from,
         address to,
@@ -156,7 +212,13 @@ contract GraviPoolNFT is
         safeTransferFrom(from, to, tokenId);
     }
 
-    /// @notice A new transfer function that allows a custom donation amount to be sent to the treasury.
+    /**
+     * @notice Transfers an NFT with a custom donation amount to the treasury
+     * @param from Address to transfer from
+     * @param to Address to transfer to
+     * @param tokenId ID of the NFT
+     * @dev The entire msg.value is sent as a donation to the treasury
+     */
     function transferWithDonation(
         address from,
         address to,
@@ -170,7 +232,13 @@ contract GraviPoolNFT is
         safeTransferFrom(from, to, tokenId);
     }
 
-    /// @notice Internal function used to mint a new NFT with a tokenURI and treasury index.
+    /**
+     * @notice Internal function to mint a new NFT
+     * @param to Address to mint the NFT to
+     * @param tokenURI Metadata URI for the NFT
+     * @param treasuryIndex Index of the treasury in the treasuries array
+     * @return The ID of the newly minted NFT
+     */
     function _mintNFT(
         address to,
         string memory tokenURI,
@@ -185,8 +253,14 @@ contract GraviPoolNFT is
         return tokenId;
     }
 
-
-    /// @notice Mints a new NFT to an insurance pool along with its treasury index.
+    /**
+     * @notice Mints a new NFT directly to an insurance pool
+     * @param poolAddress Address of the insurance pool to receive the NFT
+     * @param treasuryIndex Index of the treasury to associate with the NFT
+     * @param tokenURI Metadata URI for the NFT
+     * @return The ID of the newly minted NFT
+     * @dev Only callable by the owner (DAO)
+     */
     function mintToPool(
         address poolAddress,
         uint8 treasuryIndex,
@@ -195,7 +269,12 @@ contract GraviPoolNFT is
         return _mintNFT(poolAddress, tokenURI, treasuryIndex);
     }
 
-    /// @notice Starts an auction for a newly minted NFT with its treasury index.
+    /**
+     * @notice Internal function to start an auction for a newly minted NFT
+     * @param tokenURI Metadata URI for the NFT
+     * @param treasuryIndex Index of the treasury to associate with the NFT
+     * @return The ID of the newly minted NFT that is being auctioned
+     */
     function startAuction(
         string memory tokenURI,
         uint8 treasuryIndex
@@ -212,7 +291,10 @@ contract GraviPoolNFT is
         return tokenId;
     }
 
-    /// @notice Get auctioned NFT lists
+    /**
+     * @notice Returns a list of all NFTs that have been auctioned
+     * @return Array of token IDs that have been auctioned
+     */
     function getAuctionedNFTs() external view returns (uint256[] memory) {
         uint256[] memory tokenIds = new uint256[](_nextTokenId);
         uint256 count = 0;
@@ -225,7 +307,15 @@ contract GraviPoolNFT is
         return tokenIds;
     }
 
-    /// @notice Get auction details for a specific NFT.
+    /**
+     * @notice Returns detailed information about a specific auction
+     * @param tokenId The ID of the NFT being auctioned
+     * @return auctionedTokenId The ID of the NFT
+     * @return highestBidder The address of the current highest bidder
+     * @return highestBid The amount of the current highest bid
+     * @return ended Whether the auction has been finalized
+     * @return startTime The timestamp when the auction started
+     */
     function getAuctionDetails(
         uint256 tokenId
     ) external view returns (
@@ -239,19 +329,12 @@ contract GraviPoolNFT is
         return (auction.tokenId, auction.highestBidder, auction.highestBid, auction.ended, auction.startTime);
     }
     
-    // /// @notice Allows the DAO to mint and auction a list of new NFTs.
-    // /// @dev Expects matching arrays of token URIs and treasury indices.
-    // function mintAndAuctionNFTs(
-    //     string[] memory tokenURIs,
-    //     uint8[] memory treasuryIndices
-    // ) external onlyOwner {
-    //     require(tokenURIs.length == treasuryIndices.length, "GraviPoolNFT: Arrays length mismatch");
-    //     for (uint256 i = 0; i < tokenURIs.length; i++) {
-    //         startAuction(tokenURIs[i], treasuryIndices[i]);
-    //     }
-    // }
-    /// @notice Allows the DAO to mint and auction a list of new NFTs.
-    /// @dev Expects matching arrays of token URIs and insurance contract addresses.
+    /**
+     * @notice Mints and starts auctions for multiple NFTs
+     * @param tokenURIs Array of metadata URIs for the NFTs
+     * @param insuranceAddresses Array of insurance contract addresses to associate with each NFT
+     * @dev Only callable by the owner (DAO)
+     */
     function mintAndAuctionNFTs(
         string[] memory tokenURIs,
         address[] memory insuranceAddresses
@@ -264,9 +347,12 @@ contract GraviPoolNFT is
         }
     }
 
-    /// @notice Place a bid for an NFT auction using ERC20 tokens.
-    /// The bidder must have approved this contract to spend at least `bidAmount` tokens.
-    /// Tokens are held in escrow. If outbid, tokens can be withdrawn via `withdraw()`.
+    /**
+     * @notice Places a bid on an active auction
+     * @param tokenId The ID of the NFT being auctioned
+     * @param bidAmount The amount of GraviCha tokens to bid
+     * @dev Requires approval for GraviCha tokens before calling
+     */
     function bid(
         uint256 tokenId,
         uint256 bidAmount
@@ -276,7 +362,6 @@ contract GraviPoolNFT is
 
         // Transfer ERC20 tokens from bidder to this contract (escrow).
         graviCha.transferFrom(msg.sender, address(this), bidAmount);
-        // graviCha.safeTransferFrom(msg.sender, address(this), bidAmount);
 
         // Refund the previous highest bidder using a pull pattern.
         if (auction.highestBidder != address(0)) {
@@ -290,7 +375,10 @@ contract GraviPoolNFT is
         emit AuctionBid(tokenId, msg.sender, bidAmount);
     }
 
-    /// @notice Allows outbid bidders to withdraw their refundable tokens.
+    /**
+     * @notice Allows outbid bidders to withdraw their refundable tokens
+     * @dev Uses pull pattern for security
+     */
     function withdraw() external nonReentrant {
         uint256 amount = pendingReturns[msg.sender];
         require(amount > 0, "GraviPoolNFT: No funds to withdraw");
@@ -298,13 +386,19 @@ contract GraviPoolNFT is
         graviCha.transfer(msg.sender, amount);
     }
 
-    /// @notice Function to see how much a bidder can withdraw.
+    /**
+     * @notice Returns the amount of tokens a bidder can withdraw
+     * @return The amount of GraviCha tokens available for withdrawal
+     */
     function withdrawableAmount() external view returns (uint256) {
         return pendingReturns[msg.sender];
     }
 
-    /// @notice Highest bidder claims the NFT after the auction ends.
-    /// The winning bid tokens are burned (as the charity donation).
+    /**
+     * @notice Allows the highest bidder to claim their NFT after auction ends
+     * @param tokenId The ID of the NFT being claimed
+     * @dev The winning bid tokens are burned as a charity donation
+     */
     function claimNFT(
         uint256 tokenId
     ) external auctionEnded(tokenId) nonReentrant {
@@ -328,8 +422,11 @@ contract GraviPoolNFT is
         emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
     }
 
-    /// @notice Ends the auction forcibly and assigns the NFT to the highest bidder.
-    /// The winning bid tokens are burned.
+    /**
+     * @notice Forces an auction to end after duration has passed
+     * @param tokenId The ID of the NFT being auctioned
+     * @dev Only callable by the owner (DAO)
+     */
     function forceEndAuction(
         uint256 tokenId
     ) external onlyOwner auctionEnded(tokenId) nonReentrant {
@@ -357,27 +454,46 @@ contract GraviPoolNFT is
         }
     }
 
-    /// @notice Allows the owner to update the auction duration.
+    /**
+     * @notice Updates the duration for auctions
+     * @param _auctionDuration New duration in seconds
+     * @dev Only callable by the owner (DAO)
+     */
     function setAuctionDuration(uint256 _auctionDuration) external onlyOwner {
         auctionDuration = _auctionDuration;
     }
 
-    /// @notice Allows the owner to update the token address.
+    /**
+     * @notice Updates the GraviCha token address
+     * @param _token New token address
+     * @dev Only callable by the owner (DAO)
+     */
     function setToken(address _token) external onlyOwner {
         graviCha = IGraviCha(_token);
     }
 
-    /// @notice Allows the owner to burn excess tokens sent to the contract.
+    /**
+     * @notice Burns excess tokens held by the contract
+     * @param amount Amount of tokens to burn
+     * @dev Only callable by the owner (DAO)
+     */
     function burnExcessTokens(uint256 amount) external onlyOwner {
         graviCha.burn(amount);
     }
 
-    /// @notice Allows the owner to burn NFTs in case of emergency.
+    /**
+     * @notice Burns an NFT in case of emergency
+     * @param tokenId The ID of the NFT to burn
+     * @dev Only callable by the owner (DAO)
+     */
     function burn(uint256 tokenId) external onlyOwner {
         _burn(tokenId);
     }
 
-    /// @notice ERC721 hook to check if the token is accepted.
+    /**
+     * @notice Implements IERC721Receiver to allow the contract to receive NFTs
+     * @return IERC721Receiver selector
+     */
     function onERC721Received(
         address,
         address,

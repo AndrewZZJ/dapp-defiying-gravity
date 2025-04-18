@@ -3,11 +3,19 @@ pragma solidity ^0.8.28;
 
 import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
 
-// This is a trivial oracle for demo purposes.
-// It checks if all 3 pieces of claim information are provided.
-// If any are missing, it returns false (claim rejected); otherwise, it returns true (claim approved).
+/**
+ * @title GraviDisasterOracle
+ * @notice A simple implementation of a disaster oracle for validating insurance claims
+ * @dev This is a trivial oracle for demo purposes that validates if all required information is present
+ */
 contract GraviDisasterOracle is IGraviDisasterOracle {
-    // Event emitted after a claim validation is performed.
+    /**
+     * @notice Event emitted after a claim validation is performed
+     * @param incidentDescription Description of the incident
+     * @param disasterType Type of disaster that occurred
+     * @param evidence Evidence supporting the claim
+     * @param isValid Whether the claim is valid
+     */
     event ClaimValidated(
         string incidentDescription,
         string disasterType,
@@ -15,8 +23,14 @@ contract GraviDisasterOracle is IGraviDisasterOracle {
         bool isValid
     );
 
-    // AJ: might need another oracle for validating a proposal.
-
+    /**
+     * @notice Validates a claim based on provided information
+     * @param incidentDescription Description of the incident
+     * @param disasterType Type of disaster that occurred
+     * @param evidence Evidence supporting the claim
+     * @return valid True if the claim is valid, false otherwise
+     * @dev A claim is valid if all three input parameters have content
+     */
     function validateClaim(
         string memory incidentDescription,
         string memory disasterType,
