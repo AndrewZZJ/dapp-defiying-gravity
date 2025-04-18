@@ -280,8 +280,9 @@ export const ProposalsSection: React.FC = () => {
   const fetchProposals = async () => {
     setLoading(true);
     if (useMockData) {
-      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed", "Unknown"];
-      const sorted = [...mockProposals].sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+      // const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed", "Unknown"];
+      // const sorted = [...mockProposals].sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+      const sorted = [...mockProposals].sort((a, b) => b.startDate - a.startDate);
       setProposals(sorted);
       setLoading(false);
       return;
@@ -346,8 +347,10 @@ export const ProposalsSection: React.FC = () => {
         })
       );
       proposalsData = await Promise.all(proposalsData.map(enrichProposalWithVotes));
-      const sortOrder: ProposalStatus[] = ["In Progress", "Approved", "Declined", "Approved and Executed" , "Unknown"];
-      proposalsData.sort((a, b) => sortOrder.indexOf(a.status) - sortOrder.indexOf(b.status));
+      
+      // Sort by start date (descending order) so newest proposals are first
+      proposalsData.sort((a, b) => b.startDate - a.startDate);
+      
       setProposals(proposalsData);
     } catch (err) {
       console.error("Fetch proposals failed:", err);
