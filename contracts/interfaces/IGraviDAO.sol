@@ -131,6 +131,35 @@ interface IGraviDAO {
      * @param votingThreshold The new threshold for voting for moderators
      */
     event ModeratorThresholdsUpdated(uint256 nominationThreshold, uint256 votingThreshold);
+    
+    /**
+     * @notice Emitted when a nomination reward is claimed
+     * @param nominator The address that nominated a moderator
+     * @param moderator The address of the nominated moderator
+     * @param amount The amount of GraviCha tokens rewarded
+     */
+    event ModeratorNominationRewarded(address indexed nominator, address indexed moderator, uint256 amount);
+    
+    /**
+     * @notice Emitted when a voting reward is claimed
+     * @param voter The address that voted for a moderator
+     * @param moderator The address of the moderator voted for
+     * @param amount The amount of GraviCha tokens rewarded
+     */
+    event ModeratorVoteRewarded(address indexed voter, address indexed moderator, uint256 amount);
+    
+    /**
+     * @notice Emitted when moderator rewards are enabled or disabled
+     * @param enabled Whether rewards are enabled
+     */
+    event ModeratorRewardsToggled(bool enabled);
+    
+    /**
+     * @notice Emitted when moderator reward amounts are updated
+     * @param nominationReward The new reward amount for nominations
+     * @param votingReward The new reward amount for voting
+     */
+    event ModeratorRewardAmountsUpdated(uint256 nominationReward, uint256 votingReward);
 
     // ---------------------------
     // Governance and Token Management Functions
@@ -257,6 +286,19 @@ interface IGraviDAO {
     // ---------------------------
 
     /**
+     * @notice Enables or disables moderator rewards
+     * @param enabled Whether rewards should be enabled
+     */
+    function toggleModeratorRewards(bool enabled) external;
+    
+    /**
+     * @notice Updates the reward amounts for moderator nominations and voting
+     * @param newNominationReward The new reward amount for nominations
+     * @param newVotingReward The new reward amount for voting
+     */
+    function setModeratorRewardAmounts(uint256 newNominationReward, uint256 newVotingReward) external;
+
+    /**
      * @notice Nominates an address as a claims moderator
      * @param _moderator The address to nominate as a moderator
      */
@@ -313,5 +355,17 @@ interface IGraviDAO {
         address[] memory moderators, 
         uint256[] memory votes,
         address[] memory nominators
+    );
+    
+    /**
+     * @notice Returns the current moderator reward information
+     * @return isEnabled Whether moderator rewards are enabled
+     * @return nominationReward The nomination reward amount
+     * @return votingReward The voting reward amount
+     */
+    function getModeratorRewardInfo() external view returns (
+        bool isEnabled, 
+        uint256 nominationReward, 
+        uint256 votingReward
     );
 }

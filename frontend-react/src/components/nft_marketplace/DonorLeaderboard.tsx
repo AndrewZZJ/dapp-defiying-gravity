@@ -16,7 +16,7 @@ interface NFTBid {
   altText: string;
   endDate: string;
   isWinner: boolean;
-  ended: boolean;
+  nftClaimed: boolean;
   highestBid?: string;
   highestBidder?: string;
   attributes?: Array<{ trait_type: string; value: string }>;

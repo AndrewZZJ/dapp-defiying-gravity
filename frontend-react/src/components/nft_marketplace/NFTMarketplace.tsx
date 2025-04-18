@@ -36,7 +36,7 @@ interface NFT {
   altText: string;
   endDate: string; // Full ISO string (auction end time)
   isWinner: boolean;
-  ended: boolean; // on-chain ended flag (true if NFT already claimed)
+  nftClaimed: boolean; // on-chain ended flag (true if NFT already claimed)
   highestBid?: string; // Formatted in GraviCha units.
   highestBidder?: string;
   attributes?: Array<{ trait_type: string; value: string }>;
@@ -176,7 +176,7 @@ export default function NFTMarketplace() {
         // Use full ISO string for endDate.
         const endDate = calculatedEndDate.toISOString();
         // The on-chain "ended" flag indicates if claimed.
-        const ended = detail.ended;
+        const nftClaimed = detail.nftClaimed;
         // Determine isWinner: if auction time has passed and wallet matches highestBidder.
         const isWinner: boolean =
           now > calculatedEndDate && walletAddress
@@ -207,7 +207,7 @@ export default function NFTMarketplace() {
           altText: nft.name,
           endDate,
           isWinner,
-          ended, // on-chain claimed flag
+          nftClaimed, // on-chain claimed flag
         };
       });
 
@@ -370,7 +370,7 @@ export default function NFTMarketplace() {
                   altText={nft.altText}
                   endDate={nft.endDate}
                   auctionEnded={false}
-                  auctionClaimed={nft.ended}
+                  auctionClaimed={nft.nftClaimed}
                   isWinner={nft.isWinner}
                   hasBid={true}
                   highestBid={nft.highestBid}
@@ -398,7 +398,7 @@ export default function NFTMarketplace() {
                   altText={nft.altText}
                   endDate={nft.endDate}
                   auctionEnded={true}
-                  auctionClaimed={nft.ended}
+                  auctionClaimed={nft.nftClaimed}
                   isWinner={nft.isWinner}
                   hasBid={true}
                   highestBid={nft.highestBid}

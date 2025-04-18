@@ -89,6 +89,63 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nominator",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "moderator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorNominationRewarded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "nominationReward",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "votingReward",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorRewardAmountsUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "enabled",
+          "type": "bool"
+        }
+      ],
+      "name": "ModeratorRewardsToggled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": false,
           "internalType": "uint256",
           "name": "nominationThreshold",
@@ -102,6 +159,31 @@
         }
       ],
       "name": "ModeratorThresholdsUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "moderator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorVoteRewarded",
       "type": "event"
     },
     {
@@ -265,6 +347,29 @@
           "internalType": "address",
           "name": "nftPoolAddress",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getModeratorRewardInfo",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isEnabled",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nominationReward",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "votingReward",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -560,6 +665,24 @@
       "inputs": [
         {
           "internalType": "uint256",
+          "name": "newNominationReward",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newVotingReward",
+          "type": "uint256"
+        }
+      ],
+      "name": "setModeratorRewardAmounts",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
           "name": "_nominationThreshold",
           "type": "uint256"
         },
@@ -624,6 +747,19 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "enabled",
+          "type": "bool"
+        }
+      ],
+      "name": "toggleModeratorRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

@@ -64,10 +64,13 @@ async function main() {
 
   // Deploy GraviGoverance.
   const GraviGovernance = await ethers.getContractFactory("GraviGovernance");
-  const graviGovernance = await GraviGovernance.deploy(graviGovAddress, timelockAddress);
+  const graviGovernance = await GraviGovernance.deploy(graviGovAddress, timelockAddress, graviChaAddress);
   await graviGovernance.waitForDeployment();
   const graviGovernanceAddress = await graviGovernance.getAddress();
   console.log("GraviGovernance deployed at:", graviGovernanceAddress);
+
+  // Add GraviGoverance as a minter to GraviCha.
+  await graviCha.addMinter(graviGovernanceAddress);
 
   // Deploy GraviDAO.
   const GraviDAO = await ethers.getContractFactory("GraviDAO");

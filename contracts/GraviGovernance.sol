@@ -11,6 +11,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 import {IGraviGovernance} from "./interfaces/IGraviGovernance.sol";
+import {IGraviCha} from "./interfaces/tokens/IGraviCha.sol";
 
 /**
  * @title GraviGovernance
@@ -26,13 +27,27 @@ contract GraviGovernance is IGraviGovernance, Governor, GovernorCountingSimple, 
     // Extended proposal metadata mapping
     mapping(uint256 => ProposalData) public proposals;
     uint256[] public allProposalIds;
+    
+    // Token reward configuration
+    IGraviCha public immutable graviCha;
+    uint256 public voteRewardAmount = 0.1 ether; // Default 0.1 GraviCha tokens (in wei)
+    bool public rewardsEnabled = true;
+    
+    // Track which addresses have claimed rewards for which proposals
+    mapping(uint256 => mapping(address => bool)) public hasClaimedReward;
+    mapping(uint256 => bool) public hasProposerClaimedReward;
 
     /**
      * @notice Constructs the governance contract
      * @param token The voting token used for governance
      * @param timelock The timelock controller for delayed execution
+     * @param _graviCha The GraviCha token used for rewards
      */
-    constructor(IVotes token, TimelockController timelock)
+    constructor(
+        IVotes token, 
+        TimelockController timelock,
+        IGraviCha _graviCha
+    )
         Governor("GraviGovernance")
         GovernorVotes(token)
         GovernorVotesQuorumFraction(4)
@@ -41,6 +56,28 @@ contract GraviGovernance is IGraviGovernance, Governor, GovernorCountingSimple, 
         govVotingDelay = 0;       // Immediate voting start.
         govVotingPeriod = 50400;  // Example: 1 week in blocks. (12 seconds per block)
         govProposalThreshold = 1000; // At least 1000 votes required to propose.
+        graviCha = _graviCha;
+    }
+    
+    /**
+     * @notice Updates the reward amount for voting
+     * @param newAmount The new reward amount in wei
+     * @dev Only callable by governance
+     */
+    function setVoteRewardAmount(uint256 newAmount) external onlyGovernance {
+        uint256 oldAmount = voteRewardAmount;
+        voteRewardAmount = newAmount;
+        emit VoteRewardAmountUpdated(oldAmount, newAmount);
+    }
+    
+    /**
+     * @notice Enables or disables vote rewards
+     * @param enabled Whether rewards should be enabled
+     * @dev Only callable by governance
+     */
+    function toggleVoteRewards(bool enabled) external onlyGovernance {
+        rewardsEnabled = enabled;
+        emit VoteRewardsToggled(enabled);
     }
 
     /**
@@ -126,6 +163,112 @@ contract GraviGovernance is IGraviGovernance, Governor, GovernorCountingSimple, 
         allProposalIds.push(proposalId);
         emit GraviProposalCreated(proposalId, title, msg.sender);
     }
+    
+    /**
+     * @notice Creates a proposal with extended metadata and claims a reward
+     * @param title A short title for the proposal
+     * @param description A detailed description of the proposal
+     * @param targets An array of target contract addresses
+     * @param values An array of ETH amounts to be sent with each call
+     * @param calldatas An array of encoded function calls
+     * @return proposalId The unique identifier assigned to the new proposal
+     */
+    function createProposalWithReward(
+        string memory title,
+        string memory description,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas
+    ) external returns (uint256 proposalId) {
+        // Use the base Governor propose function.
+        proposalId = super.propose(targets, values, calldatas, description);
+        proposals[proposalId] = ProposalData({
+            id: proposalId,
+            title: title,
+            description: description,
+            targets: targets,
+            values: values,
+            calldatas: calldatas,
+            proposer: msg.sender,
+            created: block.timestamp
+        });
+        allProposalIds.push(proposalId);
+        
+        // Issue reward if enabled
+        if (rewardsEnabled && address(graviCha) != address(0)) {
+            hasProposerClaimedReward[proposalId] = true;
+            
+            // Try to mint the reward tokens to the proposer
+            try graviCha.mint(msg.sender, voteRewardAmount) {
+                emit ProposalCreationRewardClaimed(msg.sender, proposalId, voteRewardAmount);
+            } catch {
+                // If minting fails, we still keep the proposal but no reward is issued
+            }
+        }
+        
+        emit GraviProposalCreated(proposalId, title, msg.sender);
+    }
+    
+    /**
+     * @notice Casts a vote on a proposal and rewards the voter with GraviCha tokens
+     * @param proposalId The ID of the proposal to vote on
+     * @param support The type of support (0=Against, 1=For, 2=Abstain)
+     * @return The weight of the vote
+     */
+    function castVoteWithReward(uint256 proposalId, uint8 support) external returns (uint256) {
+        // Cast the vote using the standard castVote function
+        uint256 weight = castVote(proposalId, support);
+        
+        // Issue reward if enabled and not already claimed
+        _issueRewardIfEligible(proposalId, msg.sender);
+        
+        return weight;
+    }
+    
+    /**
+     * @notice Casts a vote with reason and rewards the voter with GraviCha tokens
+     * @param proposalId The ID of the proposal to vote on
+     * @param support The type of support (0=Against, 1=For, 2=Abstain)
+     * @param reason The reason for the vote
+     * @return The weight of the vote
+     */
+    function castVoteWithReasonAndReward(
+        uint256 proposalId, 
+        uint8 support, 
+        string calldata reason
+    ) external returns (uint256) {
+        // Cast the vote using the standard castVoteWithReason function
+        uint256 weight = castVoteWithReason(proposalId, support, reason);
+        
+        // Issue reward if enabled and not already claimed
+        _issueRewardIfEligible(proposalId, msg.sender);
+        
+        return weight;
+    }
+    
+    /**
+     * @notice Issues a reward to the voter if eligible
+     * @param proposalId The ID of the proposal that was voted on
+     * @param voter The address of the voter
+     * @dev Internal function to handle reward issuance logic
+     */
+    function _issueRewardIfEligible(uint256 proposalId, address voter) internal {
+        // Check if rewards are enabled and voter hasn't already claimed for this proposal
+        if (!rewardsEnabled || hasClaimedReward[proposalId][voter] || address(graviCha) == address(0)) {
+            return;
+        }
+        
+        // Mark as claimed before transferring to prevent reentrancy
+        hasClaimedReward[proposalId][voter] = true;
+        
+        // Try to mint the reward tokens to the voter
+        try graviCha.mint(voter, voteRewardAmount) {
+            emit VoteRewardClaimed(voter, proposalId, voteRewardAmount);
+        } catch {
+            // If minting fails, we still keep the vote but no reward is issued
+            // We don't revert to ensure the voting functionality still works
+        }
+    }
 
     /**
      * @notice Returns an array of all proposal IDs that have been created
@@ -151,6 +294,30 @@ contract GraviGovernance is IGraviGovernance, Governor, GovernorCountingSimple, 
      */
     function getProposalCount() external view returns (uint256) {
         return allProposalIds.length;
+    }
+    
+    /**
+     * @notice Checks if a voter has already claimed a reward for a proposal
+     * @param proposalId The ID of the proposal
+     * @param voter The address of the voter
+     * @return Whether the voter has claimed a reward for this proposal
+     */
+    function hasVoterClaimedReward(uint256 proposalId, address voter) external view returns (bool) {
+        return hasClaimedReward[proposalId][voter];
+    }
+    
+    /**
+     * @notice Returns the current reward information
+     * @return isEnabled Whether rewards are currently enabled
+     * @return rewardAmount The current reward amount in wei
+     * @return tokenAddress The address of the GraviCha token
+     */
+    function getRewardInfo() external view returns (
+        bool isEnabled, 
+        uint256 rewardAmount, 
+        address tokenAddress
+    ) {
+        return (rewardsEnabled, voteRewardAmount, address(graviCha));
     }
 
     /**

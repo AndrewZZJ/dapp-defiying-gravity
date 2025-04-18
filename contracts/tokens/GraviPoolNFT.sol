@@ -51,7 +51,7 @@ contract GraviPoolNFT is
         uint256 tokenId;
         address highestBidder;
         uint256 highestBid;
-        bool ended;
+        bool nftClaimed;
         uint256 startTime;
     }
 
@@ -76,7 +76,7 @@ contract GraviPoolNFT is
             block.timestamp < auction.startTime + auctionDuration,
             "GraviPoolNFT: Auction has ended"
         );
-        require(!auction.ended, "GraviPoolNFT: Auction already ended");
+        require(!auction.nftClaimed, "GraviPoolNFT: Auction already ended");
         _;
     }
 
@@ -90,7 +90,7 @@ contract GraviPoolNFT is
             block.timestamp >= auction.startTime + auctionDuration,
             "GraviPoolNFT: Auction still active"
         );
-        require(!auction.ended, "GraviPoolNFT: Auction already ended");
+        require(!auction.nftClaimed, "GraviPoolNFT: Auction already ended");
         _;
     }
 
@@ -284,7 +284,7 @@ contract GraviPoolNFT is
             tokenId: tokenId,
             highestBidder: address(0),
             highestBid: 0,
-            ended: false,
+            nftClaimed: false,
             startTime: block.timestamp
         });
         emit AuctionStarted(tokenId, block.timestamp);
@@ -313,7 +313,7 @@ contract GraviPoolNFT is
      * @return auctionedTokenId The ID of the NFT
      * @return highestBidder The address of the current highest bidder
      * @return highestBid The amount of the current highest bid
-     * @return ended Whether the auction has been finalized
+     * @return nftClaimed Whether the nft has been claimed.
      * @return startTime The timestamp when the auction started
      */
     function getAuctionDetails(
@@ -322,11 +322,11 @@ contract GraviPoolNFT is
         uint256 auctionedTokenId,
         address highestBidder,
         uint256 highestBid,
-        bool ended,
+        bool nftClaimed,
         uint256 startTime
     ) {
         Auction memory auction = auctions[tokenId];
-        return (auction.tokenId, auction.highestBidder, auction.highestBid, auction.ended, auction.startTime);
+        return (auction.tokenId, auction.highestBidder, auction.highestBid, auction.nftClaimed, auction.startTime);
     }
     
     /**
@@ -408,7 +408,7 @@ contract GraviPoolNFT is
             "GraviPoolNFT: Not highest bidder"
         );
 
-        auction.ended = true;
+        auction.nftClaimed = true;
 
         // Transfer NFT from contract to highest bidder.
         _transfer(address(this), auction.highestBidder, tokenId);
@@ -431,7 +431,7 @@ contract GraviPoolNFT is
         uint256 tokenId
     ) external onlyOwner auctionEnded(tokenId) nonReentrant {
         Auction storage auction = auctions[tokenId];
-        auction.ended = true;
+        auction.nftClaimed = true;
         if (auction.highestBidder != address(0)) {
             // Transfer NFT from contract to highest bidder.
             _transfer(address(this), auction.highestBidder, tokenId);

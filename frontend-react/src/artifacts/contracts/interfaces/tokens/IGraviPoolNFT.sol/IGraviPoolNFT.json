@@ -113,7 +113,7 @@
         },
         {
           "internalType": "bool",
-          "name": "ended",
+          "name": "nftClaimed",
           "type": "bool"
         },
         {

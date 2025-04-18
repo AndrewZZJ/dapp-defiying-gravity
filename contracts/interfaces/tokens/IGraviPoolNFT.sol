@@ -103,14 +103,14 @@ interface IGraviPoolNFT {
      * @return auctionedTokenId The ID of the NFT
      * @return highestBidder The address of the current highest bidder
      * @return highestBid The amount of the current highest bid
-     * @return ended Whether the auction has been finalized
+     * @return nftClaimed Whether the nft has been claimed
      * @return startTime The timestamp when the auction started
      */
     function getAuctionDetails(uint256 tokenId) external returns (
         uint256 auctionedTokenId,
         address highestBidder,
         uint256 highestBid,
-        bool ended,
+        bool nftClaimed,
         uint256 startTime
     );
 

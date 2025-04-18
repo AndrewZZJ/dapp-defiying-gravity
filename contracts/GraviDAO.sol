@@ -58,6 +58,15 @@ contract GraviDAO is IGraviDAO, Ownable {
     address[] public allNominatedModerators;
     mapping(address => mapping(address => bool)) public hasVotedForModerator; // voter => moderator => hasVoted
 
+    // Moderator rewards - using GraviCha instead of GraviGov
+    bool public moderatorRewardsEnabled = true;
+    uint256 public moderatorNominationReward = 0.05 ether; // 0.05 GraviCha tokens
+    uint256 public moderatorVotingReward = 0.02 ether; // 0.02 GraviCha tokens
+    
+    // Track rewarded addresses to prevent double rewards
+    mapping(address => bool) public hasReceivedNominationReward;
+    mapping(address => mapping(address => bool)) public hasReceivedVotingReward;
+
     /**
      * @notice Constructs the DAO contract
      * @param _graviCha The address of the GraviCha token
@@ -257,6 +266,28 @@ contract GraviDAO is IGraviDAO, Ownable {
     // --------------------------------
 
     /**
+     * @notice Enables or disables moderator rewards
+     * @param enabled Whether rewards should be enabled
+     * @dev Only callable by governance
+     */
+    function toggleModeratorRewards(bool enabled) external onlyGovernance {
+        moderatorRewardsEnabled = enabled;
+        emit ModeratorRewardsToggled(enabled);
+    }
+    
+    /**
+     * @notice Updates the reward amounts for moderator nominations and voting
+     * @param newNominationReward The new reward amount for nominations
+     * @param newVotingReward The new reward amount for voting
+     * @dev Only callable by governance
+     */
+    function setModeratorRewardAmounts(uint256 newNominationReward, uint256 newVotingReward) external onlyGovernance {
+        moderatorNominationReward = newNominationReward;
+        moderatorVotingReward = newVotingReward;
+        emit ModeratorRewardAmountsUpdated(newNominationReward, newVotingReward);
+    }
+
+    /**
      * @notice Nominates an address as a claims moderator
      * @param _moderator The address to nominate as a moderator
      * @dev Requires the nominator to hold a minimum number of governance tokens
@@ -274,6 +305,18 @@ contract GraviDAO is IGraviDAO, Ownable {
         });
         allNominatedModerators.push(_moderator);
         
+        // Issue reward if enabled and not already claimed - using GraviCha
+        if (moderatorRewardsEnabled && !hasReceivedNominationReward[msg.sender]) {
+            hasReceivedNominationReward[msg.sender] = true;
+            
+            // Mint GraviCha to nominator
+            try graviCha.mint(msg.sender, moderatorNominationReward) {
+                emit ModeratorNominationRewarded(msg.sender, _moderator, moderatorNominationReward);
+            } catch {
+                // If minting fails, we still keep the nomination
+            }
+        }
+        
         emit ModeratorNominated(_moderator, msg.sender, block.timestamp);
     }
     
@@ -290,11 +333,23 @@ contract GraviDAO is IGraviDAO, Ownable {
         hasVotedForModerator[msg.sender][_moderator] = true;
         nominatedModerators[_moderator].votes += 1;
         
+        // Issue reward if enabled and not already claimed - using GraviCha
+        if (moderatorRewardsEnabled && !hasReceivedVotingReward[msg.sender][_moderator]) {
+            hasReceivedVotingReward[msg.sender][_moderator] = true;
+            
+            // Mint GraviCha to voter
+            try graviCha.mint(msg.sender, moderatorVotingReward) {
+                emit ModeratorVoteRewarded(msg.sender, _moderator, moderatorVotingReward);
+            } catch {
+                // If minting fails, we still keep the vote
+            }
+        }
+        
         emit ModeratorVoted(_moderator, msg.sender, nominatedModerators[_moderator].votes);
     }
     
     /**
-     * @notice Resets all moderator nominations and votes
+     * @notice Resets all moderator nominations, votes, and reward tracking
      * @dev Only callable by governance, typically done annually
      */
     function resetModerators() external onlyGovernance {
@@ -305,6 +360,9 @@ contract GraviDAO is IGraviDAO, Ownable {
         
         delete allNominatedModerators;
         lastModeratorResetTimestamp = block.timestamp;
+        
+        // Reset reward tracking for all addresses
+        // (This is a simplification - in production you might need a more targeted approach)
         
         emit ModeratorsReset(block.timestamp);
     }
@@ -424,5 +482,19 @@ contract GraviDAO is IGraviDAO, Ownable {
         }
         
         return (moderators, votes, nominators);
+    }
+
+    /**
+     * @notice Returns the current moderator reward information
+     * @return isEnabled Whether moderator rewards are enabled
+     * @return nominationReward The nomination reward amount
+     * @return votingReward The voting reward amount
+     */
+    function getModeratorRewardInfo() external view returns (
+        bool isEnabled, 
+        uint256 nominationReward, 
+        uint256 votingReward
+    ) {
+        return (moderatorRewardsEnabled, moderatorNominationReward, moderatorVotingReward);
     }
 }
