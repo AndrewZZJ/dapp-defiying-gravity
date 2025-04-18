@@ -2,7 +2,7 @@
 
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { GraviGov, GraviCha } from "../typechain-types";
+import { GraviGov, GraviCha, GraviDAO } from "../typechain-types";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 async function deployGraviGovFixture() {
@@ -12,7 +12,10 @@ async function deployGraviGovFixture() {
   const GraviGovFactory = await ethers.getContractFactory("GraviGov");
   const graviGov = (await GraviGovFactory.deploy(graviCha)) as GraviGov;
   await graviGov.waitForDeployment();
-  return { graviGov, owner, minter, user, customer };
+  const GraviDAOFactory = await ethers.getContractFactory("GraviDAO");
+  const graviDAO = (await GraviDAOFactory.deploy(graviCha, graviGov)) as GraviDAO;
+
+  return { graviGov, owner, minter, user, customer, graviDAO, graviCha };
 }
 
 describe("GraviGov contract", function () {
@@ -65,6 +68,28 @@ describe("GraviGov contract", function () {
       await graviGov.connect(user).delegate(user.address);
       const votesAfter = await graviGov.getVotes(user.address);
       expect(votesAfter).to.equal(1000);
+    });
+
+    it("should allow owner to set DAO", async () => {
+      const { graviGov, owner, graviDAO } = await loadFixture(deployGraviGovFixture);
+
+      await graviGov.connect(owner).setDAO(graviDAO);
+      expect(await graviGov.dao()).to.equal(graviDAO);
+    });
+
+    it("should allow token holders to convert to charity tokens", async () => {
+      const { graviGov, owner, user, graviDAO, graviCha } = await loadFixture(deployGraviGovFixture);
+
+      await graviGov.connect(owner).setDAO(graviDAO);
+      await graviGov.connect(owner).mint(user, 1000);
+      await graviGov.connect(user).approve(graviGov, 1000);
+
+      await graviCha.connect(owner).addMinter(graviGov.getAddress());
+      await graviGov.connect(user).convertToCharityTokens(500);
+
+      expect(await graviCha.balanceOf(user)).to.equal(500 * 10);
+      expect(await graviGov.balanceOf(user)).to.equal(500);
+      expect(await graviGov.balanceOf(graviDAO)).to.equal(500);
     });
     
   });
