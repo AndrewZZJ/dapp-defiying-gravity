@@ -19,9 +19,9 @@ async function main() {
   const graviChaAddress = await graviCha.getAddress();
   console.log("GraviCha deployed at:", graviChaAddress);
 
-  // Deploy GraviGov token (with GraviCha address).
+  // Deploy GraviGov token (without GraviCha address, per updated constructor).
   const GraviGov = await ethers.getContractFactory("GraviGov");
-  const graviGov = await GraviGov.deploy(graviChaAddress);
+  const graviGov = await GraviGov.deploy();
   await graviGov.waitForDeployment();
   const graviGovAddress = await graviGov.getAddress();
   console.log("GraviGov deployed at:", graviGovAddress);
@@ -76,10 +76,7 @@ async function main() {
   const graviDAOAddress = await graviDAO.getAddress();
   console.log("GraviDAO deployed at:", graviDAOAddress);
 
-  // Set the DAO in GraviGov to the GraviDAO address.
-  const setDaoTx = await graviGov.setDAO(graviDAOAddress);
-  await setDaoTx.wait();
-  console.log("GraviGov DAO set to:", graviDAOAddress);
+  // Note: Removed setDAO call as it's no longer in the GraviGov contract
 
   // Grant required roles in Timelock to GraviGovernance.
   const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
@@ -113,7 +110,7 @@ async function main() {
   await graviDAO.setNFTPool(graviPoolNFTAddress);
 
   // Start an initial mint to governance pool.
-  await graviDAO.monthlyMintGovTokens()
+  await graviDAO.monthlyMintGovTokens();
 
   // Print deployer's voting power.
   const currentBlock = await ethers.provider.getBlockNumber();

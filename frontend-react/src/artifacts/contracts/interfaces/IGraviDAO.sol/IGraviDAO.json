@@ -64,6 +64,88 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "moderator",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nominator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorNominated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "nominationThreshold",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "votingThreshold",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorThresholdsUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "moderator",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newTotalVotes",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorVoted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "ModeratorsReset",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": false,
           "internalType": "address",
           "name": "poolAddress",
@@ -142,6 +224,29 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getAllNominatedModerators",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "moderators",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "votes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "nominators",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "string",
@@ -160,6 +265,43 @@
           "internalType": "address",
           "name": "nftPoolAddress",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getNominatedModeratorCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "count",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_count",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTopModerators",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "moderators",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "votes",
+          "type": "uint256[]"
         }
       ],
       "stateMutability": "view",
@@ -221,7 +363,7 @@
       "inputs": [
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "index",
           "type": "uint256"
         }
       ],
@@ -240,7 +382,7 @@
       "inputs": [
         {
           "internalType": "string",
-          "name": "",
+          "name": "poolName",
           "type": "string"
         }
       ],
@@ -250,6 +392,35 @@
           "internalType": "contract IGraviInsurance",
           "name": "",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_moderator",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_topCount",
+          "type": "uint256"
+        }
+      ],
+      "name": "isTopModerator",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isATopModerator",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "rank",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -319,6 +490,19 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_moderator",
+          "type": "address"
+        }
+      ],
+      "name": "nominateModerator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
@@ -343,25 +527,14 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "newRate",
-          "type": "uint256"
-        }
-      ],
-      "name": "setCharityTokenExchangeRate",
+      "inputs": [],
+      "name": "resetModerators",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
       "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "newRate",
-          "type": "uint256"
-        },
         {
           "internalType": "uint256",
           "name": "newPrice",
@@ -379,6 +552,24 @@
         }
       ],
       "name": "setGovernanceTokenParameters",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_nominationThreshold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_votingThreshold",
+          "type": "uint256"
+        }
+      ],
+      "name": "setModeratorThresholds",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -433,6 +624,19 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_moderator",
+          "type": "address"
+        }
+      ],
+      "name": "voteForModerator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     }
   ],

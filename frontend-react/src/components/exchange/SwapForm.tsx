@@ -30,7 +30,7 @@ export const SwapForm: React.FC = () => {
   const { walletAddress, setWalletAddress } = useWallet();
   const [govAmount, setGovAmount] = useState("");
   const [burnAmount, setBurnAmount] = useState("");
-  const [mintAmount, setMintAmount] = useState("");
+  // const [mintAmount, setMintAmount] = useState("");
   const [exchangeRate, setExchangeRate] = useState({ eth: 0, graviCha: 0 });
   const [govPoolBalance, setGovPoolBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,8 +86,8 @@ export const SwapForm: React.FC = () => {
       const graviDAO = new ethers.Contract(daoAddr, GraviDAOABI.abi, provider);
       const graviGov = new ethers.Contract(govAddr, GraviGovABI.abi, provider);
 
-      const burnToMintAmount = await graviGov.getCharityTokenExchangeRate();
-      setMintAmount(burnToMintAmount);
+      // const burnToMintAmount = await graviGov.getCharityTokenExchangeRate();
+      // setMintAmount(burnToMintAmount);
 
       const poolBalance = await graviGov.balanceOf(daoAddr);
       setGovPoolBalance(parseFloat(ethers.utils.formatEther(poolBalance)));

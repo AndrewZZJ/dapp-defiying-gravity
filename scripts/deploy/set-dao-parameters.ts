@@ -5,7 +5,6 @@ import { loadDeploymentConfig } from "../utils/deploymentUtils";
 // Define the desired configuration parameters.
 const parameters = {
   governanceTokenParameters: {
-    newRate: 10,         // For a governance token, the rate of utility conversion when burned. E.g. 10 means 1 token = 10 utility tokens.
     newPrice: ethers.parseUnits("0.01", "ether"),  // Price in ether to buy a governance token.
     newBurnAmount: ethers.parseUnits("10", "ether"), // Amount of utility tokens to burn when a governance token is brought.
     mintAmount: ethers.parseUnits("10000", "ether"), // Amount of tokens to mint additionally, monthly
@@ -36,8 +35,8 @@ async function main() {
 
   // Set Governance Token Parameters.
   console.log("Setting governance token parameters...");
-  const { newRate, newPrice, newBurnAmount, mintAmount } = parameters.governanceTokenParameters;
-  const txGov = await graviDAO.setGovernanceTokenParameters(newRate, newPrice, newBurnAmount, mintAmount);
+  const { newPrice, newBurnAmount, mintAmount } = parameters.governanceTokenParameters;
+  const txGov = await graviDAO.setGovernanceTokenParameters(newPrice, newBurnAmount, mintAmount);
   await txGov.wait();
   console.log("Governance token parameters set. Transaction hash:", txGov.hash);
 

@@ -37,7 +37,6 @@ async function main() {
   ];
 
   // To hold deployed insurance data.
-  // const deployedInsurances: Record<string, { nftAddress: string; insuranceAddress: string }> = {};
   const deployedInsurances: Record<string, { insuranceAddress: string }> = {};
 
 
@@ -50,8 +49,6 @@ async function main() {
       insurance.disaster,
       insurance.premium,
       graviChaAddress,
-      // graviPoolNFTAddress,
-      // graviOracleAddress
     );
     await graviInsurance.waitForDeployment();
     const graviInsuranceAddress = await graviInsurance.getAddress();
@@ -124,10 +121,6 @@ async function main() {
       }
     }
 
-    // // Add an new treasury address to the GraviPoolNFT contract.
-    // await graviPoolNFT.addTreasuryAddress(graviInsuranceAddress);
-    // console.log(`${insurance.name} - NFT treasury added.`);
-
     // Transfer ownership of GraviInsurance to GraviDAO.
     await graviInsurance.transferOwnership(graviDAOAddress);
     console.log(`${insurance.name} - Ownership transferred to GraviDAO.`);
@@ -142,26 +135,8 @@ async function main() {
     };
   }
 
-  // // Add each insurance to the DAO after NFT ownership transfer.
-  // for (const insuranceName in deployedInsurances) {
-  //   const { insuranceAddress } = deployedInsurances[insuranceName];
-  //   await graviDAO.addInsurancePool(insuranceName, insuranceAddress);
-  //   console.log(`Added insurance: ${insuranceName} to DAO.`);
-  // }
-    
   // Write insurances metadata to scripts/metadata/insurances.json.
   writeMetadata("insurances.json", deployedInsurances);
-
-  // // Optionally update the global deployment config with insurance and NFT addresses separately.
-  // writeDeploymentConfig({
-  //     ...deploymentConfig,
-  //     ...Object.fromEntries(
-  //       Object.entries(deployedInsurances).flatMap(([name, addrs]) => [
-  //         [`${name.replace(/\s+/g, "")}`, addrs.insuranceAddress],
-  //         [`${name.replace(/\s+/g, "")}NFT`, addrs.nftAddress],
-  //       ])
-  //     ),
-  //   });
 
   // Optionally update the global deployment config with insurance addresses.
   writeDeploymentConfig({
@@ -173,9 +148,6 @@ async function main() {
       ])
     )
   });
-  // Update the global deployment config with both NFT and insurance addresses.
-
-
 }
 
 main().catch((error) => {

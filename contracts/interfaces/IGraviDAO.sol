@@ -103,6 +103,35 @@ interface IGraviDAO {
      */
     event GovTokensPurchased(address indexed buyer, uint256 amount);
 
+    /**
+     * @notice Emitted when a moderator is nominated
+     * @param moderator The address of the nominated moderator
+     * @param nominator The address that nominated the moderator
+     * @param timestamp The timestamp when the nomination occurred
+     */
+    event ModeratorNominated(address indexed moderator, address indexed nominator, uint256 timestamp);
+
+    /**
+     * @notice Emitted when a moderator receives a vote
+     * @param moderator The address of the moderator receiving the vote
+     * @param voter The address that voted for the moderator
+     * @param newTotalVotes The new total votes for the moderator
+     */
+    event ModeratorVoted(address indexed moderator, address indexed voter, uint256 newTotalVotes);
+
+    /**
+     * @notice Emitted when all moderators are reset
+     * @param timestamp The timestamp when the reset occurred
+     */
+    event ModeratorsReset(uint256 timestamp);
+
+    /**
+     * @notice Emitted when moderator thresholds are updated
+     * @param nominationThreshold The new threshold for nominating moderators
+     * @param votingThreshold The new threshold for voting for moderators
+     */
+    event ModeratorThresholdsUpdated(uint256 nominationThreshold, uint256 votingThreshold);
+
     // ---------------------------
     // Governance and Token Management Functions
     // ---------------------------
@@ -116,14 +145,12 @@ interface IGraviDAO {
 
     /**
      * @notice Sets governance token parameters including exchange rate, price, burn amount, and mint amount
-     * @param newRate The new charity token exchange rate
      * @param newPrice The new Ether price per governance token
      * @param newBurnAmount The new GraviCha burn amount per governance token purchase
      * @param mintAmount The monthly mint amount for governance tokens
      * @dev Callable by the owner or the timelock controller
      */
     function setGovernanceTokenParameters(
-        uint256 newRate,
         uint256 newPrice,
         uint256 newBurnAmount,
         uint256 mintAmount
@@ -141,13 +168,6 @@ interface IGraviDAO {
      * @dev Callable by the owner or the timelock controller
      */
     function setMonthlyGovMintAmount(uint256 newAmount) external;
-
-    /**
-     * @notice Sets the charity token exchange rate
-     * @param newRate The new exchange rate
-     * @dev Callable by the owner or the timelock controller
-     */
-    function setCharityTokenExchangeRate(uint256 newRate) external;
 
     /**
      * @notice Allows a user to purchase governance tokens
@@ -231,4 +251,67 @@ interface IGraviDAO {
         address payable recipient,
         uint256 amount
     ) external;
+
+    // ---------------------------
+    // Insurance Claims Moderator System
+    // ---------------------------
+
+    /**
+     * @notice Nominates an address as a claims moderator
+     * @param _moderator The address to nominate as a moderator
+     */
+    function nominateModerator(address _moderator) external;
+
+    /**
+     * @notice Allows governance token holders to vote for a nominated moderator
+     * @param _moderator The address of the nominated moderator to vote for
+     */
+    function voteForModerator(address _moderator) external;
+
+    /**
+     * @notice Resets all moderator nominations and votes
+     */
+    function resetModerators() external;
+
+    /**
+     * @notice Updates the thresholds for moderator nomination and voting
+     * @param _nominationThreshold New threshold for nominating a moderator
+     * @param _votingThreshold New threshold for voting for a moderator
+     */
+    function setModeratorThresholds(uint256 _nominationThreshold, uint256 _votingThreshold) external;
+
+    /**
+     * @notice Gets the top voted moderators
+     * @param _count The number of top moderators to return
+     * @return moderators Array of moderator addresses
+     * @return votes Array of vote counts corresponding to the moderators
+     */
+    function getTopModerators(uint256 _count) external view returns (address[] memory moderators, uint256[] memory votes);
+
+    /**
+     * @notice Checks if an address is among the top moderators
+     * @param _moderator The moderator address to check
+     * @param _topCount How many top moderators to consider
+     * @return isATopModerator True if the address is in the top moderators
+     * @return rank The rank of the moderator (0 if not in top)
+     */
+    function isTopModerator(address _moderator, uint256 _topCount) external view returns (bool isATopModerator, uint256 rank);
+
+    /**
+     * @notice Gets the total number of nominated moderators
+     * @return count The number of nominated moderators
+     */
+    function getNominatedModeratorCount() external view returns (uint256 count);
+
+    /**
+     * @notice Gets all nominated moderators with their votes
+     * @return moderators Array of moderator addresses
+     * @return votes Array of vote counts
+     * @return nominators Array of nominator addresses
+     */
+    function getAllNominatedModerators() external view returns (
+        address[] memory moderators, 
+        uint256[] memory votes,
+        address[] memory nominators
+    );
 }

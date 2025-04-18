@@ -34,6 +34,8 @@ interface Proposal {
   status: ProposalStatus;
   startDate: number;
   endDate: number;
+  snapshotBlock?: number;
+  userSnapshotVotingPower?: string;
   votes?: {
     forVotes: string;
     againstVotes: string;
@@ -89,6 +91,9 @@ export const ProposalsSection: React.FC = () => {
   const [showPopup, setShowPopup] = useState(false); // State for success popup
   const [popupTitle, setPopupTitle] = useState(""); // State for popup message
   const [popupMsg, setPopupMsg] = useState("");
+  const [votingPower, setVotingPower] = useState<string>("0");
+  const [govTokenBalance, setGovTokenBalance] = useState<string>("0");
+  const [delegatedAddress, setDelegatedAddress] = useState<string>("");
   
   // Function to connect wallet
   const connectWallet = async () => {
@@ -133,6 +138,8 @@ export const ProposalsSection: React.FC = () => {
     if (governanceAddress && walletAddress) {
       fetchProposals();
       checkDelegation();
+      fetchVotingPower(); // Add this call
+      fetchGovTokenBalance(); // Add this call
     } else if (useMockData) {
       fetchProposals(); // allow preview without wallet
     }
@@ -275,6 +282,18 @@ export const ProposalsSection: React.FC = () => {
     }
   };
 
+  // New function to get voting power at a specific block
+  const getVotingPowerAtBlock = async (address: string, blockNumber: number): Promise<string> => {
+    try {
+      const contract = getGraviGovContract();
+      const votingPower = await contract.getPastVotes(address, blockNumber);
+      return ethers.utils.formatEther(votingPower);
+    } catch (err) {
+      console.error(`Failed to get voting power at block ${blockNumber}:`, err);
+      return "0";
+    }
+  };
+
   // This function fetches proposals in real time using on-chain data.
   const fetchProposals = async () => {
     setLoading(true);
@@ -299,6 +318,12 @@ export const ProposalsSection: React.FC = () => {
           const state = await contract.state(id);
           const snapshot = Number(await contract.proposalSnapshot(id));
           const deadline = Number(await contract.proposalDeadline(id));
+
+          // Get user's voting power at the snapshot block if wallet is connected
+          let userSnapshotVotingPower = "0";
+          if (walletAddress) {
+            userSnapshotVotingPower = await getVotingPowerAtBlock(walletAddress, snapshot);
+          }
 
           // Fetch the latest block to get the current block number and timestamp
           const latestBlock = await contract.provider.getBlock("latest");
@@ -351,6 +376,8 @@ export const ProposalsSection: React.FC = () => {
             status,
             startDate: snapshotDate,
             endDate: deadlineDate,
+            snapshotBlock: snapshot,
+            userSnapshotVotingPower,
           };
         })
       );
@@ -392,6 +419,8 @@ const handleDelegate = async () => {
 
     setDelegateInput("");
     checkDelegation();
+    fetchVotingPower(); // Add this call to refresh voting power
+    fetchGovTokenBalance(); // Add this call
   } catch (err) {
     console.error("Delegation failed:", err);
     setPopupTitle("Delegation failed.");
@@ -400,279 +429,105 @@ const handleDelegate = async () => {
   }
 };
 
-const openVoteModal = (proposalId: number) => {
+const openVoteModal = (proposalId: number, snapshotVotingPower: string) => {
   if (!hasDelegated) {
-    alert("You must delegate your voting power before voting.");
+    setPopupTitle("Delegation Required");
+    setPopupMsg("You must delegate your voting power before voting.");
+    setShowPopup(true);
     return;
   }
+  
+  const votingPowerAtSnapshot = parseFloat(snapshotVotingPower);
+  if (votingPowerAtSnapshot <= 0) {
+    setPopupTitle("No Voting Power at Snapshot");
+    setPopupMsg("You had no voting power when this proposal was created. Governance voting uses your voting power at the proposal's snapshot block, not your current voting power.");
+    setShowPopup(true);
+    return;
+  }
+  
   setSelectedProposalId(proposalId);
   setModalOpen(true);
 };
 
-  const submitVote = async (proposalId: number, approve: boolean) => {
-    try {
-      if (useMockData) {
-        setPopupTitle(`(Mock) Voted ${approve ? "Approve" : "Decline"} on Proposal #${proposalId}`);
-        setPopupMsg("This is a mock vote. No on-chain action taken.");
-        setShowPopup(true);
-        setModalOpen(false);
-        return;
-      }
-  
-      const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer); // ✅ use governanceAddress + correct ABI
-
-      // // Log all the current votes for the proposal
-      // const votes = await getProposalVotes(proposalId);
-      // console.log("Proposal Votes:");
-      // console.log(`- Against: ${votes.againstVotes} voting power`);
-      // console.log(`- For: ${votes.forVotes} voting power`);
-      // console.log(`- Abstain: ${votes.abstainVotes} voting power`);
-
-      // // Get the user's vote status
-      // const userVote = await getAddressVote(proposalId, walletAddress || "");
-      // console.log(`Your vote: ${userVote}`);
-
-      // Convert approve to 1 or 0
-      const voteValue = approve ? 1 : 0;
-      const tx = await contract.castVote(proposalId, voteValue); // ✅ updated to castVote
-      await tx.wait();
-
-      // Show success popup
-      setPopupTitle(`Voted ${approve ? "Approve" : "Decline"}`);
-      setPopupMsg(`Your vote has been successfully submitted  on Proposal #${proposalId}`);
+const submitVote = async (proposalId: number, support: number) => {
+  try {
+    if (useMockData) {
+      const voteType = support === 0 ? "Decline" : support === 1 ? "Approve" : "Abstain";
+      setPopupTitle(`(Mock) Voted ${voteType} on Proposal #${proposalId}`);
+      setPopupMsg("This is a mock vote. No on-chain action taken.");
       setShowPopup(true);
-  
       setModalOpen(false);
-
-      // Refrsh proposals to reflect the new vote
-      fetchProposals();
-    } catch (err) {
-      console.error("Vote failed:", err);
-      setPopupTitle(`Vote failed.`);
-      setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
-      setShowPopup(true);
+      return;
     }
-  }; 
 
-// return (
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(governanceAddress, GraviGovernanceABI.abi, signer);
 
-//   <main className="relative px-8 py-12 bg-white min-h-screen">
-//   {/* <main className="relative px-0 py-3.5 bg-[color:var(--sds-color-background-default-secondary)] min-h-[782px]"> */}
-//     {/* <h1 className="mb-10 text-6xl font-bold text-center text-neutral-950 max-md:text-4xl"> */}
-//     <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
-//       Current Proposals
-//     </h1>
+    // Cast vote with the appropriate support value (0=Against, 1=For, 2=Abstain)
+    const tx = await contract.castVote(proposalId, support);
+    await tx.wait();
 
-//     {/* Success Popup */}
-//     {showPopup && (
-//       <div className="fixed inset-0 z-50 flex items-center justify-center">
-//           <div className="absolute inset-0 bg-black opacity-50"></div>
-//           <div
-//           className="relative bg-white text-black p-10 rounded-2xl shadow-2xl z-50"
-//           style={{ width: "600px", height: "300px" }}
-//           >
-//           <div className="flex flex-col items-center justify-center h-full space-y-4">
-//               <p className="text-3xl font-bold text-center">{popupTitle}</p>
-//               <pre className="text-sm text-center break-all whitespace-pre-wrap">
-//                 {popupMsg}
-//               </pre>
-//               <button
-//               onClick={() => setShowPopup(false)}
-//               className="mt-6 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-//               >
-//               OK
-//               </button>
-//           </div>
-//           </div>
-//       </div>
-//     )}
+    // Show success popup
+    const voteType = support === 0 ? "Decline" : support === 1 ? "Approve" : "Abstain";
+    setPopupTitle(`Voted ${voteType}`);
+    setPopupMsg(`Your vote has been successfully submitted on Proposal #${proposalId}`);
+    setShowPopup(true);
 
-//     {walletAddress ? (
-//       <>
-//         {/* Delegation Controls */}
-//         <div className="flex flex-col items-center mb-10">
-//           <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
-//           <div className="flex flex-col sm:flex-row gap-2">
-//             <input
-//               type="text"
-//               value={delegateInput}
-//               onChange={(e) => setDelegateInput(e.target.value)}
-//               placeholder="Enter delegate wallet address"
-//               className="p-2 border border-gray-300 rounded w-72"
-//             />
-//             <button
-//               onClick={handleDelegate}
-//               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-//             >
-//               Submit Delegation
-//             </button>
-//           </div>
-//         </div>
+    setModalOpen(false);
+
+    // Refresh proposals to reflect the new vote
+    fetchProposals();
+  } catch (err) {
+    console.error("Vote failed:", err);
+    setPopupTitle(`Vote failed.`);
+    setPopupMsg("Error: " + ((err as any)?.reason || (err as any)?.message));
+    setShowPopup(true);
+  }
+};
+
+const fetchVotingPower = async () => {
+  if (!walletAddress || !graviGovAddress) return;
+  
+  try {
+    const contract = getGraviGovContract();
+    const votes = await contract.getVotes(walletAddress);
+    setVotingPower(ethers.utils.formatEther(votes));
+  } catch (err) {
+    console.error("Failed to fetch voting power:", err);
+  }
+};
+
+// Add function to fetch the governance token balance
+const fetchGovTokenBalance = async () => {
+  if (!walletAddress || !graviGovAddress) return;
+  
+  try {
+    const contract = getGraviGovContract();
+    const balance = await contract.balanceOf(walletAddress);
+    setGovTokenBalance(ethers.utils.formatEther(balance));
     
-//         <section className="flex flex-col gap-4 p-8 mx-auto max-w-screen-sm">
-//           {loading ? (
-//             <p className="text-center text-lg font-medium">Loading proposals...</p>
-//           ) : proposals.length > 0 ? (
-//             proposals.map((proposal) => {
-//               const now = Date.now();
-//               const isInProgress = proposal.status === "In Progress";
-//               const beforeEnd = now < proposal.endDate * 1000;
-//               const canVote = isInProgress && beforeEnd && hasDelegated;
-    
-//               return (
-//                 <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
-//                   <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
-//                     <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
-//                     <p className="text-sm text-gray-600">
-//                       Start: {new Date(proposal.startDate * 1000).toLocaleString()}
-//                     </p>
-//                     <p className="text-sm text-gray-600">
-//                       End: {new Date(proposal.endDate * 1000).toLocaleString()}
-//                     </p>
-                  
-//                   {/* Vote counts display */}
-//                   {proposal.votes && (
-//                     <div className="mt-3 p-3 bg-gray-50 rounded-md">
-//                       <h4 className="font-semibold text-sm mb-2">Current Votes</h4>
-//                       <div className="flex flex-col gap-1">
-//                         <div className="flex justify-between">
-//                           <span className="text-sm text-green-700">For:</span>
-//                           <span className="text-sm font-medium">{proposal.votes.forVotes} votes</span>
-//                         </div>
-//                         <div className="flex justify-between">
-//                           <span className="text-sm text-red-700">Against:</span>
-//                           <span className="text-sm font-medium">{proposal.votes.againstVotes} votes</span>
-//                         </div>
-//                         <div className="flex justify-between">
-//                           <span className="text-sm text-gray-500">Abstain:</span>
-//                           <span className="text-sm font-medium">{proposal.votes.abstainVotes} votes</span>
-//                         </div>
-                        
-//                         {/* Total votes and progress bar */}
-//                         {(() => {
-//                           const totalVotes = parseFloat(proposal.votes.forVotes) + 
-//                                            parseFloat(proposal.votes.againstVotes) + 
-//                                            parseFloat(proposal.votes.abstainVotes);
-//                           const forPercentage = totalVotes > 0 ? 
-//                             (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
-//                           const againstPercentage = totalVotes > 0 ? 
-//                             (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
-//                           const abstainPercentage = totalVotes > 0 ? 
-//                             (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
-                            
-//                           return (
-//                             <>
-//                               <div className="mt-2 text-sm text-gray-700">
-//                                 Total: {totalVotes.toFixed(2)} votes
-//                               </div>
-//                               <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
-//                                 <div className="h-full bg-green-500" style={{width: `${forPercentage}%`, float: 'left'}}></div>
-//                                 <div className="h-full bg-red-500" style={{width: `${againstPercentage}%`, float: 'left'}}></div>
-//                                 <div className="h-full bg-gray-400" style={{width: `${abstainPercentage}%`, float: 'left'}}></div>
-//                               </div>
-//                             </>
-//                           );
-//                         })()}
-//                       </div>
-//                     </div>
-//                   )}
-                  
-//                   {/* User vote status */}
-//                   {proposal.userVote && (
-//                     <div className="mt-2 text-sm">
-//                       Your Voting Status: <span className={`font-medium ${
-//                         proposal.userVote === "For" ? "text-green-600" : 
-//                         proposal.userVote === "Against" ? "text-red-600" :
-//                         proposal.userVote === "Abstain" ? "text-gray-500" : ""
-//                       }`}>
-//                         {proposal.userVote}
-//                       </span>
-//                     </div>
-//                   )}
-    
-//                     <button
-//                       onClick={() => openVoteModal(proposal.id)}
-//                       disabled={!canVote || proposal.userVote !== "Has not voted"}
-//                       className={`mt-3 px-4 py-2 rounded text-white ${
-//                         canVote && proposal.userVote === "Has not voted" 
-//                         ? "bg-green-600 hover:bg-green-700" 
-//                         : "bg-gray-400 cursor-not-allowed"
-//                       }`}
-//                     >
-//                       {proposal.userVote !== "Has not voted" ? "Already Voted" : "Vote"}
-//                     </button>
-//                   </ProposalItem>
-//                 </div>
-//               );
-//             })
-//           ) : (
-//             <p className="text-center text-lg font-medium">No proposals found. Please check back later.</p>
-//           )}
-//         </section>
-//       </>
-//     ) : (
-//       // When wallet is not connected, show login card
-//       <div className="flex justify-center items-center pt-8">
-//         <article className="flex gap-6 items-start p-6 bg-white rounded-lg border border w-[588px] max-sm:w-full">
-//           <LoginIcon />
-//           <div className="flex flex-col flex-1 gap-4 items-start">
-//             <div className="flex flex-col gap-2 items-start w-full">
-//               <h2 className="w-full text-2xl font-bold tracking-tight leading-7 text-center text-stone-900">
-//                 Crowd-sourced Insurance
-//               </h2>
-//               <p className="w-full text-base leading-6 text-center text-neutral-500">
-//                 Please connect your wallet to continue.
-//               </p>
-//             </div>
-//             <div className="flex gap-4 items-center w-full">
-//               <button
-//                 onClick={connectWallet}
-//                 className="flex-1 gap-2 p-3 text-base leading-4 bg-gray-50 rounded-lg border border text-stone-900"
-//               >
-//                 Connect your wallet
-//               </button>
-//             </div>
-//           </div>
-//         </article>
-//       </div>
-//     )}
+    // Also fetch the address they delegated to
+    const delegatee = await contract.delegates(walletAddress);
+    setDelegatedAddress(delegatee);
+  } catch (err) {
+    console.error("Failed to fetch governance token balance:", err);
+  }
+};
 
-//     {/* Vote Modal */}
-//     {modalOpen && selectedProposalId !== null && (
-//       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-//         <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-//           <h2 className="text-xl font-semibold mb-4 text-gray-800">
-//             Vote on Proposal 
-//           </h2>
-//           <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
+// Function to check if delegated to self
+const isDelegatedToSelf = () => {
+  return delegatedAddress.toLowerCase() === walletAddress?.toLowerCase();
+};
 
-//           <div className="flex justify-end gap-4">
-//             <button
-//               onClick={() => submitVote(selectedProposalId, true)}
-//               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-//             >
-//               Approve
-//             </button>
-//             <button
-//               onClick={() => submitVote(selectedProposalId, false)}
-//               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-//             >
-//               Decline
-//             </button>
-//             <button
-//               onClick={() => setModalOpen(false)}
-//               className="text-gray-500 hover:underline"
-//             >
-//               Cancel
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     )}
-//   </main>
-// );
+// Function to format address for display
+const formatAddress = (address: string) => {
+  if (!address || address.toLowerCase() === "0x0000000000000000000000000000000000000000") {
+    return "N/A";
+  }
+  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+};
+
 return (
   <main className="relative px-8 py-12 bg-white min-h-[100dvh]">
     <h1 className="relative text-5xl font-bold tracking-tight text-center text-gray-800 mb-8">
@@ -701,7 +556,7 @@ return (
     {walletAddress ? (
       <>
         {/* Delegation Controls */}
-        <div className="flex flex-col items-center mb-10">
+        <div className="flex flex-col items-center mb-6">
           <label className="mb-2 font-medium text-lg text-black">Delegate Voting Power:</label>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
@@ -720,12 +575,43 @@ return (
           </div>
         </div>
 
+        {/* Token Info and Voting Power Display */}
+        <div className="flex justify-center mb-6 gap-4">
+          {/* Governance Token Info */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center w-72">
+            <h3 className="text-lg font-medium text-gray-700 mb-1">Your Governance Tokens</h3>
+            <p className="text-2xl font-bold text-blue-600">
+              {parseFloat(govTokenBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+            </p>
+            <div className="mt-2 text-sm">
+              {delegatedAddress ? (
+                isDelegatedToSelf() ? (
+                  <span className="text-green-600">✓ Self-delegated</span>
+                ) : (
+                  <span className="text-amber-600">
+                    Delegated to: {formatAddress(delegatedAddress)}
+                  </span>
+                )
+              ) : (
+                <span className="text-red-500">Not delegated</span>
+              )}
+            </div>
+          </div>
+
+          {/* Current Voting Power Display */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center w-72">
+            <h3 className="text-lg font-medium text-gray-700 mb-1">Your Current Voting Power</h3>
+            <p className="text-2xl font-bold text-blue-600">{parseFloat(votingPower).toLocaleString(undefined, { maximumFractionDigits: 4 })}</p>
+            {parseFloat(votingPower) <= 0 && (
+              <p className="text-sm text-red-500 mt-1">
+                You need voting power to participate in governance
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Proposal Section */}
-        <section
-        className={`flex flex-col items-center justify-center ${
-          loading || proposals.length > 0 ? "gap-4 p-8" : "p-0 h-0"
-        } mx-auto max-w-screen-sm`}
-      >
+        <section className="flex flex-col items-center w-full mx-auto" style={{ maxWidth: "600px" }}>
           {loading && (
             <p className="text-center text-lg font-medium">Loading proposals...</p>
           )}
@@ -736,92 +622,122 @@ return (
             </p>
           )}
 
-          {!loading && proposals.length > 0 && proposals.map((proposal) => {
-            const now = Date.now();
-            const isInProgress = proposal.status === "In Progress";
-            const beforeEnd = now < proposal.endDate * 1000;
-            const canVote = isInProgress && beforeEnd && hasDelegated;
+          {!loading && proposals.length > 0 && (
+            <div className="w-full space-y-4">
+              {proposals.map((proposal) => {
+                const isInProgress = proposal.status === "In Progress";
+                const hasEnded = !isInProgress; // Simply check if not in progress
+                const hasSnapshotVotingPower = parseFloat(proposal.userSnapshotVotingPower || "0") > 0;
+                const canVote = isInProgress && hasSnapshotVotingPower;
 
-            return (
-              <div key={proposal.id} className="border p-4 rounded-md shadow bg-white">
-                <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
-                  <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
-                  <p className="text-sm text-gray-600">
-                    Start: {new Date(proposal.startDate * 1000).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    End: {new Date(proposal.endDate * 1000).toLocaleString()}
-                  </p>
+                return (
+                  <div key={proposal.id} className="w-full border p-4 rounded-md shadow bg-white">
+                    <ProposalItem title={proposal.title} description={proposal.description} status={proposal.status}>
+                      <p className="text-sm text-gray-600">Proposal ID: {proposal.id}</p>
+                      <p className="text-sm text-gray-600">
+                        Start: {new Date(proposal.startDate * 1000).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        End: {new Date(proposal.endDate * 1000).toLocaleString()}
+                      </p>
+                      
+                      {/* Snapshot block and voting power display */}
+                      <p className="text-sm text-gray-600 mt-2">
+                        Start/Snapshot Block: #{proposal.snapshotBlock}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Your Voting Power at Snapshot: 
+                        <span className={`font-medium ml-1 ${
+                          hasSnapshotVotingPower ? "text-blue-600" : "text-red-500"
+                        }`}>
+                          {parseFloat(proposal.userSnapshotVotingPower || "0").toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                        </span>
+                        {!hasSnapshotVotingPower && !hasEnded && (
+                          <span className="block text-xs text-red-500 mt-1">
+                            You cannot vote on this proposal due to insufficient voting power at the snapshot block.
+                          </span>
+                        )}
+                      </p>
 
-                  {proposal.votes && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                      <h4 className="font-semibold text-sm mb-2">Current Votes</h4>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-green-700">For:</span>
-                          <span className="text-sm font-medium">{proposal.votes.forVotes} votes</span>
+                      {proposal.votes && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                          <h4 className="font-semibold text-sm mb-2">Current Votes</h4>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-green-700">For:</span>
+                              <span className="text-sm font-medium">{proposal.votes.forVotes} votes</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-red-700">Against:</span>
+                              <span className="text-sm font-medium">{proposal.votes.againstVotes} votes</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-500">Abstain:</span>
+                              <span className="text-sm font-medium">{proposal.votes.abstainVotes} votes</span>
+                            </div>
+                            {(() => {
+                              const totalVotes =
+                                parseFloat(proposal.votes.forVotes) +
+                                parseFloat(proposal.votes.againstVotes) +
+                                parseFloat(proposal.votes.abstainVotes);
+                              const forPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
+                              const againstPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
+                              const abstainPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
+
+                              return (
+                                <>
+                                  <div className="mt-2 text-sm text-gray-700">
+                                    Total: {totalVotes.toFixed(2)} votes
+                                  </div>
+                                  <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                                    <div className="h-full bg-green-500" style={{ width: `${forPercentage}%`, float: 'left' }}></div>
+                                    <div className="h-full bg-red-500" style={{ width: `${againstPercentage}%`, float: 'left' }}></div>
+                                    <div className="h-full bg-gray-400" style={{ width: `${abstainPercentage}%`, float: 'left' }}></div>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-red-700">Against:</span>
-                          <span className="text-sm font-medium">{proposal.votes.againstVotes} votes</span>
+                      )}
+
+                      {proposal.userVote && (
+                        <div className="mt-2 text-sm">
+                          Your Voting Status: <span className={`font-medium ${
+                            proposal.userVote === "For" ? "text-green-600" :
+                            proposal.userVote === "Against" ? "text-red-600" :
+                            proposal.userVote === "Abstain" ? "text-gray-500" : ""
+                          }`}>
+                            {proposal.userVote}
+                          </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Abstain:</span>
-                          <span className="text-sm font-medium">{proposal.votes.abstainVotes} votes</span>
-                        </div>
-                        {(() => {
-                          const totalVotes =
-                            parseFloat(proposal.votes.forVotes) +
-                            parseFloat(proposal.votes.againstVotes) +
-                            parseFloat(proposal.votes.abstainVotes);
-                          const forPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.forVotes) / totalVotes) * 100 : 0;
-                          const againstPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.againstVotes) / totalVotes) * 100 : 0;
-                          const abstainPercentage = totalVotes > 0 ? (parseFloat(proposal.votes.abstainVotes) / totalVotes) * 100 : 0;
+                      )}
 
-                          return (
-                            <>
-                              <div className="mt-2 text-sm text-gray-700">
-                                Total: {totalVotes.toFixed(2)} votes
-                              </div>
-                              <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
-                                <div className="h-full bg-green-500" style={{ width: `${forPercentage}%`, float: 'left' }}></div>
-                                <div className="h-full bg-red-500" style={{ width: `${againstPercentage}%`, float: 'left' }}></div>
-                                <div className="h-full bg-gray-400" style={{ width: `${abstainPercentage}%`, float: 'left' }}></div>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {proposal.userVote && (
-                    <div className="mt-2 text-sm">
-                      Your Voting Status: <span className={`font-medium ${
-                        proposal.userVote === "For" ? "text-green-600" :
-                        proposal.userVote === "Against" ? "text-red-600" :
-                        proposal.userVote === "Abstain" ? "text-gray-500" : ""
-                      }`}>
-                        {proposal.userVote}
-                      </span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => openVoteModal(proposal.id)}
-                    disabled={!canVote || proposal.userVote !== "Has not voted"}
-                    className={`mt-3 px-4 py-2 rounded text-white ${
-                      canVote && proposal.userVote === "Has not voted"
-                        ? "bg-green-600 hover:bg-green-700"
-                        : "bg-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {proposal.userVote !== "Has not voted" ? "Already Voted" : "Vote"}
-                  </button>
-                </ProposalItem>
-              </div>
-            );
-          })}
+                      <button
+                        onClick={() => openVoteModal(proposal.id, proposal.userSnapshotVotingPower || "0")}
+                        disabled={hasEnded || !canVote || proposal.userVote !== "Has not voted"}
+                        className={`mt-3 px-4 py-2 rounded text-white ${
+                          canVote && proposal.userVote === "Has not voted" && !hasEnded
+                            ? "bg-green-600 hover:bg-green-700"
+                            : "bg-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {hasEnded 
+                          ? "Voting Period Ended" 
+                          : proposal.userVote !== "Has not voted" 
+                            ? "Already Voted" 
+                            : !hasDelegated 
+                              ? "Delegate First" 
+                              : !hasSnapshotVotingPower 
+                                ? "No Snapshot Power" 
+                                : "Vote"}
+                      </button>
+                    </ProposalItem>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </>
     ) : (
@@ -855,19 +771,25 @@ return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">Vote on Proposal</h2>
-          <p className="text-gray-600 mb-6">Would you like to approve or decline this proposal?</p>
-          <div className="flex justify-end gap-4">
+          <p className="text-gray-600 mb-6">How would you like to vote on this proposal?</p>
+          <div className="flex justify-end gap-3">
             <button
-              onClick={() => submitVote(selectedProposalId, true)}
+              onClick={() => submitVote(selectedProposalId, 1)}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
               Approve
             </button>
             <button
-              onClick={() => submitVote(selectedProposalId, false)}
+              onClick={() => submitVote(selectedProposalId, 0)}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
               Decline
+            </button>
+            <button
+              onClick={() => submitVote(selectedProposalId, 2)}
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            >
+              Abstain
             </button>
             <button
               onClick={() => setModalOpen(false)}
