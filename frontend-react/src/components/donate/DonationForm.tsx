@@ -95,6 +95,9 @@ export const DonationForm: React.FC = () => {
 
         // Default to showing Wildfire leaderboard
         await fetchDonors(wildfire);
+        
+        // Set default selected pool to Wildfire
+        setSelectedPool("Wildfire");
       } catch (err) {
         console.error("Failed to load addresses or donors:", err);
       }
@@ -104,6 +107,24 @@ export const DonationForm: React.FC = () => {
       fetchAddressesAndDonors();
     }
   }, [walletAddress]);
+
+  // Add useEffect to update donors when selectedPool changes
+  useEffect(() => {
+    if (!selectedPool || !window.ethereum) return;
+    
+    let poolAddress = "";
+    if (selectedPool === "Wildfire") {
+      poolAddress = fireAddress;
+    } else if (selectedPool === "Flood") {
+      poolAddress = floodAddress;
+    } else if (selectedPool === "Earthquake") {
+      poolAddress = earthquakeAddress;
+    }
+    
+    if (poolAddress) {
+      fetchDonors(poolAddress);
+    }
+  }, [selectedPool, fireAddress, floodAddress, earthquakeAddress]);
 
   const fetchDonors = async (poolAddress: string) => {
     if (!poolAddress || !window.ethereum) return;
@@ -417,7 +438,7 @@ export const DonationForm: React.FC = () => {
           <section className="bg-white rounded-lg shadow-md overflow-hidden h-full min-h-[400px]">
             <div className="p-6">
               <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">
-                Donor Leaderboard
+                {selectedPool ? `${selectedPool} Donor Leaderboard` : "Donor Leaderboard"}
               </h2>
               
               {donors.length === 0 ? (

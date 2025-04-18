@@ -440,7 +440,7 @@ export default function NFTMarketplace() {
           </div>
         )}
       </section>
-      {walletAddress && <DonorLeaderboard />}
+      {walletAddress && <DonorLeaderboard pastBids={pastBids} useMockData={false} />}
     </main>
     </>
   );
