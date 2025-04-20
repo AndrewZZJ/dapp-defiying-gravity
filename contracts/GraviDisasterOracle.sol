@@ -5,48 +5,38 @@ import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
 
 /**
  * @title GraviDisasterOracle
- * @notice A simple implementation of a disaster oracle for validating insurance claims
- * @dev This is a trivial oracle for demo purposes that validates if all required information is present
+ * @notice A simplified oracle that verifies disaster type against a whitelist
  */
 contract GraviDisasterOracle is IGraviDisasterOracle {
     /**
-     * @notice Event emitted after a claim validation is performed
-     * @param incidentDescription Description of the incident
-     * @param disasterType Type of disaster that occurred
-     * @param evidence Evidence supporting the claim
-     * @param isValid Whether the claim is valid
+     * @notice Event emitted after a disaster type is validated
+     * @param disasterType The submitted disaster type
+     * @param isValid Whether the type is whitelisted
      */
-    event ClaimValidated(
-        string incidentDescription,
-        string disasterType,
-        string evidence,
-        bool isValid
-    );
+    event DisasterTypeValidated(string disasterType, bool isValid);
 
     /**
-     * @notice Validates a claim based on provided information
-     * @param incidentDescription Description of the incident
-     * @param disasterType Type of disaster that occurred
-     * @param evidence Evidence supporting the claim
-     * @return valid True if the claim is valid, false otherwise
-     * @dev A claim is valid if all three input parameters have content
+     * @notice Validates the disaster type against a fixed whitelist
+     * @param disasterType Type of disaster (e.g., "FIRE", "FLOOD", "EARTHQUAKE")
+     * @return valid True if the disaster type is allowed
      */
     function validateClaim(
-        string memory incidentDescription,
-        string memory disasterType,
-        string memory evidence
-    ) external returns (bool) {
-        bool valid;
-        if (
-            bytes(incidentDescription).length == 0 ||
-            bytes(disasterType).length == 0 ||
-            bytes(evidence).length == 0
-        ) {
-            valid = false;
-        } else {
-            valid = true;
-        }
-        emit ClaimValidated(incidentDescription, disasterType, evidence, valid);
+        string memory disasterType
+    ) external returns (bool valid) {
+        valid = _isWhitelistedDisasterType(disasterType);
+        emit DisasterTypeValidated(disasterType, valid);
         return valid;
+    }
+
+    /**
+     * @dev Internal helper to check if the disaster type is whitelisted
+     */
+    function _isWhitelistedDisasterType(string memory disasterType) internal pure returns (bool) {
+        bytes32 disasterHash = keccak256(abi.encodePacked(disasterType));
+        return (
+            disasterHash == keccak256("FIRE") ||
+            disasterHash == keccak256("FLOOD") ||
+            disasterHash == keccak256("EARTHQUAKE")
+        );
     }
 }

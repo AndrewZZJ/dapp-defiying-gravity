@@ -121,6 +121,14 @@ async function main() {
   const votingPower = await graviGovernance.getVotes(deployerAddress, currentBlock - 1);
   console.log("Voting power of deployer:", votingPower.toString());
 
+  // Deploy GraviDisasterOracle (GraviOracle)
+  const GraviOracle = await ethers.getContractFactory("GraviDisasterOracle");
+  const graviOracle = await GraviOracle.deploy();
+  await graviOracle.waitForDeployment();
+  const graviOracleAddress = await graviOracle.getAddress();
+  console.log("GraviDisasterOracle deployed at:", graviOracleAddress);
+
+
   // Save core deployments.
   writeDeploymentConfig({
     GraviCha: graviChaAddress,
@@ -129,6 +137,7 @@ async function main() {
     GraviDAO: graviDAOAddress,
     GraviGovernance: graviGovernanceAddress,
     GraviPoolNFT: graviPoolNFTAddress,
+    GraviDisasterOracle: graviOracleAddress,
   });
 }
 

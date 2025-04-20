@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGraviCha} from "./interfaces/tokens/IGraviCha.sol";
 // import {IGraviPoolNFT} from "./interfaces/tokens/IGraviPoolNFT.sol";
 import {IGraviInsurance} from "./interfaces/IGraviInsurance.sol";
-//import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
+import {IGraviDisasterOracle} from "./interfaces/IGraviDisasterOracle.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
@@ -142,7 +142,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
     IGraviCha public graviCha;
     // IGraviPoolNFT public graviPoolNFT;
-    //IGraviDisasterOracle public disasterOracle;
+    IGraviDisasterOracle public disasterOracle;
 
     // Storage for policies, keyed by policyId
     mapping(bytes32 => Policy) public policies;
@@ -203,20 +203,22 @@ contract GraviInsurance is IGraviInsurance, Ownable {
      * @param _disasterType The type of disaster covered by this insurance
      * @param _premiumRate The rate used to calculate insurance premiums
      * @param _graviCha The address of the GraviCha token contract
+     * @param _oracleAddress The address of the GraviOracle
      */
     constructor(
         string memory _disasterType,
         uint256 _premiumRate,
-        address _graviCha
-    )
+        address _graviCha,
+        address _oracleAddress
         // address _graviPoolNFT
-        //address _oracleAddress
+    )
         Ownable(msg.sender)
     {
         require(_premiumRate > 0, "Invalid premium rate");
         disasterType = _disasterType;
         premiumRate = _premiumRate;
         graviCha = IGraviCha(_graviCha);
+        disasterOracle = IGraviDisasterOracle(_oracleAddress);
     }
 
     // ========================================
@@ -561,6 +563,9 @@ contract GraviInsurance is IGraviInsurance, Ownable {
 
         uint256 totalModerators = claim.moderatorTeam.length;
         require(totalModerators >= 3, "Not enough moderators have assessed this claim");
+
+        // Use mocked Oracle for disaster event verification
+        require(disasterOracle.validateClaim(disasterType), "Disaster event not valid");
 
         uint256 approvals = 0;
         uint256 totalApprovedAmount = 0;

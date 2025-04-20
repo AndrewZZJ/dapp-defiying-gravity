@@ -14,8 +14,8 @@ async function main() {
   const deploymentConfig = loadDeploymentConfig();
   const graviChaAddress = deploymentConfig["GraviCha"];
   const graviDAOAddress = deploymentConfig["GraviDAO"];
-  //const graviOracleAddress = deploymentConfig["GraviDisasterOracle"];
-  if (!graviChaAddress || !graviDAOAddress) {
+  const graviOracleAddress = deploymentConfig["GraviDisasterOracle"];
+  if (!graviChaAddress || !graviDAOAddress ||!graviOracleAddress) {
     throw new Error("Core contracts not deployed. Run deploy-main.ts first.");
   }
 
@@ -49,6 +49,7 @@ async function main() {
       insurance.disaster,
       insurance.premium,
       graviChaAddress,
+      graviOracleAddress
     );
     await graviInsurance.waitForDeployment();
     const graviInsuranceAddress = await graviInsurance.getAddress();
