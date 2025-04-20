@@ -1,0 +1,79 @@
+sequenceDiagram
+    actor User as GraviCha Token Holder
+    participant Frontend
+    participant Wallet
+    participant NFTContract as GraviPoolNFT
+    participant TokenContract as GraviCha
+    participant IPFS as IPFS Gateway
+
+    %% Initial Data Loading
+    Note over User, TokenContract: NFT Marketplace Bidding Flow
+    
+    User->>Frontend: Visits NFT Marketplace
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Wallet Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Wallet Address
+    end
+
+    %% Load NFT Auction Data
+    Frontend->>NFTContract: getAuctionedNFTs()
+    NFTContract->>Frontend: Return Token IDs
+
+    loop For Each NFT Token ID
+        Frontend->>NFTContract: tokenURI(id)
+        NFTContract->>Frontend: Return Token Metadata URI
+        
+        %% IPFS Metadata Fetch
+        Frontend->>IPFS: Fetch Metadata from URI (ipfs://...)
+        IPFS->>Frontend: Return NFT Metadata JSON
+        
+        %% IPFS Image Fetch
+        Frontend->>IPFS: Fetch Image from Metadata's image URL
+        IPFS->>Frontend: Return NFT Image Data
+        
+        Frontend->>NFTContract: getAuctionDetails(id)
+        NFTContract->>Frontend: Return Auction Details
+    end
+
+    %% Render NFTs & Leaderboard
+    Frontend->>Frontend: Render NFT Cards & Process Past Bids for Leaderboard
+    Frontend->>User: Display NFTs & Leaderboard
+    
+    %% Bidding Flow
+    User->>Frontend: Selects NFT & Enters Bid Amount
+    User->>Frontend: Clicks "Submit" Bid Button
+    
+    %% Approve Token Spending
+    Frontend->>Wallet: Request Token Approval
+    Wallet->>User: Prompt to Approve Token Spending
+    User->>Wallet: Confirms Token Approval
+    Wallet->>TokenContract: approve(nftContract, amount)
+    TokenContract->>Wallet: Return Approval Result
+    
+    %% Submit Bid
+    Frontend->>Wallet: Request bid() Transaction
+    Wallet->>User: Prompt to Confirm Transaction
+    User->>Wallet: Confirms Transaction
+    Wallet->>NFTContract: bid(tokenId, amount)
+    
+    %% Process Bid
+    NFTContract->>NFTContract: Verify Auction Active & Bid Valid
+    NFTContract->>TokenContract: transferFrom(bidder, contract, amount)
+    TokenContract->>TokenContract: Transfer Tokens
+    
+    alt Previous Highest Bidder Exists
+        NFTContract->>NFTContract: Record Refund for Previous Bidder
+    end
+    
+    NFTContract->>NFTContract: Update Auction with New Bid
+    NFTContract->>NFTContract: Emit AuctionBid Event
+    NFTContract->>Wallet: Return Transaction Result
+    Wallet->>Frontend: Return Transaction Status
+    Frontend->>User: Display Bid Confirmation
+    
+    %% Refresh Leaderboard
+    Frontend->>Frontend: Update Highest/Recent Bids
+    Frontend->>User: Display Updated Leaderboard

@@ -1,5 +1,5 @@
 sequenceDiagram
-    actor User
+    actor User as Property Owner
     participant Frontend
     participant Wallet as Wallet
     participant Contract as GraviInsurance
@@ -31,25 +31,3 @@ sequenceDiagram
     Contract->>Wallet: Return Transaction Result
     Wallet->>Frontend: Return Transaction Status
     Frontend->>User: Display Purchase Confirmation
-    
-    %% View Insurance Flow
-    Note over User, Contract: Insurance View Flow
-    User->>Frontend: Visits View Insurance Page
-    alt Wallet Not Connected
-        User->>Frontend: Clicks "Connect Wallet"
-        Frontend->>Wallet: Request Wallet Connection
-        Wallet->>User: Prompt to Connect
-        User->>Wallet: Approves Connection
-        Wallet->>Frontend: Returns Wallet Address
-    end
-    
-    Frontend->>Contract: fetchInsuranceIds(walletAddress)
-    Contract->>Frontend: Return Insurance IDs
-    
-    loop For Each Insurance Type and ID
-        Frontend->>Contract: getUserPolicy(id)
-        Contract->>Frontend: Return Policy Details
-    end
-    
-    Frontend->>Frontend: Group Policies by Property Address
-    Frontend->>User: Display Insurance Portfolio

@@ -1,0 +1,64 @@
+sequenceDiagram
+    actor User as GraviGov Token Holder
+    participant Frontend
+    participant Wallet
+    participant Governance as GraviGovernance
+    participant GovToken as GraviGov
+    participant ChaToken as GraviCha
+
+    %% Initial Setup
+    Note over User, ChaToken: Governance Proposal Viewing & Voting Flow
+    
+    User->>Frontend: Visits Proposals Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Address
+    end
+
+    %% Load Initial Data (simplified)
+    Frontend->>Governance: getAllProposalIds()
+    Governance->>Frontend: Return Proposal IDs
+    
+    Frontend->>Governance: getProposalDetails(ids)
+    Governance->>Frontend: Return Proposal Info (state, votes, deadlines)
+    
+    Frontend->>GovToken: delegates(userAddress)
+    GovToken->>Frontend: Return Delegation Status
+    
+    Frontend->>GovToken: getVotes(userAddress)
+    GovToken->>Frontend: Return Current Voting Power
+    
+    Frontend->>User: Display Proposals & Voting Info
+
+    %% Delegation Flow (if needed)
+    alt User Not Delegated
+        User->>Frontend: Submits Delegation
+        Frontend->>Wallet: Request delegate() Transaction
+        Wallet->>User: Prompt to Confirm
+        User->>Wallet: Confirms Transaction
+        Wallet->>GovToken: delegate(delegateAddress)
+        GovToken->>Wallet: Return Result
+        Frontend->>User: Display Confirmation
+    end
+
+    %% Voting Flow
+    User->>Frontend: Selects Proposal & Clicks "Vote"
+    Frontend->>User: Display Vote Options Modal
+    User->>Frontend: Selects Vote Option (For/Against/Abstain)
+    
+    %% Vote with Rewards
+    Frontend->>Wallet: Request castVoteWithReward()
+    Wallet->>User: Prompt to Confirm
+    User->>Wallet: Confirms Transaction
+    Wallet->>Governance: castVoteWithReward(proposalId, support)
+    
+    %% Process Vote & Issue Reward
+    Governance->>GovToken: processVote()
+    Governance->>ChaToken: mint(voter, rewardAmount)
+    ChaToken->>User: Transfer Reward Tokens
+    
+    Governance->>Frontend: Return Vote Results
+    Frontend->>User: Display Vote Confirmation

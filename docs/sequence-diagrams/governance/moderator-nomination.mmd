@@ -1,0 +1,48 @@
+sequenceDiagram
+    actor User as GraviGov Token Holder
+    participant Frontend
+    participant Wallet
+    participant DAO as GraviDAO
+    participant ChaToken as GraviCha
+
+    %% Initial Setup
+    Note over User, ChaToken: Moderator Nomination Flow
+    
+    User->>Frontend: Visits Moderator Nominations Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Address
+    end
+
+    %% Load Initial Data
+    Frontend->>DAO: getAllNominatedModerators()
+    DAO->>Frontend: Return Moderator Addresses, Votes, and Nominators
+    
+    Frontend->>DAO: getModeratorRewardInfo()
+    DAO->>Frontend: Return Reward Settings
+    
+    Frontend->>User: Display Current Nominations & Reward Info
+    
+    %% Nomination Flow
+    User->>Frontend: Enters Nominee Address
+    User->>Frontend: Clicks "Submit Nomination"
+    Frontend->>Wallet: Request nominateModerator() Transaction
+    Wallet->>User: Prompt to Confirm
+    User->>Wallet: Confirms Transaction
+    Wallet->>DAO: nominateModerator(address)
+    
+    DAO->>DAO: Verify User Has Required Governance Tokens
+    DAO->>DAO: Create Nomination Record
+    
+    %% Reward Process
+    DAO->>ChaToken: mint(nominator, rewardAmount)
+    ChaToken->>ChaToken: Create New Tokens
+    ChaToken->>User: Transfer Reward Tokens
+    
+    DAO->>DAO: Emit ModeratorNominated Event
+    DAO->>Wallet: Return Transaction Result
+    Wallet->>Frontend: Return Transaction Status
+    Frontend->>User: Display Nomination Confirmation

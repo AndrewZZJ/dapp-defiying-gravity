@@ -1,0 +1,49 @@
+sequenceDiagram
+    actor User as Donor
+    participant Frontend
+    participant Wallet
+    participant Contract as GraviInsurance
+    participant TokenContract as GraviCha
+
+    %% Donation Flow
+    Note over User, TokenContract: Donation Flow
+
+    User->>Frontend: Visits Donation Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Wallet Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Wallet Address
+    end
+
+    Frontend->>Contract: fetchAddresses()
+    Contract->>Frontend: Return Pool Addresses
+
+    Frontend->>Contract: getDonationRewardRate()
+    Contract->>Frontend: Return Token Exchange Rates
+
+    Frontend->>Contract: getAllDonors()
+    Contract->>Frontend: Return Donor Leaderboard
+
+    User->>Frontend: Selects Insurance Pool
+    User->>Frontend: Enters Donation Amount
+    User->>Frontend: Clicks "Donate Now"
+    
+    Frontend->>Wallet: Initiate Donation Transaction
+    Wallet->>User: Prompt to Confirm Transaction
+    User->>Wallet: Confirms Transaction
+    Wallet->>Contract: Submit donate() with ETH value
+    
+    Contract->>Contract: Update totalPoolFunds
+    Contract->>Contract: Record donor information
+    
+    %% Token minting process
+    Contract->>TokenContract: mint(donor, amount * donationRewardRate)
+    TokenContract->>TokenContract: Create new tokens
+    TokenContract->>User: Transfer tokens to donor wallet
+    
+    Contract->>Contract: Emit FundsDonated event
+    Contract->>Wallet: Return Transaction Result
+    Wallet->>Frontend: Return Transaction Status
+    Frontend->>User: Display Donation Confirmation

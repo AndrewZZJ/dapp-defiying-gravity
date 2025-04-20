@@ -1,0 +1,41 @@
+sequenceDiagram
+    actor User as Property Owner
+    participant Frontend
+    participant Wallet
+    participant Contract as GraviInsurance
+
+    %% Submit Claim Flow
+    Note over User, Contract: Submit Claim Flow
+    
+    User->>Frontend: Visits Submit Claim Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Wallet Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Wallet Address
+    end
+    
+    Frontend->>Contract: fetchInsuranceIds(walletAddress)
+    Contract->>Frontend: Return Insurance IDs
+    
+    Frontend->>Contract: getAllDisasterEvents()
+    Contract->>Frontend: Return Disaster Events
+    
+    User->>Frontend: Selects Disaster Type
+    Frontend->>Frontend: Filter Events by Type
+    
+    User->>Frontend: Selects Disaster Event
+    User->>Frontend: Selects Insurance ID
+    User->>Frontend: Enters Incident Date
+    User->>Frontend: Enters Description
+    
+    User->>Frontend: Clicks "Submit Claim"
+    Frontend->>Wallet: Initiate startAClaim Transaction
+    Wallet->>User: Prompt to Confirm Transaction
+    User->>Wallet: Confirms Transaction
+    Wallet->>Contract: Submit startAClaim(eventId, insuranceId, description)
+    Contract->>Contract: Create New Claim
+    Contract->>Wallet: Return Transaction Result
+    Wallet->>Frontend: Return Transaction Status
+    Frontend->>User: Display Submission Confirmation

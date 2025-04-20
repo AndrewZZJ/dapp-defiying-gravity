@@ -1,0 +1,74 @@
+sequenceDiagram
+    actor User as GraviCha Token Holder
+    participant Frontend
+    participant Wallet
+    participant DAO as GraviDAO
+    participant GovToken as GraviGov
+    participant CharityToken as GraviCha
+
+    %% Exchange Flow for GraviGov Token
+    Note over User, CharityToken: GraviGov Token Exchange Flow
+
+    User->>Frontend: Visits Exchange Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Wallet Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Wallet Address
+    end
+
+    %% Load Initial Data
+    Frontend->>Wallet: Get Provider
+    Wallet->>Frontend: Return Provider
+    Frontend->>DAO: calculatesGovTokenPurchasePrice(1 token)
+    DAO->>Frontend: Return Exchange Rates (ETH, GraviCha)
+    Frontend->>GovToken: balanceOf(DAOAddress)
+    GovToken->>Frontend: Return Available GOV in Pool
+
+    %% User Input
+    User->>Frontend: Enters Amount of GraviGov to Purchase
+    Frontend->>Frontend: Calculate Total Cost in ETH and GraviCha
+    Frontend->>User: Display Cost Summary
+
+    %% User Confirms Exchange
+    User->>Frontend: Clicks "Purchase"
+    Frontend->>Wallet: Initiate Purchase Transaction
+
+    %% Check Allowance & Approve (if needed)
+    Frontend->>CharityToken: allowance(userAddress, daoAddress)
+    CharityToken->>Frontend: Return Current Allowance
+    
+    alt Allowance Insufficient
+        Frontend->>Wallet: Request Token Approval
+        Wallet->>User: Prompt to Approve GraviCha Spending
+        User->>Wallet: Confirms Approval
+        Wallet->>CharityToken: approve(daoAddress, requiredAmount)
+        CharityToken->>Wallet: Return Approval Result
+        Wallet->>Frontend: Return Approval Status
+    end
+
+    %% Execute Exchange
+    Frontend->>Wallet: Call purchaseGovTokens with ETH
+    Wallet->>User: Prompt to Confirm Transaction
+    User->>Wallet: Confirms Transaction
+    Wallet->>DAO: purchaseGovTokens(amount, {value: ethAmount})
+    
+    %% DAO Contract Operations
+    DAO->>DAO: Verify ETH Amount & Calculate Tokens
+    DAO->>CharityToken: burnFrom(userAddress, requiredCharityTokens)
+    CharityToken->>CharityToken: Burn Tokens
+    
+    DAO->>GovToken: transfer(userAddress, govTokenAmount)
+    GovToken->>GovToken: Update Balances
+    GovToken->>User: Send GraviGov Tokens
+    
+    alt Excess ETH Sent
+        DAO->>User: Refund Excess ETH
+    end
+    
+    DAO->>DAO: Emit GovTokensPurchased Event
+    DAO->>Wallet: Return Transaction Result
+    Wallet->>Frontend: Return Transaction Status
+    
+    Frontend->>User: Display Purchase Confirmation

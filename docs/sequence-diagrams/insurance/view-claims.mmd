@@ -1,0 +1,44 @@
+sequenceDiagram
+    actor User as Property Owners
+    participant Frontend
+    participant Wallet
+    participant Contract as GraviInsurance
+
+    Note over User, Contract: View Claims Flow
+    
+    User->>Frontend: Visits View Claims Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Wallet Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Wallet Address
+    end
+    
+    Frontend->>Contract: fetchClaimIds(walletAddress)
+    Contract->>Frontend: Return Claim IDs
+    
+    loop For Each Claim ID
+        Frontend->>Contract: getClaimDetails(id)
+        Contract->>Frontend: Return Claim Details
+        
+        Frontend->>Contract: getDisasterEvent(eventId)
+        Contract->>Frontend: Return Event Details
+    end
+    
+    Frontend->>User: Display Claims List
+    
+    User->>Frontend: Clicks "View Details" on Claim
+    Frontend->>User: Expand Claim Details
+    
+    alt Claim is "In Progress"
+        User->>Frontend: Clicks "Cancel Claim"
+        Frontend->>Wallet: Initiate cancelClaim Transaction
+        Wallet->>User: Prompt to Confirm Transaction
+        User->>Wallet: Confirms Transaction
+        Wallet->>Contract: Submit cancelClaim(claimId)
+        Contract->>Contract: Cancel the Claim
+        Contract->>Wallet: Return Transaction Result
+        Wallet->>Frontend: Return Transaction Status
+        Frontend->>User: Display Cancellation Confirmation
+    end
