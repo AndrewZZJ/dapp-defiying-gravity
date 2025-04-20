@@ -4,20 +4,159 @@
   "sourceName": "contracts/interfaces/IGraviDisasterOracle.sol",
   "abi": [
     {
+      "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
           "internalType": "string",
-          "name": "incidentDescription",
+          "name": "propertyAddress",
           "type": "string"
         },
         {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isValid",
+          "type": "bool"
+        }
+      ],
+      "name": "AddressValidated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
           "internalType": "string",
           "name": "disasterType",
           "type": "string"
         },
         {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isValid",
+          "type": "bool"
+        }
+      ],
+      "name": "DisasterTypeValidated",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "string",
-          "name": "evidence",
+          "name": "propertyAddress",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "propertyValue",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coveragePeriod",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculateCoverage",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "coverageAmount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "policyId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "eventId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "propertyAddress",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coverageAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculateDamage",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "damageAmount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "propertyAddress",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "propertyValue",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coveragePeriod",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculatePremium",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "premium",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "propertyAddress",
+          "type": "string"
+        }
+      ],
+      "name": "validateAddress",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "disasterType",
           "type": "string"
         }
       ],

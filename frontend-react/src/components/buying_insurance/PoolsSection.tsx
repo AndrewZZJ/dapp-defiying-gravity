@@ -111,7 +111,6 @@ export const PoolsSection: React.FC = () => {
     fetchOverviewData();
   }, [walletAddress]);
 
-  // Example function to fetch annual fee (replace with actual logic)
   const fetchAnnualFee = async (): Promise<string | null> => {
     try {
       const response = await fetch("/addresses.json");
@@ -129,6 +128,7 @@ export const PoolsSection: React.FC = () => {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, provider);
 
+      // Get the premium rate which represents annual fee percentage
       const premiumRate = await contract.premiumRate();
       setAnnualFee(`${premiumRate}%`);
       return `${premiumRate}%`;
@@ -236,14 +236,21 @@ export const PoolsSection: React.FC = () => {
       const contract = new ethers.Contract(insuranceAddress, GraviInsuranceABI.abi, signer);
 
       const propertyValueInWei = ethers.utils.parseEther(portfolioValue.toString());
+      
+      // Calculate premium using the contract function
       const premium = await contract.calculatePremium(homeAddress, propertyValueInWei, coverPeriod);
 
-      // Set annual fee (premium converted to ETH)
+      // Set premium cost as ETH
       const premiumInEth = ethers.utils.formatEther(premium);
       setCoverCost(`${premiumInEth} ETH`);
 
-      // Calculate the coverage amount from the premium
-      const coverageAmount = await contract.calculateCoverageAmountFromPremium(premium);
+      // Calculate the coverage amount directly using the contract's function
+      const coverageAmount = await contract.calculateCoverageAmount(
+        homeAddress, 
+        propertyValueInWei, 
+        coverPeriod
+      );
+      
       const coverageAmountInEth = ethers.utils.formatEther(coverageAmount);
       setMaxCoverage(`${coverageAmountInEth} ETH`);
     } catch (error) {

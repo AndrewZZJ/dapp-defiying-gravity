@@ -3,7 +3,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { GraviGov, GraviDAO } from "../../typechain-types";
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 async function deployGraviGovFixture() {
   const [owner, minter, user, customer] = await ethers.getSigners();
@@ -53,6 +53,83 @@ describe("GraviGov contract", function () {
       await graviGov.connect(user).delegate(user.address);
       const votesAfter = await graviGov.getVotes(user.address);
       expect(votesAfter).to.equal(1000);
+    });
+  });
+
+  describe("Test 3: Permission Controls", function () {
+    it("should revert when non-owner tries to mint", async () => {
+      const { graviGov, user } = await loadFixture(deployGraviGovFixture);
+      
+      await expect(
+        graviGov.connect(user).mint(user.address, 1000)
+      ).to.be.revertedWithCustomError(graviGov, "OwnableUnauthorizedAccount");
+    });
+    
+    it("should revert when non-owner tries to mint monthly", async () => {
+      const { graviGov, user } = await loadFixture(deployGraviGovFixture);
+      
+      await expect(
+        graviGov.connect(user).mintMonthly()
+      ).to.be.revertedWithCustomError(graviGov, "OwnableUnauthorizedAccount");
+    });
+    
+    it("should revert when non-owner tries to set monthly mint amount", async () => {
+      const { graviGov, user } = await loadFixture(deployGraviGovFixture);
+      
+      await expect(
+        graviGov.connect(user).setMonthlyMintAmount(5000)
+      ).to.be.revertedWithCustomError(graviGov, "OwnableUnauthorizedAccount");
+    });
+  });
+  
+  describe("Test 4: ERC20Votes Functionality", function () {
+    it("should properly track voting power across transfers", async () => {
+      const { graviGov, owner, user, customer } = await loadFixture(deployGraviGovFixture);
+      
+      // Mint tokens to user
+      await graviGov.connect(owner).mint(user.address, ethers.parseEther("100"));
+      
+      // User delegates to self
+      await graviGov.connect(user).delegate(user.address);
+      expect(await graviGov.getVotes(user.address)).to.equal(ethers.parseEther("100"));
+      
+      // Transfer half to customer
+      await graviGov.connect(user).transfer(customer.address, ethers.parseEther("50"));
+      
+      // Check voting power was reduced for user
+      expect(await graviGov.getVotes(user.address)).to.equal(ethers.parseEther("50"));
+      
+      // Customer delegates to self
+      await graviGov.connect(customer).delegate(customer.address);
+      expect(await graviGov.getVotes(customer.address)).to.equal(ethers.parseEther("50"));
+      
+      // Customer delegates to user
+      await graviGov.connect(customer).delegate(user.address);
+      expect(await graviGov.getVotes(user.address)).to.equal(ethers.parseEther("100"));
+      expect(await graviGov.getVotes(customer.address)).to.equal(0);
+    });
+    
+    it("should properly handle delegation history", async () => {
+      const { graviGov, owner, user } = await loadFixture(deployGraviGovFixture);
+      
+      // Mint tokens to user
+      await graviGov.connect(owner).mint(user.address, ethers.parseEther("100"));
+      
+      // Get current block number
+      const blockNumber = await ethers.provider.getBlockNumber();
+      
+      // User delegates to self
+      await graviGov.connect(user).delegate(user.address);
+      
+      // Move forward a few blocks
+      await mine(5);
+      
+      // Check past voting power
+      expect(await graviGov.getPastVotes(user.address, blockNumber)).to.equal(0);
+      expect(await graviGov.getPastVotes(user.address, blockNumber + 1)).to.equal(ethers.parseEther("100"));
+      
+      // Get total supply history
+      expect(await graviGov.getPastTotalSupply(blockNumber)).to.be.gte(0);
     });
   });
 });

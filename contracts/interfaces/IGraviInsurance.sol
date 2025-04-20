@@ -111,15 +111,21 @@ interface IGraviInsurance {
         string memory propertyAddress,
         uint256 propertyValue,
         uint256 coveragePeriod
-    ) external pure returns (uint256);
+    ) external view returns (uint256);
 
     /**
-     * @notice Calculates the coverage amount based on the premium
-     * @param premium The premium amount
+     * @notice Calculates the coverage amount based on property details
+     * @param propertyAddress The address of the property
+     * @param propertyValue The value of the property
+     * @param coveragePeriod The coverage period in days
      * @return The calculated coverage amount
      */
-    function calculateCoverageAmountFromPremium(uint256 premium) external pure returns (uint256);
-
+    function calculateCoverageAmount(
+        string memory propertyAddress,
+        uint256 propertyValue,
+        uint256 coveragePeriod
+    ) external view returns (uint256);
+    
     // ========================================
     // Claim Management
     // ========================================
@@ -158,6 +164,13 @@ interface IGraviInsurance {
      * @param amount The approved payout amount
      */
     function assessClaim(uint256 claimId, bool isApproved, uint256 amount) external;
+
+    /**
+     * @notice Allows a user to cancel their claim if it's still in Pending status
+     * @param claimId The ID of the claim to cancel
+     * @return success True if the claim was successfully canceled
+     */
+    function cancelClaim(uint256 claimId) external returns (bool success);
 
     /**
      * @notice Gets the claims associated with the caller

@@ -317,7 +317,7 @@ export const ClaimItem: React.FC<ClaimItemProps> = ({
           )}
           
           {/* Cancel Button */}
-          {status === "In Progress" && (
+          {(status === "In Progress" || status === "Pending") && onCancel && (
             <div className="p-5 flex justify-end">
               <button
                 onClick={onCancel}

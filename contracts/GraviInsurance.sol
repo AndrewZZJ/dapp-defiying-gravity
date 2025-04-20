@@ -49,7 +49,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     enum ClaimStatus {
         Pending,
         Accepted,
-        Denied
+        Denied,
+        Cancelled
     }
 
     /**
@@ -234,8 +235,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
      * @return policyId The unique hash-based ID for the policy
      */
     function buyInsurance(
-        uint256 startTime,      // Unix timestamp in seconds
-        uint256 coveragePeriod, // Coverage period in days
+        uint256 startTime,
+        uint256 coveragePeriod,
         string memory propertyAddress,
         uint256 propertyValue
     ) external payable override returns (bytes32) {
@@ -252,7 +253,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
             abi.encodePacked(address(this), msg.sender, block.timestamp)
         );
 
-        uint256 coverageAmount = calculateCoverageAmountFromPremium(premium);
+        // Calculate coverage amount using property details
+        uint256 coverageAmount = calculateCoverageAmount(propertyAddress, propertyValue, coveragePeriod);
 
         // Save policy to storage
         Policy memory policy = Policy({
@@ -263,7 +265,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
             startTime: startTime,
             endTime: endTime,
             isClaimed: false,
-            propertyAddress: propertyAddress,  // Store the property address
+            propertyAddress: propertyAddress,
             propertyValue: propertyValue
         });
 
@@ -275,9 +277,8 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         return policyId;
     }
 
-
     /**
-     * @notice Calculates a mock insurance premium based on a property’s address, its value (in ETH), and a coverage period (in days).
+     * @notice Calculates a mock insurance premium based on a property's address, its value (in ETH), and a coverage period (in days).
      * @param propertyAddress The address of the property (as a string).
      * @param propertyValue The value of the property in ETH.
      * @param coveragePeriod The coverage period in days.
@@ -287,28 +288,23 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         string memory propertyAddress,
         uint256 propertyValue,  // in ETH
         uint256 coveragePeriod  // in days
-    ) public pure override returns (uint256 premium) {
-        // Generate a pseudo-random factor based on the property address.
-        // This results in a number between 1 and 100.
-        uint256 addressFactor = (uint256(keccak256(abi.encodePacked(propertyAddress))) % 100) + 1;
-        
-        // Use a simple formula:
-        // premium = (propertyValue * coveragePeriod * addressFactor) / divisor
-        // The divisor is chosen to adjust the scale of the premium.
-        uint256 divisor = 4000000; // Example divisor;
-        
-        premium = (propertyValue * coveragePeriod * addressFactor) / divisor;
+    ) public view override returns (uint256 premium) {
+        return disasterOracle.calculatePremium(propertyAddress, propertyValue, coveragePeriod);
     }
 
     /**
-     * @notice Calculates coverage amount based on the premium paid
-     * @param premium The premium paid (in ETH)
-     * @return coverageAmount The resulting coverage amount (in ETH)
+     * @notice Calculates coverage amount based on property details
+     * @param propertyAddress The address of the property
+     * @param propertyValue The value of the property in ETH
+     * @param coveragePeriod The coverage period in days
+     * @return coverageAmount The resulting coverage amount in ETH
      */
-    function calculateCoverageAmountFromPremium(uint256 premium) public pure returns (uint256 coverageAmount) {
-        // Define a fixed ratio. For example, if the ratio is 5, then coverage = 5 * premium.
-        uint256 ratio = 5;
-        coverageAmount = premium * ratio;
+    function calculateCoverageAmount(
+        string memory propertyAddress,
+        uint256 propertyValue,
+        uint256 coveragePeriod
+    ) public view returns (uint256 coverageAmount) {
+        return disasterOracle.calculateCoverage(propertyAddress, propertyValue, coveragePeriod);
     }
 
     /**
@@ -615,7 +611,6 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
-
     /**
      * @notice Allows a moderator to assess a claim by approving or denying it
      * @param claimId The ID of the claim being assessed
@@ -657,6 +652,29 @@ contract GraviInsurance is IGraviInsurance, Ownable {
     }
 
 
+    /**
+     * @notice Allows a user to cancel their claim if it's still in Pending status
+     * @param claimId The ID of the claim to cancel
+     * @return success True if the claim was successfully canceled
+     */
+    function cancelClaim(uint256 claimId) external returns (bool success) {
+        require(claimId > 0 && claimId < nextClaimId, "Invalid claim ID");
+        
+        // Access the claim record from the array
+        ClaimRecord storage claim = claimRecords[claimId - 1];
+        require(claim.status == ClaimStatus.Pending, "Claim already processed");
+        
+        // Ensure only policy holder can cancel
+        Policy storage policy = policies[claim.policyId];
+        require(policy.policyHolder == msg.sender, "Not the policy holder");
+        
+        // Update claim status to canceled (we're using Cancelled status code for cancellations)
+        claim.status = ClaimStatus.Cancelled;
+        claim.assessmentEnd = block.timestamp;
+        
+        emit ClaimProcessed(claimId, ClaimStatus.Cancelled, 0);
+        return true;
+    }
 
 
     /**
@@ -714,6 +732,7 @@ contract GraviInsurance is IGraviInsurance, Ownable {
         if (status == ClaimStatus.Pending) return "Pending";
         if (status == ClaimStatus.Accepted) return "Accepted";
         if (status == ClaimStatus.Denied) return "Denied";
+        if (status == ClaimStatus.Cancelled) return "Cancelled";
         return "";
     }
 
