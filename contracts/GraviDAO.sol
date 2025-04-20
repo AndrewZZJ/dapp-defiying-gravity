@@ -157,7 +157,12 @@ contract GraviDAO is IGraviDAO, Ownable {
     function calculatesGovTokenPurchasePrice(
         uint256 amount
     ) external view returns (uint256 ethPrice, uint256 graviChaBurn) {
-        return (amount * govTokenEthPrice, amount * govTokenGraviChaBurn);
+        // Since amount is in wei (10^18) and our rates are also in wei,
+        // we need to divide by 10^18 to get correct proportions
+        if (amount == 0) return (0, 0);
+        
+        uint256 tokenAmount = amount / 10**18;
+        return (tokenAmount * govTokenEthPrice, tokenAmount * govTokenGraviChaBurn);
     }
     
     /**

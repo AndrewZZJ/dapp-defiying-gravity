@@ -21,9 +21,9 @@ const distributions: Distribution[] = [
   },
   {
     name: "Early Investor",
-    address: "0x2887fc3E61232f6c14541397C68e74863E0cBfa0", // Replace with actual address
+    address: "0x65ef71Aa063cEcEB6569b9fdcd632952B2F141D9", // Replace with actual address
     description: "Allocation for early investors.",
-    percentage: 15,
+    percentage: 0,
   },
   {
     name: "Community Fund",

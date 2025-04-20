@@ -2,7 +2,7 @@
 
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { GraviPoolNFT, GraviCha } from "../typechain-types";
+import { GraviPoolNFT, GraviCha } from "../../typechain-types";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 async function deployGraviPoolNFTFixture() {
@@ -34,7 +34,8 @@ describe("GraviPoolNFT contract", function () {
 
       const transaction = await graviPoolNFT.mintToPool(await owner.getAddress(), 0, "ipfs://test");
       const receipt = await transaction.wait();
-      const tokenId = receipt.logs.map(log => graviPoolNFT.interface.parseLog(log)).find(event => event.name === "Transfer")?.args.tokenId;
+      if (!receipt) throw new Error("Transaction receipt is null");
+      const tokenId = receipt.logs.map(log => graviPoolNFT.interface.parseLog(log)).find(event => event?.name === "Transfer")?.args.tokenId;
 
       await graviPoolNFT.approve(await user2.getAddress(), tokenId);
       await graviPoolNFT.connect(user2).transferWithFee(

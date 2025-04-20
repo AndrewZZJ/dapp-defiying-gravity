@@ -2,7 +2,7 @@
 
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { GraviCha } from "../typechain-types";
+import { GraviCha } from "../../typechain-types";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 async function deployGraviChaFixture() {
