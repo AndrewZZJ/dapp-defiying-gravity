@@ -18,7 +18,13 @@ describe("GraviDAO", function () {
     // Deploy DAO
     const GraviDAOFactory = await ethers.getContractFactory("GraviDAO");
     const graviDAO = await GraviDAOFactory.deploy(await graviCha.getAddress(), await graviGov.getAddress());
-    
+
+    // Deploy GraviDisasterOracle (GraviOracle)
+    const GraviOracle = await ethers.getContractFactory("GraviDisasterOracle");
+    const graviOracle = await GraviOracle.deploy();
+    await graviOracle.waitForDeployment();
+    const graviOracleAddress = await graviOracle.getAddress();
+
     // Deploy NFT pool
     const GraviPoolNFTFactory = await ethers.getContractFactory("GraviPoolNFT");
     const graviPoolNFT = await GraviPoolNFTFactory.deploy(await graviCha.getAddress());
@@ -28,7 +34,8 @@ describe("GraviDAO", function () {
     const mockInsurance = await GraviInsuranceFactory.deploy(
       "flood", // disaster type
       ethers.parseEther("5"), // premium
-      await graviCha.getAddress()
+      await graviCha.getAddress(),
+      graviOracleAddress
     );
     
     // IMPORTANT: Mint governance tokens BEFORE transferring ownership

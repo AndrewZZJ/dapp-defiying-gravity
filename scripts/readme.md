@@ -1,148 +1,93 @@
-# Scripts for running
-This contains the full script for deployment of the full Gravi Project. The folder structure follows the following structure:
-- deploy: Scripts for deployment of the DAO, required contracts, and initial mint and distribution of governance tokens.
-- dao: Scripts for interacting with DAO, many of those script simulates fast forward for testing. And thus can only be ran locally.
-- view: Some commands for viewing important properties of the DAO or insurance contracts.
-- utils: Utility and helper functions for the scripts and commands.
-- metadata: Records all the important metadata of the deployment, including all relevant addresses. 
+# Gravi DAO Scripts
 
-## Start the local node
-npx hardhat node
+This directory contains scripts for deploying, managing, and interacting with the Gravi DAO project. The folder structure follows these categories:
 
-## Run the following script for local host runs
+- **deploy**: Scripts for deploying DAO contracts, initial setup, and token distribution
+- **dao-propose**: Scripts for creating and managing governance proposals
+- **dao-interact**: Scripts for interacting with the deployed DAO
+- **view**: Scripts for reading data from contracts
+- **insurance**: Scripts for interacting with insurance contracts
+- **nft**: Scripts for NFT-related operations
+- **utils**: Helper functions used across multiple scripts
+- **metadata**: Deployment data, addresses, and other configuration
 
-### Deploy the initial DAO and initial Setup
-- Deploy governance, charity tokens, and DAO: (WARNING: THIS ERASES PREVIOUS METADATA, back it up if necessary)
-npx hardhat run scripts/deploy/deploy-main.ts --network localhost
+## Environment Setup
 
-- Configure initial DAO parameters:
-npx hardhat run scripts/deploy/set-dao-parameters.ts --network localhost
-
-- Distribute initial minted tokens (Note: Configure wallets and amount):
-npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
-
-- Deploy the initial 3 insurances
-npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
-
-- Auctions initial NFTs - Founder NFTs for each contract
-npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
-
-- Revoke Deployer's Elevated power
-npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
-
-### DAO Scripts, governance, proposal creation, etc - For testing locally only, need to be adapted to actual network deployment. 
-- Delegate voting power of all governace token to self:
-npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
-
-- Simulate a fast track DAO votes for adding insurance contract. 
-npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
-
-- Simulate a monthly token mint for governance
-npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost
-
-- Simulate a monthly NFT mint for governance
-npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
-
-### View scripts
-- Print both the governance and utility tokens held by the deployer
-npx hardhat run scripts/view/print-gov-and-utility-tokens.ts --network localhost
-
-- Print the voting power of the deployer 
-npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
-
-- Print all the current added instuance and nft pools and addresses
-npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
-
-- Print all the NFTs undeer auction
-npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
-
-## Bundled commands, fast setup and tests:
-### Start/Restart the local node
-npx hardhat node
-
-### Deployment
-npx hardhat run scripts/deploy/deploy-main.ts --network localhost
-npx hardhat run scripts/deploy/set-dao-parameters.ts --network localhost
-npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
-npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
-npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
-npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
-
-npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
-
-
-npx hardhat run scripts/nft/bid-for-nft2.ts --network localhost
-npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
-npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
-
-7 Emberthorn Way, Dragonsreach, Kingdom of Eldoria, The Realm of Mythoria
-
-<!-- npx hardhat run scripts/dao-propose/time-skip.ts --network localhost -->
-
-
-
-
+```bash
+# Install and use Node.js v20
+nvm install 20
 nvm use 20
 
+# Start local Hardhat node
+npx hardhat node
+```
 
-npx hardhat run scripts/deploy/debug-auto-mine.ts --network localhost
+## Deployment Sequence
 
-# Claims
-npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
+```bash
+# Core deployment
+npx hardhat run scripts/deploy/deploy-main.ts --network localhost
+npx hardhat run scripts/deploy/set-dao-parameters.ts --network localhost
+npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
 
+# Insurance and NFT setup
+npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
+npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
 
-### Dao - proposal - local testing
+# Complete deployment by transferring ownership
+npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
+```
+
+## Governance Operations
+
+```bash
+# Delegate voting power to self (required before voting)
 npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
 
+# Create and manage proposals
+npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
+npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost
+npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
 
+# Skip time for testing (local only)
+npx hardhat run scripts/dao-propose/time-skip.ts --network localhost
+```
 
-# Insurances
-npx hardhat run scripts/insurance/buy-insurance.ts --network localhost
-npx hardhat run scripts/insurance/view-insurance.ts --network localhost
+## DAO Interactions
 
-
-### DAO - Buy Governance Tokens
+```bash
+# Purchase governance tokens
 npx hardhat run scripts/view/view-gov-pool-and-burn-prices.ts --network localhost
 npx hardhat run scripts/view/calc-gov-token-cost.ts --network localhost
 npx hardhat run scripts/dao-interact/purchase-gov-tokens.ts --network localhost
+```
 
+## NFT Operations
 
-
-
-### GraviGov Convert Tokens to Charity Tokens
-npx hardhat run scripts/view/view-charity-exchange-rate.ts --network localhost
-npx hardhat run scripts/dao-interact/convert-to-charity.ts --network localhost
-
-### NFT auction 
+```bash
+# View NFT auctions
 npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
+
+# Bid on and claim NFTs
 npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
 npx hardhat run scripts/nft/claim-nft.ts --network localhost
+```
 
-npx hardhat run scripts/dao-propose/time-skip.ts --network localhost
+## Insurance Operations
 
+```bash
+# View and purchase insurance
+npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
+npx hardhat run scripts/insurance/buy-insurance.ts --network localhost
+npx hardhat run scripts/insurance/view-insurance.ts --network localhost
+```
 
+## Viewing Contract Data
 
-### Dao - proposal - local testing
-npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
-
-
-
-npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
-npx hardhat run scripts/dao-propose/insurance/add-insurance.ts --network localhost
-npx hardhat run scripts/dao-propose/token/monthly-mint-gov-tokens.ts --network localhost
-npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
-
-### View Deployed and Other
+```bash
+# Token information
 npx hardhat run scripts/view/print-gov-and-utility-tokens.ts --network localhost
 npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
-npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
-npx hardhat run scripts/view/nft/print-insurance-auctions.ts --network localhost
 
-# Using the right Node version
-nvm install 20
-nvm use 20
-<!-- nvm alias default 20 -->
-npm install npm --global # Upgrade npm to the latest version
+# Insurance and NFT data
+npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost

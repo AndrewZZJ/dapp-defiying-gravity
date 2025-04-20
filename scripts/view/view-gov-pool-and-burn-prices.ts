@@ -1,6 +1,7 @@
 // scripts/view/view-gov-pool-and-burn-prices.ts
 import { ethers } from "hardhat";
 import { loadDeploymentConfig } from "../utils/deploymentUtils";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -21,13 +22,13 @@ async function main() {
   // 1. Get the governance token pool balance.
   const poolBalance = await graviGov.balanceOf(graviDAOAddress);
   // const poolBalance = await graviDAO.getGovTokenPoolBalance();
-  console.log("Governance Token Pool Balance:", poolBalance.toString());
+  console.log("Governance Token Pool Balance:", ethers.formatEther(poolBalance).toString());
 
   // 2. Get the current purchase price and burn amount for 1 token.
-  const [ethPrice, graviChaBurn] = await graviDAO.calculatesGovTokenPurchasePrice(1);
+  const [ethPrice, graviChaBurn] = await graviDAO.calculatesGovTokenPurchasePrice(ethers.parseEther("1"));
   console.log(`Current Wei price per token: ${ethPrice.toString()}`);
   console.log(`Current Ether price per token: ${ethers.formatEther(ethPrice).toString()}`);
-  console.log("Current GraviGov burn per token:", graviChaBurn.toString());
+  console.log(`Current GraviGov burn per token: ${ethers.formatEther(graviChaBurn).toString()}`);
 }
 
 main().catch((error) => {

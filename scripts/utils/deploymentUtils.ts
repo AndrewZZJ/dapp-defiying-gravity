@@ -50,4 +50,12 @@ export function writeMetadata(filename: string, data: any): void {
   const frontedFilePath = path.join(FRONTEND_METADATA_DIR, "addresses.json");
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
   console.log("Deployment configuration written to:", frontedFilePath);
+
+    // // Fix path for frontend metadata directory
+    // if (!fs.existsSync(FRONTEND_METADATA_DIR)) {
+    //   fs.mkdirSync(FRONTEND_METADATA_DIR, { recursive: true });
+    // }
+    // const frontendFilePath = path.join(FRONTEND_METADATA_DIR, filename);
+    // fs.writeFileSync(frontendFilePath, JSON.stringify(data, null, 2), "utf8");
+    // console.log("Metadata written to frontend:", frontendFilePath);
 }

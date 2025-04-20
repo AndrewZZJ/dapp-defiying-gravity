@@ -11,9 +11,17 @@ async function deployGraviInsuranceFixture() {
   const GraviChaFactory = await ethers.getContractFactory("GraviCha");
   const graviCha = (await GraviChaFactory.deploy()) as GraviCha;
   const GraviInsuranceFactory = await ethers.getContractFactory("GraviInsurance");
-  const graviInsurance = (await GraviInsuranceFactory.deploy("FireInsurance", 100, graviCha)) as GraviInsurance;
+
+  // Deploy GraviDisasterOracle (GraviOracle)
+  const GraviOracle = await ethers.getContractFactory("GraviDisasterOracle");
+  const graviOracle = await GraviOracle.deploy();
+  await graviOracle.waitForDeployment();
+  const graviOracleAddress = await graviOracle.getAddress();
+
+  // Change the disaster type from "FireInsurance" to "FIRE" to match oracle's whitelist
+  const graviInsurance = (await GraviInsuranceFactory.deploy("FIRE", 100, graviCha, graviOracleAddress)) as GraviInsurance;
   await graviInsurance.waitForDeployment();
-  return { graviInsurance, graviCha, owner, minter, user, customer };
+  return { graviInsurance, graviCha, graviOracle, owner, minter, user, customer };
 }
 
 // Helper function to safely extract policy ID from receipt
@@ -251,7 +259,7 @@ describe("GraviInsurance contract", function () {
 
   describe("Test 4: Claim Processing and Payout", () => {
     it("should process a claim when enough moderators have assessed", async () => {
-      const { graviInsurance, owner, user, minter, customer } = await loadFixture(deployGraviInsuranceFixture);
+      const { graviInsurance, graviOracle, owner, user, minter, customer } = await loadFixture(deployGraviInsuranceFixture);
       const now_time = Math.floor(Date.now() / 1000);
       
       // Buy insurance
@@ -286,7 +294,8 @@ describe("GraviInsurance contract", function () {
       await graviInsurance.connect(customer).assessClaim(1, true, ethers.parseEther("4"));
       await graviInsurance.connect(owner).assessClaim(1, false, 0); // One moderator rejects
       
-      // Process claim
+      // Process claim - should verify return from validateClaim in the oracle
+      // We know it will return true for "FIRE"
       await expect(
         graviInsurance.connect(owner).processClaim(1)
       ).to.emit(graviInsurance, "ClaimProcessed");
@@ -340,7 +349,7 @@ describe("GraviInsurance contract", function () {
       await graviInsurance.connect(customer).assessClaim(1, true, ethers.parseEther("5"));
       await graviInsurance.connect(owner).assessClaim(1, true, ethers.parseEther("5"));
       
-      // Process claim
+      // Process claim - using the correct disaster type "FIRE"
       await graviInsurance.connect(owner).processClaim(1);
       
       // Check user balance before payout
@@ -520,6 +529,215 @@ describe("GraviInsurance contract", function () {
       
       expect(topDonors[2]).to.equal(minter.address);
       expect(topAmounts[2]).to.equal(ethers.parseEther("1"));
+    });
+  });
+
+  describe("Test 8: Policy Validation & Expiration", () => {
+    it("should correctly track policy expiration status", async () => {
+      const { graviInsurance, user } = await loadFixture(deployGraviInsuranceFixture);
+      
+      // Get current time
+      const now_time = Math.floor(Date.now() / 1000);
+      
+      // Create a policy that expires in 1 day
+      const shortCoverageDays = 1;
+      const propertyValue = ethers.parseEther("20");
+      const propertyAddress = "123 Maple St";
+      const premium = await graviInsurance.calculatePremium(propertyAddress, propertyValue, shortCoverageDays);
+      
+      await graviInsurance.connect(user).buyInsurance(
+        now_time, shortCoverageDays, propertyAddress, propertyValue, { value: premium }
+      );
+      
+      // Get policy details
+      const [
+        policyIds,
+        ,
+        ,
+        ,
+        startTimes, 
+        endTimes,
+        ,
+        ,
+      ] = await graviInsurance.connect(user).getUserPolicies();
+      
+      // Verify the policy expiration time is correct (1 day from now)
+      const expectedEndTime = startTimes[0] + BigInt(shortCoverageDays * 24 * 60 * 60);
+      expect(endTimes[0]).to.equal(expectedEndTime);
+    });
+    
+    it("should calculate different premiums based on property address", async () => {
+      const { graviInsurance } = await loadFixture(deployGraviInsuranceFixture);
+      const coverageDays = 30;
+      const propertyValue = ethers.parseEther("20");
+      
+      // Calculate premiums for different addresses
+      const premium1 = await graviInsurance.calculatePremium("123 Maple St", propertyValue, coverageDays);
+      const premium2 = await graviInsurance.calculatePremium("456 Oak Ave", propertyValue, coverageDays);
+      
+      // Premiums should be different due to the address factor
+      expect(premium1).to.not.equal(premium2);
+    });
+
+    it("should calculate coverage amount correctly from premium", async () => {
+      const { graviInsurance } = await loadFixture(deployGraviInsuranceFixture);
+      
+      const premium = ethers.parseEther("1");
+      const coverage = await graviInsurance.calculateCoverageAmountFromPremium(premium);
+      
+      // Per the contract implementation, coverage should be 5x the premium
+      expect(coverage).to.equal(premium * 5n);
+    });
+  });
+
+  describe("Test 9: Moderator Management", () => {
+    it("should allow owner to modify a moderator's maximum approval amount", async () => {
+      const { graviInsurance, owner, minter } = await loadFixture(deployGraviInsuranceFixture);
+      
+      // First add a moderator
+      const initialMaxAmount = ethers.parseEther("5");
+      await graviInsurance.connect(owner).addModeratorToPool(minter.address, initialMaxAmount);
+      
+      // Then remove the moderator
+      await graviInsurance.connect(owner).removeModeratorFromPool(minter.address);
+      
+      // Re-add the moderator with a different amount
+      const newMaxAmount = ethers.parseEther("10");
+      await expect(
+        graviInsurance.connect(owner).addModeratorToPool(minter.address, newMaxAmount)
+      ).to.emit(graviInsurance, "ModeratorAdded")
+        .withArgs(minter.address, newMaxAmount);
+    });
+
+    it("should prevent non-owners from adding moderators", async () => {
+      const { graviInsurance, user, customer } = await loadFixture(deployGraviInsuranceFixture);
+      
+      // User (non-owner) tries to add a moderator
+      await expect(
+        graviInsurance.connect(user).addModeratorToPool(customer.address, ethers.parseEther("5"))
+      ).to.be.revertedWithCustomError(graviInsurance, "OwnableUnauthorizedAccount");
+    });
+    
+    it("should prevent non-owners from removing moderators", async () => {
+      const { graviInsurance, owner, user, minter } = await loadFixture(deployGraviInsuranceFixture);
+      
+      // First add a moderator as owner
+      await graviInsurance.connect(owner).addModeratorToPool(minter.address, ethers.parseEther("5"));
+      
+      // User (non-owner) tries to remove the moderator
+      await expect(
+        graviInsurance.connect(user).removeModeratorFromPool(minter.address)
+      ).to.be.revertedWithCustomError(graviInsurance, "OwnableUnauthorizedAccount");
+    });
+  });
+
+  describe("Test 10: Claim Constraints", () => {
+    it("should not allow claims on expired policies", async () => {
+      const { graviInsurance, owner, user } = await loadFixture(deployGraviInsuranceFixture);
+      const now_time = Math.floor(Date.now() / 1000) - (60 * 60 * 24 * 2); // 2 days ago
+      const coverageDays = 1; // 1 day coverage (now expired)
+      const propertyValue = ethers.parseEther("20");
+      const propertyAddress = "123 Maple St";
+      
+      // Calculate premium and buy insurance with start time 2 days ago and 1 day coverage
+      const premium = await graviInsurance.calculatePremium(propertyAddress, propertyValue, coverageDays);
+      const tx = await graviInsurance.connect(user).buyInsurance(
+        now_time, coverageDays, propertyAddress, propertyValue, { value: premium }
+      );
+      const receipt = await tx.wait();
+      const policyId = await extractPolicyIdFromReceipt(graviInsurance, receipt);
+      
+      // Add a disaster event
+      await graviInsurance.connect(owner).addDisasterEvent(
+        "Test Disaster",
+        "Test description",
+        now_time
+      );
+      
+      // Try to file a claim on the expired policy
+      await expect(
+        graviInsurance.connect(user).startAClaim("EVT#1", policyId, "Damage after policy expired")
+      ).to.be.revertedWith("Policy has expired");
+    });
+    
+    it("should not allow non-policy holders to file claims", async () => {
+      const { graviInsurance, owner, user, customer } = await loadFixture(deployGraviInsuranceFixture);
+      const now_time = Math.floor(Date.now() / 1000);
+      const coverageDays = 30;
+      const propertyValue = ethers.parseEther("20");
+      const propertyAddress = "123 Maple St";
+      
+      // Buy insurance as user
+      const premium = await graviInsurance.calculatePremium(propertyAddress, propertyValue, coverageDays);
+      const tx = await graviInsurance.connect(user).buyInsurance(
+        now_time, coverageDays, propertyAddress, propertyValue, { value: premium }
+      );
+      const receipt = await tx.wait();
+      const policyId = await extractPolicyIdFromReceipt(graviInsurance, receipt);
+      
+      // Add a disaster event
+      await graviInsurance.connect(owner).addDisasterEvent(
+        "Test Disaster",
+        "Test description",
+        now_time
+      );
+      
+      // Customer (not the policy holder) tries to file a claim
+      await expect(
+        graviInsurance.connect(customer).startAClaim("EVT#1", policyId, "Trying to claim someone else's policy")
+      ).to.be.revertedWith("Not the policy holder");
+    });
+
+    it("should prevent filing multiple claims on the same policy", async () => {
+      const { graviInsurance, owner, user, minter, customer } = await loadFixture(deployGraviInsuranceFixture);
+      const now_time = Math.floor(Date.now() / 1000);
+      
+      // Buy insurance
+      const coverageDays = 30;
+      const propertyValue = ethers.parseEther("20");
+      const propertyAddress = "123 Maple St";
+      const premium = await graviInsurance.calculatePremium(propertyAddress, propertyValue, coverageDays);
+      
+      const tx = await graviInsurance.connect(user).buyInsurance(
+        now_time, coverageDays, propertyAddress, propertyValue, { value: premium }
+      );
+      const receipt = await tx.wait();
+      const policyId = await extractPolicyIdFromReceipt(graviInsurance, receipt);
+      
+      // Add disaster event and file first claim
+      await graviInsurance.connect(owner).addDisasterEvent(
+        "Test Disaster",
+        "Test description",
+        now_time
+      );
+      
+      // First claim should succeed
+      await graviInsurance.connect(user).startAClaim("EVT#1", policyId, "First claim");
+      
+      // Add 3 moderators and let them all assess the claim
+      await graviInsurance.connect(owner).addModeratorToPool(owner.address, ethers.parseEther("100"));
+      await graviInsurance.connect(owner).addModeratorToPool(minter.address, ethers.parseEther("100"));
+      await graviInsurance.connect(owner).addModeratorToPool(customer.address, ethers.parseEther("100"));
+      
+      await graviInsurance.connect(owner).assessClaim(1, true, ethers.parseEther("5"));
+      await graviInsurance.connect(minter).assessClaim(1, true, ethers.parseEther("5"));
+      await graviInsurance.connect(customer).assessClaim(1, true, ethers.parseEther("5"));
+      
+      // Mark the policy as claimed
+      await graviInsurance.connect(owner).processClaim(1);
+      
+      // Fund the contract so it can make the payout
+      await owner.sendTransaction({
+        to: await graviInsurance.getAddress(),
+        value: ethers.parseEther("10")
+      });
+      
+      await graviInsurance.connect(owner).payoutClaim(1);
+      
+      // Second claim should be rejected because policy is already claimed
+      await expect(
+        graviInsurance.connect(user).startAClaim("EVT#1", policyId, "Second claim")
+      ).to.be.revertedWith("Policy already claimed");
     });
   });
 });
