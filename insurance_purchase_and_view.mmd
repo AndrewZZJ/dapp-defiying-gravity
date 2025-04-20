@@ -1,0 +1,55 @@
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant Wallet as Wallet
+    participant Contract as GraviInsurance
+
+    %% Buy Insurance Flow
+    Note over User, Contract: Insurance Purchase Flow
+    User->>Frontend: Visits Buy Insurance Page
+    User->>Frontend: Clicks "Connect Wallet"
+    Frontend->>Wallet: Request Wallet Connection
+    Wallet->>User: Prompt to Connect
+    User->>Wallet: Approves Connection
+    Wallet->>Frontend: Returns Wallet Address
+    
+    User->>Frontend: Enters Property Address
+    User->>Frontend: Sets Portfolio Value
+    User->>Frontend: Sets Coverage Period
+    User->>Frontend: Selects Disaster Type
+    
+    Frontend->>Contract: calculatePremium() & calculateCoverageAmount()
+    Contract->>Frontend: Return Premium & Coverage Values
+    Frontend->>User: Display Premium & Coverage Details
+    
+    User->>Frontend: Clicks "Purchase Insurance"
+    Frontend->>Wallet: Initiate buyInsurance Transaction
+    Wallet->>User: Prompt to Confirm Transaction
+    User->>Wallet: Confirms Transaction
+    Wallet->>Contract: Submit buyInsurance Transaction
+    Contract->>Contract: Process Insurance Purchase
+    Contract->>Wallet: Return Transaction Result
+    Wallet->>Frontend: Return Transaction Status
+    Frontend->>User: Display Purchase Confirmation
+    
+    %% View Insurance Flow
+    Note over User, Contract: Insurance View Flow
+    User->>Frontend: Visits View Insurance Page
+    alt Wallet Not Connected
+        User->>Frontend: Clicks "Connect Wallet"
+        Frontend->>Wallet: Request Wallet Connection
+        Wallet->>User: Prompt to Connect
+        User->>Wallet: Approves Connection
+        Wallet->>Frontend: Returns Wallet Address
+    end
+    
+    Frontend->>Contract: fetchInsuranceIds(walletAddress)
+    Contract->>Frontend: Return Insurance IDs
+    
+    loop For Each Insurance Type and ID
+        Frontend->>Contract: getUserPolicy(id)
+        Contract->>Frontend: Return Policy Details
+    end
+    
+    Frontend->>Frontend: Group Policies by Property Address
+    Frontend->>User: Display Insurance Portfolio
