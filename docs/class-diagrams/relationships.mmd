@@ -1,0 +1,81 @@
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '13px'}}}%%
+classDiagram
+    %% OpenZeppelin Base Contracts (simplified)
+    class ERC20 {
+        <<openzeppelin contract>>
+    }
+    
+    class Ownable {
+        <<openzeppelin contract>>
+    }
+    
+    class AccessControl {
+        <<openzeppelin contract>>
+    }
+    
+    class ERC721 {
+        <<openzeppelin contract>>
+    }
+    
+    class Governor {
+        <<openzeppelin contract>>
+    }
+    
+    %% Gravi Core Contracts
+    class GraviCha {
+    }
+    
+    class GraviGov {
+    }
+    
+    class GraviPoolNFT {
+    }
+    
+    class GraviGovernance {
+    }
+    
+    class GraviDAO {
+    }
+    
+    class GraviInsurance {
+    }
+    
+    class GraviDisasterOracle {
+    }
+    
+    %% Inheritance Relationships
+    GraviCha --|> ERC20
+    GraviCha --|> Ownable
+    GraviCha --|> AccessControl
+    
+    GraviGov --|> ERC20
+    GraviGov --|> ERC20Permit
+    GraviGov --|> ERC20Votes
+    GraviGov --|> Ownable
+    
+    GraviPoolNFT --|> ERC721
+    GraviPoolNFT --|> Ownable
+    
+    GraviGovernance --|> Governor
+    GraviGovernance --|> GovernorCountingSimple
+    GraviGovernance --|> GovernorVotes
+    GraviGovernance --|> GovernorVotesQuorumFraction
+    GraviGovernance --|> GovernorTimelockControl
+    
+    GraviDAO --|> Ownable
+    
+    GraviInsurance --|> Ownable
+    
+    %% Composition (strong ownership with lifecycle dependency)
+    GraviDAO "1" *-- "1" GraviCha : creates and owns
+    GraviDAO "1" *-- "1" GraviGov : creates and owns
+    GraviDAO "1" *-- "1" GraviPoolNFT : creates and owns
+    GraviDAO "1" *-- "*" GraviInsurance : creates and owns
+    
+    %% Dependencies (uses but doesn't own)
+    GraviGovernance "1" ..> "1" GraviDAO : governs
+    GraviGovernance "1" ..> "1" GraviCha : rewards with
+    GraviInsurance "1" ..> "1" GraviDisasterOracle : validates through
+    GraviInsurance "*" ..> "1" GraviCha : rewards with
+    GraviPoolNFT "1" ..> "1" GraviCha : uses for auctions
+    GraviPoolNFT "1" ..> "*" GraviInsurance : references treasuries

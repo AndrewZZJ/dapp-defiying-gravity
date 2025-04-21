@@ -5,8 +5,9 @@ sequenceDiagram
     participant Contract as GraviInsurance
     
     %% View Insurance Flow
-    Note over User, Contract: Insurance View Flow
+    Note over User, Contract: Insurance Portfolio View Flow
     User->>Frontend: Visits View Insurance Page
+    
     alt Wallet Not Connected
         User->>Frontend: Clicks "Connect Wallet"
         Frontend->>Wallet: Request Wallet Connection
@@ -15,13 +16,24 @@ sequenceDiagram
         Wallet->>Frontend: Returns Wallet Address
     end
     
-    Frontend->>Contract: fetchInsuranceIds(walletAddress)
-    Contract->>Frontend: Return Insurance IDs
+    %% Frontend loads contract addresses from config
+    Note over Frontend: Load Contract Addresses
     
-    loop For Each Insurance Type and ID
+    %% Fetch policies
+    Frontend->>Contract: fetchInsuranceIds(walletAddress)
+    Contract->>Frontend: Return Policy IDs
+    
+    loop For Each Policy ID
         Frontend->>Contract: getUserPolicy(id)
         Contract->>Frontend: Return Policy Details
     end
     
+    %% Process and display the data
     Frontend->>Frontend: Group Policies by Property Address
     Frontend->>User: Display Insurance Portfolio
+    
+    %% When user interacts with policy cards
+    opt User Copies Policy ID
+        User->>Frontend: Clicks Copy Button
+        Frontend->>Frontend: Copy Policy ID to Clipboard
+    end

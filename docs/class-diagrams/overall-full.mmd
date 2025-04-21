@@ -1,0 +1,269 @@
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '13px'}}}%%
+classDiagram
+    %% OpenZeppelin Base Contracts (simplified)
+    class ERC20 {
+        <<openzeppelin contract>>
+    }
+    
+    class Ownable {
+        <<openzeppelin contract>>
+    }
+    
+    class AccessControl {
+        <<openzeppelin contract>>
+    }
+    
+    class ERC721 {
+        <<openzeppelin contract>>
+    }
+    
+    class Governor {
+        <<openzeppelin contract>>
+    }
+    
+    class ERC20Permit {
+        <<openzeppelin contract>>
+    }
+    
+    class ERC20Votes {
+        <<openzeppelin contract>>
+    }
+    
+    class ReentrancyGuard {
+        <<openzeppelin contract>>
+    }
+    
+    class GovernorCountingSimple {
+        <<openzeppelin contract>>
+    }
+    
+    class GovernorVotes {
+        <<openzeppelin contract>>
+    }
+    
+    class GovernorVotesQuorumFraction {
+        <<openzeppelin contract>>
+    }
+    
+    class GovernorTimelockControl {
+        <<openzeppelin contract>>
+    }
+    
+    %% Gravi Core Contracts
+    class GraviCha {
+        +mapping(address => bool) minters
+        +addMinter(account: address)
+        +removeMinter(account: address)
+        +mint(to: address, amount: uint256)
+        +burn(value: uint256)
+        +burnFrom(account: address, value: uint256)
+        +burnFromByOwner(account: address, value: uint256)
+    }
+    
+    class GraviGov {
+        +monthlyMintAmount: uint256
+        +lastMintTimestamp: uint256
+        +mintMonthly()
+        +setMonthlyMintAmount(amount: uint256)
+        +mint(to: address, amount: uint256)
+    }
+    
+    class GraviPoolNFT {
+        +auctionDuration: uint256
+        +transferFee: uint256
+        +tokenTreasuryIndex: mapping(uint256 => uint8)
+        +treasuries: address[]
+        +tokenDonations: mapping(uint256 => uint256)
+        +struct Auction
+        +auctions: mapping(uint256 => Auction)
+        +pendingReturns: mapping(address => uint256)
+        +addTreasuryAddress(treasury: address)
+        +getTreasuryAddresses(): address[]
+        +getTreasuryAddress(tokenId: uint256): address
+        +setTreasuryAddress(index: uint8, treasury: address)
+        +transferWithFee(from: address, to: address, tokenId: uint256)
+        +transferWithDonation(from: address, to: address, tokenId: uint256)
+        +startAuction(tokenURI: string, treasuryIndex: uint8): uint256
+        +bid(tokenId: uint256, bidAmount: uint256)
+        +withdraw()
+        +claimNFT(tokenId: uint256)
+    }
+    
+    class GraviGovernance {
+        +govVotingDelay: uint256
+        +govVotingPeriod: uint256
+        +govProposalThreshold: uint256
+        +proposals: mapping(uint256 => ProposalData)
+        +allProposalIds: uint256[]
+        +voteRewardAmount: uint256
+        +rewardsEnabled: bool
+        +setVoteRewardAmount(newAmount: uint256)
+        +toggleVoteRewards(enabled: bool)
+        +createProposal(title: string, description: string, targets: address[], values: uint256[], calldatas: bytes[]): uint256
+        +createProposalWithReward(title: string, description: string, targets: address[], values: uint256[], calldatas: bytes[]): uint256
+        +castVoteWithReward(proposalId: uint256, support: uint8): uint256
+        +getProposalDetail(proposalId: uint256): ProposalData
+    }
+    
+    class GraviDAO {
+        +timelockController: address
+        +govTokenEthPrice: uint256
+        +govTokenGraviChaBurn: uint256
+        +insurancePools: mapping(string => address)
+        +insurancePoolNames: string[]
+        +struct ModeratorNomination
+        +moderatorNominationThreshold: uint256
+        +moderatorVotingThreshold: uint256
+        +nominatedModerators: mapping(address => ModeratorNomination)
+        +moderatorRewardsEnabled: bool
+        +moderatorNominationReward: uint256
+        +moderatorVotingReward: uint256
+        +setTimelockController(timelockController: address)
+        +purchaseGovTokens(amount: uint256)
+        +setNFTPool(nftPool: address)
+        +addInsurancePool(poolName: string, insurancePool: address)
+        +nominateModerator(moderator: address)
+        +voteForModerator(moderator: address)
+        +getTopModerators(count: uint256): (address[], uint256[])
+    }
+    
+    class GraviInsurance {
+        +disasterType: string
+        +premiumRate: uint256
+        +totalPoolFunds: uint256
+        +struct Policy
+        +struct ClaimRecord
+        +struct DisasterEvent
+        +struct Moderator
+        +policies: mapping(bytes32 => Policy)
+        +userRecords: mapping(address => UserRecord)
+        +donors: address[]
+        +moderators: mapping(address => Moderator)
+        +disasterEvents: mapping(string => DisasterEvent)
+        +claimRecords: ClaimRecord[]
+        +donationRewardRate: uint256
+        +buyInsurance(startTime: uint256, coveragePeriod: uint256, propertyAddress: string, propertyValue: uint256): bytes32
+        +donate(): uint256
+        +addDisasterEvent(eventName: string, eventDescription: string, disasterDate: uint256)
+        +startAClaim(eventId: string, policyId: bytes32, incidentDescription: string): bool
+        +processClaim(claimId: uint256)
+        +assessClaim(claimId: uint256, isApproved: bool, amount: uint256)
+        +payoutClaim(claimId: uint256)
+    }
+    
+    class GraviDisasterOracle {
+        +validateClaim(disasterType: string): bool
+        +validateAddress(propertyAddress: string): bool
+        +calculatePremium(propertyAddress: string, propertyValue: uint256, coveragePeriod: uint256): uint256
+        +calculateCoverage(propertyAddress: string, propertyValue: uint256, coveragePeriod: uint256): uint256
+        +calculateDamage(policyId: bytes32, eventId: string, propertyAddress: string, coverageAmount: uint256): uint256
+    }
+    
+    %% Inheritance Relationships - FIXED DIRECTION
+    GraviCha --|> ERC20
+    GraviCha --|> Ownable
+    GraviCha --|> AccessControl
+    
+    GraviGov --|> ERC20
+    GraviGov --|> ERC20Permit
+    GraviGov --|> ERC20Votes
+    GraviGov --|> Ownable
+    
+    GraviPoolNFT --|> ERC721
+    GraviPoolNFT --|> Ownable
+    GraviPoolNFT --|> ReentrancyGuard
+    
+    GraviGovernance --|> Governor
+    GraviGovernance --|> GovernorCountingSimple
+    GraviGovernance --|> GovernorVotes
+    GraviGovernance --|> GovernorVotesQuorumFraction
+    GraviGovernance --|> GovernorTimelockControl
+    
+    GraviDAO --|> Ownable
+    
+    GraviInsurance --|> Ownable
+    
+    %% Composition (strong ownership with lifecycle dependency) - FIXED DIRECTION
+    GraviDAO *-- GraviCha
+    GraviDAO *-- GraviGov
+    GraviDAO *-- GraviPoolNFT
+    GraviDAO *-- GraviInsurance
+    
+    %% Aggregation (shared reference without lifecycle control) - FIXED DIRECTION
+    GraviInsurance o-- Policy
+    GraviInsurance o-- ClaimRecord
+    GraviPoolNFT o-- NFTAuction
+    
+    %% Dependencies (uses but doesn't own) - FIXED DIRECTION
+    GraviGovernance ..> GraviDAO
+    GraviGovernance ..> GraviCha
+    GraviInsurance ..> GraviDisasterOracle
+    GraviInsurance ..> GraviCha
+    GraviPoolNFT ..> GraviCha
+    GraviPoolNFT ..> GraviInsurance
+    
+    %% User Relationships - FIXED DIRECTION
+    User o-- Policy
+    User o-- GraviCha
+    User o-- GraviGov
+    User o-- GraviPoolNFT
+    User ..> GraviInsurance
+    User ..> GraviDAO
+    User ..> GraviGovernance
+    
+    %% Moderator Relationships - FIXED DIRECTION
+    Moderator ..> GraviInsurance
+    GraviDAO ..> Moderator
+    
+    %% Cardinality - FIXED DIRECTION
+    GraviDAO "1" *-- "1" GraviCha
+    GraviDAO "1" *-- "1" GraviGov
+    GraviDAO "1" *-- "1" GraviPoolNFT
+    GraviDAO "1" *-- "*" GraviInsurance
+    GraviInsurance "1" o-- "*" Policy
+    User "*" o-- "0..*" GraviCha
+    User "*" o-- "1..*" Policy
+    
+    %% Additional structures for composition relationships
+    class Policy {
+        <<entity>>
+        +policyId: bytes32
+        +policyHolder: address
+        +maxCoverageAmount: uint256
+        +premiumPaid: uint256
+        +startTime: uint256
+        +endTime: uint256
+        +isClaimed: bool
+        +propertyAddress: string
+        +propertyValue: uint256
+    }
+    
+    class ClaimRecord {
+        <<entity>>
+        +claimId: uint256
+        +policyId: bytes32
+        +eventId: string
+        +approvedClaimAmount: uint256
+        +assessmentStart: uint256
+        +assessmentEnd: uint256
+        +status: ClaimStatus
+        +incidentDescription: string
+    }
+    
+    class NFTAuction {
+        <<entity>>
+        +tokenId: uint256
+        +highestBidder: address
+        +highestBid: uint256
+        +nftClaimed: bool
+        +startTime: uint256
+    }
+    
+    %% Custom Classes for Diagram Completeness
+    class User {
+        <<external actor>>
+    }
+    
+    class Moderator {
+        <<role>>
+    }

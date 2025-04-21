@@ -19,23 +19,31 @@ sequenceDiagram
     Frontend->>Contract: fetchInsuranceIds(walletAddress)
     Contract->>Frontend: Return Insurance IDs
     
+    loop For Each Insurance ID
+        Frontend->>Contract: getUserPolicy(id)
+        Contract->>Frontend: Return Policy Details
+    end
+    
     Frontend->>Contract: getAllDisasterEvents()
     Contract->>Frontend: Return Disaster Events
     
-    User->>Frontend: Selects Disaster Type
-    Frontend->>Frontend: Filter Events by Type
-    
+    User->>Frontend: Selects Policy From List
     User->>Frontend: Selects Disaster Event
-    User->>Frontend: Selects Insurance ID
-    User->>Frontend: Enters Incident Date
-    User->>Frontend: Enters Description
+    User->>Frontend: Enters Incident Description
     
     User->>Frontend: Clicks "Submit Claim"
     Frontend->>Wallet: Initiate startAClaim Transaction
     Wallet->>User: Prompt to Confirm Transaction
     User->>Wallet: Confirms Transaction
-    Wallet->>Contract: Submit startAClaim(eventId, insuranceId, description)
-    Contract->>Contract: Create New Claim
+    Wallet->>Contract: Submit startAClaim(eventId, policyId, description)
+    
+    Contract->>Contract: Validate Policy Ownership
+    Contract->>Contract: Check Policy is Active
+    Contract->>Contract: Create New Claim Record
+    Contract->>Contract: Add to User's Claims List
+    
     Contract->>Wallet: Return Transaction Result
     Wallet->>Frontend: Return Transaction Status
     Frontend->>User: Display Submission Confirmation
+    
+    Note over User, Contract: Claim is now pending moderator assessment

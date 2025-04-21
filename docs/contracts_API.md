@@ -131,6 +131,10 @@ A simplified oracle that verifies disaster type against a whitelist.
 | Function | Description | Parameters | Returns |
 |----------|-------------|------------|---------|
 | `validateClaim(string)` | Validates disaster type against whitelist | `disasterType`: Type of disaster | `bool`: Whether type is valid |
+| `validateAddress(string)` | Validates if the property address is valid | `propertyAddress`: The property address to validate | `bool`: Whether address is valid |
+| `calculatePremium(string, uint256, uint256)` | Calculates insurance premium | `propertyAddress`: Property address, `propertyValue`: Value in ETH, `coveragePeriod`: Coverage in days | `uint256`: Premium amount |
+| `calculateCoverage(string, uint256, uint256)` | Calculates coverage amount based on property details | `propertyAddress`: Property address, `propertyValue`: Value in ETH, `coveragePeriod`: Coverage in days | `uint256`: Coverage amount |
+| `calculateDamage(bytes32, string, string, uint256)` | Calculates damage amount for a claim | `policyId`: Policy ID, `eventId`: Disaster event ID, `propertyAddress`: Property address, `coverageAmount`: Max coverage | `uint256`: Damage amount |
 
 ## GraviInsurance
 
@@ -141,17 +145,18 @@ Implementation of disaster insurance policies and claims management.
 | `buyInsurance(uint256, uint256, string, uint256)` | Buys an insurance policy | `startTime`: Coverage start, `coveragePeriod`: Days of coverage, `propertyAddress`: Insured property, `propertyValue`: Property value | `bytes32`: Policy ID |
 | `getUserPolicies()` | Gets caller's insurance policies | None | Multiple arrays with policy details |
 | `calculatePremium(string, uint256, uint256)` | Calculates insurance premium | `propertyAddress`, `propertyValue`, `coveragePeriod` | `uint256`: Premium amount |
+| `calculateCoverageAmount(string, uint256, uint256)` | Calculates coverage based on property details | `propertyAddress`: Property address, `propertyValue`: Value in ETH, `coveragePeriod`: Days of coverage | `uint256`: Coverage amount |
 | `donate()` | Donates ETH to pool and receives tokens | None | `uint256`: Tokens received |
 | `startAClaim(string, bytes32, string)` | Starts a new claim for a policy | `eventId`: Disaster event, `policyId`: Policy ID, `incidentDescription`: Incident details | `bool`: Success status |
 | `assessClaim(uint256, bool, uint256)` | Allows moderator to assess claim | `claimId`: Claim ID, `isApproved`: Approval status, `amount`: Approved amount | None |
 | `processClaim(uint256)` | Processes claim based on moderator votes | `claimId`: Claim ID | None |
+| `cancelClaim(uint256)` | Allows user to cancel their claim | `claimId`: Claim ID | `bool`: Success status |
 | `payoutClaim(uint256)` | Pays out approved claim | `claimId`: Claim ID | None |
 | `getDisasterEvent(string)` | Gets details of a disaster event | `eventId`: Event ID | Event name, description, date |
 | `getAllDisasterEvents()` | Gets all disaster events | None | `string[]`: Event IDs |
 | `getUserClaims()` | Gets claims associated with caller | None | Multiple arrays with claim details |
 | `getTopDonors()` | Retrieves top 10 highest donors | None | `address[]`, `uint256[]`: Donor addresses and amounts |
 | `fetchInsuranceIds(address)` | Gets policy IDs for a given user | `user`: User address | `bytes32[]`: Policy IDs |
-| `calculateCoverageAmountFromPremium(uint256)` | Calculates coverage based on premium | `premium`: Premium amount | `uint256`: Coverage amount |
 | `getDonationRewardRate()` | Gets the donation reward rate | None | `uint256`: Reward rate |
 | `setDonationRewardRate(uint256)` | Sets the donation reward rate | `newRate`: New reward rate | None |
 | `addDisasterEvent(string, string, uint256)` | Adds a new disaster event | `eventName`, `eventDescription`, `disasterDate` | None |
@@ -165,3 +170,4 @@ Implementation of disaster insurance policies and claims management.
 | `getClaimModerators(uint256)` | Gets moderators for a specific claim | `claimId`: Claim ID | `address[]`: Moderator addresses |
 | `fetchClaimIds(address)` | Gets claim IDs for a specific user | `user`: User address | `uint256[]`: Claim IDs |
 | `getClaimDetails(uint256)` | Gets detailed information about a claim | `claimId`: Claim ID | Multiple return values about claim |
+| `getAllClaims()` | Gets all claim records | None | Array of all claim records |

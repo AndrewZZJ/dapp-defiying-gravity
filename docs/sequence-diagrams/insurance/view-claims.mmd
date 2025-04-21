@@ -1,5 +1,5 @@
 sequenceDiagram
-    actor User as Property Owners
+    actor User as Property Owner
     participant Frontend
     participant Wallet
     participant Contract as GraviInsurance
@@ -15,30 +15,46 @@ sequenceDiagram
         Wallet->>Frontend: Returns Wallet Address
     end
     
+    %% Frontend loads contract addresses from config
+    Note over Frontend: Load Contract Addresses
+    
+    %% Fetch disaster events and claims
+    Frontend->>Contract: getAllDisasterEvents()
+    Contract->>Frontend: Return Disaster Event IDs
+    
+    loop For Each Event ID
+        Frontend->>Contract: getDisasterEvent(eventId)
+        Frontend->>Contract: Return Event Details
+    end
+    
     Frontend->>Contract: fetchClaimIds(walletAddress)
     Contract->>Frontend: Return Claim IDs
     
     loop For Each Claim ID
         Frontend->>Contract: getClaimDetails(id)
         Contract->>Frontend: Return Claim Details
-        
-        Frontend->>Contract: getDisasterEvent(eventId)
-        Contract->>Frontend: Return Event Details
     end
     
+    %% Process and display the data
+    Frontend->>Frontend: Sort Claims (Pending First)
     Frontend->>User: Display Claims List
     
-    User->>Frontend: Clicks "View Details" on Claim
-    Frontend->>User: Expand Claim Details
+    %% User views claim details
+    User->>Frontend: Clicks Claim Item
+    Frontend->>User: Display Detailed Claim Information
     
-    alt Claim is "In Progress"
+    %% Simplified Cancellation Flow
+    alt Claim Status is "Pending" or "In Progress"
         User->>Frontend: Clicks "Cancel Claim"
+        Frontend->>User: Show Confirmation Dialog
+        User->>Frontend: Confirms Cancellation
         Frontend->>Wallet: Initiate cancelClaim Transaction
         Wallet->>User: Prompt to Confirm Transaction
         User->>Wallet: Confirms Transaction
         Wallet->>Contract: Submit cancelClaim(claimId)
-        Contract->>Contract: Cancel the Claim
+        Contract->>Contract: Validate and Cancel Claim
         Contract->>Wallet: Return Transaction Result
         Wallet->>Frontend: Return Transaction Status
         Frontend->>User: Display Cancellation Confirmation
+        Frontend->>Frontend: Refresh Claims List
     end
