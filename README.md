@@ -101,7 +101,7 @@ The GraviTrust ecosystem consists of multiple interconnected components implemen
 
 ### Prerequisites
 - Node.js v20 or higher
-- npm or yarn
+- npm and yarn
 - MetaMask or another Web3 provider
 
 ### Installation
