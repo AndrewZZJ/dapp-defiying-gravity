@@ -24,8 +24,9 @@ async function main() {
   const graviDAOAddress = deploymentConfig["GraviDAO"];
   const graviChaAddress = deploymentConfig["GraviCha"];
   const graviGoveranceAddress = deploymentConfig["GraviGovernance"];
+  const graviOracleAddress = deploymentConfig["GraviDisasterOracle"];
   // const graviPoolNFTAddress = deploymentConfig["GraviPoolNFT"];
-  if (!graviDAOAddress || !graviChaAddress || !graviGoveranceAddress) {
+  if (!graviDAOAddress || !graviChaAddress || !graviGoveranceAddress || !graviOracleAddress) {
     throw new Error("Required addresses not found in deployment config.");
   }
   const graviDAO = await ethers.getContractAt("GraviDAO", graviDAOAddress);
@@ -38,10 +39,15 @@ async function main() {
 
   // Deploy a new GraviInsurance contract for the new insurance.
   const GraviInsurance = await ethers.getContractFactory("GraviInsurance");
-  const graviInsurance = await GraviInsurance.deploy(disasterType, premiumRate, graviChaAddress);
+  const graviInsurance = await GraviInsurance.deploy(disasterType, premiumRate, graviChaAddress, graviOracleAddress);
   await graviInsurance.waitForDeployment();
   const insurancePoolAddress = await graviInsurance.getAddress();
   console.log(`${newInsuranceName} - GraviInsurance deployed at:`, insurancePoolAddress);
+
+  // Optional: Set donation reward rate (if needed, similar to deploy-insurance-initial.ts)
+  const donationRewardRate = 7500; // Example value, adjust as needed
+  await graviInsurance.setDonationRewardRate(donationRewardRate);
+  console.log(`${newInsuranceName} - Donation reward rate set to: ${donationRewardRate}`);
 
   // Transfer ownership of the insurance contract to the DAO.
   await graviInsurance.transferOwnership(graviDAOAddress);

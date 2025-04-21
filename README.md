@@ -13,6 +13,7 @@ GraviTrust is a decentralized insurance platform addressing the gaps in traditio
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Development Scripts](#development-scripts)
+- [Local Testing Guide](#local-testing-guide)
 - [Testing](#testing)
 - [Frontend Application](#frontend-application)
 - [Contribution](#contribution)
@@ -203,6 +204,78 @@ npx hardhat run scripts/view/dao/print-voting-power.ts --network localhost
 # Insurance and NFT data
 npx hardhat run scripts/view/insurance/print-insurances-and-nft-pools.ts --network localhost
 ```
+
+## Local Testing Guide
+
+To fully test the GraviTrust application locally, you'll need to run three separate terminal instances:
+
+### Terminal 1: Local Hardhat Node
+```bash
+# Start the local Ethereum network
+npx hardhat node
+```
+Keep this terminal running throughout your testing.
+
+### Terminal 2: Contract Deployment & Setup
+Before starting deployment, modify the distribute-tokens.ts script to set your own wallet address:
+
+1. Open `scripts/deploy/distribute-tokens.ts`
+2. Find the "Early Investor" entry in the distributions array
+3. Replace the existing address with your own MetaMask wallet address
+4. This will send 50 test ETH to your wallet for testing purposes
+
+Then run the following scripts in sequence:
+
+```bash
+# Core deployment
+npx hardhat run scripts/deploy/deploy-main.ts --network localhost
+npx hardhat run scripts/deploy/set-dao-parameters.ts --network localhost
+npx hardhat run scripts/deploy/distribute-tokens.ts --network localhost
+
+# Insurance and NFT setup
+npx hardhat run scripts/deploy/deploy-insurance-initial.ts --network localhost
+npx hardhat run scripts/deploy/initial-nft-auctions.ts --network localhost
+
+# Complete initial setup
+npx hardhat run scripts/deploy/complete-inital-deployment.ts --network localhost
+
+# Testing use cases
+npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
+npx hardhat run scripts/nft/bid-for-nft.ts --network localhost
+npx hardhat run scripts/nft/bid-for-nft2.ts --network localhost
+npx hardhat run scripts/dao-propose/nft/monthly-mint-nfts.ts --network localhost
+npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
+```
+
+### Terminal 3: Frontend Application
+```bash
+# Navigate to the React frontend
+cd frontend-react
+
+# Install dependencies
+yarn
+
+# Start the development server
+yarn start
+```
+
+The frontend should now be accessible at http://localhost:3000. Use MetaMask connected to your local Hardhat network (typically http://127.0.0.1:8545 with Chain ID 31337).
+
+### Additional Testing Tips
+
+1. **Time Simulation**: Many features like auctions and governance require time to pass. Use the time-skip script when needed:
+   ```bash
+   npx hardhat run scripts/dao-propose/time-skip.ts --network localhost
+   ```
+
+2. **Account Connection**: Ensure MetaMask is connected to the local Hardhat network and you're using the accounts that received tokens during setup.
+
+3. **Token Delegation**: Before participating in governance, you must delegate your voting power:
+   ```bash
+   npx hardhat run scripts/dao-propose/delegate-votes.ts --network localhost
+   ```
+
+4. **Error Handling**: If transactions fail, check the Hardhat node terminal for error logs, which provide more details than MetaMask errors.
 
 ## Testing
 
