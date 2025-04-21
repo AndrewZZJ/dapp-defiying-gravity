@@ -113,12 +113,6 @@ cd dapp-defiying-gravity
 
 # Install dependencies
 npm install
-
-# Start local Hardhat node
-npx hardhat node
-
-# Deploy contracts
-npx hardhat run scripts/deploy/deploy-main.ts --network localhost
 ```
 
 ## Project Structure
@@ -156,12 +150,11 @@ dapp-defiying-gravity/
 │   │   └── ...
 │   └── ...
 └── docs/                    # Project documentation
-    ├── sequence-diagrams/   # Sequence diagrams for user flows
-    │   ├── insurance/       # Insurance-related flows
-    │   ├── governance/      # Governance-related flows
-    │   ├── nft/             # NFT-related flows
-    │   └── donate/          # Donation-related flows
-    └── class-diagrams/      # Class diagrams of system architecture
+    └── sequence-diagrams/   # Sequence diagrams for user flows
+        ├── insurance/       # Insurance-related flows
+        ├── governance/      # Governance-related flows
+        ├── nft/             # NFT-related flows
+        └── donate/          # Donation-related flows
 ```
 
 ## Development Scripts
@@ -253,6 +246,7 @@ npx hardhat run scripts/dao-propose/add-insurance-real.ts --network localhost
 cd frontend-react
 
 # Install dependencies
+nvm use 20
 yarn
 
 # Start the development server
